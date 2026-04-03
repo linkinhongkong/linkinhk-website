@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Link.in — 會員登記</title>
+  <meta name="description" content="AI 配對服務，每星期為你搵到最適合嘅人">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body style="margin:0">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useCallback } = React;
+
+
+/* ═══════════════════════════════════════════
+   CONFIG — Update these before deploying
+   ═══════════════════════════════════════════ */
+const WEBHOOK_URL = "https://linkinhk.app.n8n.cloud/webhook/signup"; // ← Replace with your actual n8n webhook URL
+const LOGO_URL = "/logo.png";
+
+/* ═══════════════════════════════════════════
+   DATA — All form options
+   ═══════════════════════════════════════════ */
+const OCCUPATIONS = [
+  { id: "finance", label: "金融／銀行", icon: "🏦" },
+  { id: "business", label: "商業／市場", icon: "📊" },
+  { id: "it", label: "IT／科技", icon: "👨‍💻" },
+  { id: "design", label: "設計／創意", icon: "🎨" },
+  { id: "education", label: "教育", icon: "📚" },
+  { id: "medical", label: "醫療", icon: "🏥" },
+  { id: "engineering", label: "工程", icon: "🏗" },
+  { id: "legal", label: "法律／會計", icon: "⚖️" },
+  { id: "service", label: "服務業", icon: "🍽" },
+  { id: "freelance", label: "自僱／創業", icon: "✨" },
+  { id: "student", label: "學生", icon: "🎓" },
+  { id: "other_occ", label: "其他", icon: "💼" },
+];
+
+const UNIVERSITIES = [
+  { id: "hku", label: "香港大學" },
+  { id: "cuhk", label: "中文大學" },
+  { id: "ust", label: "科技大學" },
+  { id: "polyu", label: "理工大學" },
+  { id: "bu", label: "浸會大學" },
+  { id: "hk_other", label: "香港其他大學" },
+  { id: "overseas", label: "海外升學" },
+  { id: "other_uni", label: "其他" },
+];
+
+const MBTI_TYPES = [
+  "INTJ", "INTP", "ENTJ", "ENTP",
+  "INFJ", "INFP", "ENFJ", "ENFP",
+  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
+  "ISTP", "ISFP", "ESTP", "ESFP",
+];
+
+const MBTI_COLORS = {
+  INTJ: "#7B68EE", INTP: "#7B68EE", ENTJ: "#CD5C5C", ENTP: "#CD5C5C",
+  INFJ: "#3CB371", INFP: "#3CB371", ENFJ: "#3CB371", ENFP: "#3CB371",
+  ISTJ: "#4682B4", ISFJ: "#4682B4", ESTJ: "#4682B4", ESFJ: "#4682B4",
+  ISTP: "#DAA520", ISFP: "#DAA520", ESTP: "#DAA520", ESFP: "#DAA520",
+};
+
+const LOVE_LANGUAGES = [
+  { id: "words", label: "肯定的言語", en: "Words of Affirmation", icon: "💬" },
+  { id: "time", label: "精心時刻", en: "Quality Time", icon: "⏰" },
+  { id: "gifts", label: "接受禮物", en: "Receiving Gifts", icon: "🎁" },
+  { id: "service", label: "服務行動", en: "Acts of Service", icon: "🔧" },
+  { id: "touch", label: "身體接觸", en: "Physical Touch", icon: "🤝" },
+];
+
+const INTERESTS = {
+  "運動／戶外": [
+    { id: "hiking", label: "行山／遠足", icon: "🥾" },
+    { id: "gym", label: "健身／瑜伽", icon: "🏋️" },
+    { id: "running", label: "跑步／單車", icon: "🏃" },
+    { id: "ball_sports", label: "球類運動", icon: "🏀" },
+  ],
+  "文化／藝術": [
+    { id: "music", label: "音樂／演唱會", icon: "🎵" },
+    { id: "reading", label: "閱讀", icon: "📖" },
+    { id: "art", label: "藝術展覽", icon: "🎨" },
+    { id: "photo", label: "攝影", icon: "📸" },
+  ],
+  "生活品味": [
+    { id: "coffee", label: "咖啡文化", icon: "☕" },
+    { id: "foodie", label: "美食探店", icon: "🍽" },
+    { id: "cooking", label: "煮飯／烘焙", icon: "🍳" },
+    { id: "travel", label: "旅行", icon: "✈️" },
+    { id: "pets", label: "寵物", icon: "🐾" },
+  ],
+  "娛樂休閒": [
+    { id: "gaming", label: "打機", icon: "🎮" },
+    { id: "board_games", label: "桌遊", icon: "🎲" },
+    { id: "karaoke", label: "唱K", icon: "🎤" },
+    { id: "drama", label: "睇劇", icon: "📺" },
+  ],
+};
+
+const DRINKING = [
+  { id: "no", label: "唔飲 / 唔係好飲" },
+  { id: "social", label: "社交場合會飲，覺得係一種氣氛" },
+  { id: "enjoy", label: "享受飲酒本身，例如小酌、bar / wine" },
+];
+const SMOKING = [
+  { id: "no", label: "唔吸煙" },
+  { id: "social", label: "社交場合會吸，例如 vape / shisha" },
+  { id: "yes", label: "有吸煙習慣（香煙 / vape）" },
+];
+const MEETING_FREQ = [
+  { id: "high", label: "高頻型：一星期見3次或以上（甚至每日都ok，見面係感情重要一部分）" },
+  { id: "balanced", label: "平衡型：一星期見1-2次（生活、工作都要平衡，但唔想太耐唔見）" },
+  { id: "quality", label: "質重型：一星期見不到一次，或者一個月2-3次（重質唔重量，見面就要有質素）" },
+];
+const REL_GOALS = [
+  { id: "marriage", label: "以結婚為目標" },
+  { id: "long_term", label: "一段長期穩定嘅關係" },
+  { id: "casual", label: "輕鬆／隨緣嘅約會" },
+  { id: "not_ready", label: "暫時唔想承諾嘅親密關係" },
+];
+const KIDS_PREF = [
+  { id: "want", label: "希望將來有" },
+  { id: "lean_yes", label: "傾向有，但仍然保持開放" },
+  { id: "lean_no", label: "傾向無，但仍然保持開放" },
+  { id: "no", label: "唔考慮有小朋友" },
+];
+const CONFLICT_STYLES = [
+  { id: "direct", label: "傾向即時講清楚，唔想問題拖住" },
+  { id: "cool_down", label: "需要少少時間消化情緒，之後再慢慢傾" },
+  { id: "understand", label: "會先理解對方觀點，再決定點樣回應" },
+  { id: "practical", label: "比較著重實際解決方法，而唔係情緒本身" },
+];
+
+const AGE_RANGES = ["無所謂", "19 歲或以下", "20–24", "25–29", "30–34", "35 歲或以上"];
+const HEIGHT_RANGES = ["無所謂", "150 以下", "150-159", "160-169", "170-179", "180 以上"];
+const REFERRAL_SOURCES = ["Instagram", "Threads", "朋友推薦", "網上搜尋", "其它"];
+
+const STEPS = [
+  { title: "基本資料", subtitle: "讓我哋認識你 ✨" },
+  { title: "認識你多一點", subtitle: "讓AI 更了解你，配對時更準確" },
+  { title: "你嘅性格", subtitle: "了解你嘅內在世界 🧠" },
+  { title: "生活方式", subtitle: "日常習慣同價值觀 🌿" },
+  { title: "個人展示", subtitle: "一張好照片勝過千言萬語 📸" },
+  { title: "理想對象 — 基本背景", subtitle: "直覺揀就可以 ✨" },
+  { title: "理想對象 — 性格與生活", subtitle: "搵到同頻嘅人 💫" },
+  { title: "最後一步", subtitle: "差少少就完成喇！🎉" },
+];
+
+
+/* ═══════════════════════════════════════════
+   STYLES
+   ═══════════════════════════════════════════ */
+const STYLES = `
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bg: #f0f0f0;
+    --card: #f7f7f7;
+    --white: #ffffff;
+    --text: #333;
+    --text-light: #888;
+    --accent: #9060E0;
+    --accent-pink: #FF6EB4;
+    --accent-gradient: linear-gradient(135deg, #FF6EB4, #A259FF);
+    --chip-bg: #efefef;
+    --green-bg: #e8f8ee;
+    --green-text: #1a7a3a;
+    --yellow-bg: #fefce8;
+    --yellow-border: #eab308;
+    --radius: 20px;
+    --radius-sm: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* ── Layout ── */
+  .form-root {
+    min-height: 100dvh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .form-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+  }
+  .form-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--accent-gradient);
+    z-index: 1;
+  }
+
+  /* ── Header ── */
+  .form-header {
+    padding: 28px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo-img { height: 20px; opacity: 0.8; }
+  .step-indicator {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Progress bar ── */
+  .progress-bar {
+    margin: 16px 24px 0;
+    height: 4px;
+    background: var(--chip-bg);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent-gradient);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── Step header ── */
+  .step-header { padding: 24px 24px 4px; }
+  .step-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .step-subtitle { font-size: 14px; color: var(--text-light); }
+  .step-body { padding: 16px 24px 24px; }
+
+  /* ── Fields ── */
+  .field { margin-bottom: 22px; }
+  .field-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .field-label .req { color: var(--accent-pink); font-size: 12px; }
+  .field-hint { font-size: 12px; color: var(--text-light); margin-bottom: 8px; line-height: 1.5; }
+
+  /* ── Text input ── */
+  .text-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--white);
+    color: var(--text);
+    transition: border-color 0.2s;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .text-input:focus { border-color: var(--accent); }
+  .text-input::placeholder { color: #ccc; }
+  textarea.text-input { resize: vertical; min-height: 80px; }
+
+  /* ── Date of birth dropdowns ── */
+  .dob-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .dob-group { position: relative; }
+  .dob-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+  .dob-select {
+    width: 100%;
+    padding: 12px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-family: inherit;
+    background: var(--white);
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M1.4 0L6 4.6 10.6 0 12 1.4l-6 6-6-6z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .dob-select:focus { border-color: var(--accent); }
+
+  /* ── Chips ── */
+  .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 24px;
+    border: 2px solid transparent;
+    background: var(--chip-bg);
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip:active { transform: scale(0.96); }
+  .chip.active {
+    background: #f0e8fc;
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .chip .chip-icon { font-size: 16px; }
+
+  /* ── Binary buttons ── */
+  .binary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .binary-btn {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #e0e0e0;
+    background: var(--white);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #555;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .binary-btn:active { transform: scale(0.97); }
+  .binary-btn.active {
+    border-color: var(--accent);
+    background: #f0e8fc;
+    color: var(--accent);
+  }
+  .binary-btn .binary-icon { font-size: 24px; }
+
+  /* ── Option list ── */
+  .option-list { display: flex; flex-direction: column; gap: 8px; }
+  .option-item {
+    padding: 13px 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #e8e8e8;
+    background: var(--white);
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .option-item:active { transform: scale(0.98); }
+  .option-item.active {
+    border-color: var(--accent);
+    background: #f0e8fc;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── MBTI grid ── */
+  .mbti-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mbti-chip {
+    padding: 10px 4px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #e8e8e8;
+    background: var(--white);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .mbti-chip .mbti-img {
+    width: 100%;
+    max-width: 64px;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    margin-bottom: 2px;
+  }
+  .mbti-chip .mbti-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .mbti-chip .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .mbti-chip:active { transform: scale(0.95); }
+  .mbti-chip.active {
+    border-color: var(--accent);
+    background: #f0e8fc;
+    color: var(--accent);
+  }
+  .mbti-chip.unsure-chip {
+    grid-column: 1 / -1;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 500;
+    flex-direction: row;
+  }
+  .mbti-chip.unsure-chip.active {
+    border-color: var(--accent);
+    background: #f0e8fc;
+    color: var(--accent);
+  }
+
+  /* ── Love Language ranking ── */
+  .rank-list { display: flex; flex-direction: column; gap: 8px; }
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    border: 2px solid #e8e8e8;
+    user-select: none;
+  }
+  .rank-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .rank-label { font-size: 14px; font-weight: 500; }
+  .rank-sublabel { font-size: 12px; color: var(--text-light); }
+  .rank-arrows { display: flex; flex-direction: column; gap: 2px; }
+  .rank-arrow {
+    width: 28px; height: 22px;
+    border: none;
+    background: var(--chip-bg);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rank-arrow:hover { background: #ddd; }
+  .rank-arrow:disabled { opacity: 0.3; cursor: default; }
+
+  /* ── Interest categories ── */
+  .interest-cat { margin-bottom: 14px; }
+  .interest-cat-label { font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 8px; }
+  .interest-count {
+    display: inline-block;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  .interest-count.ok { background: var(--green-bg); color: var(--green-text); }
+  .interest-count.warn { background: #fff0f0; color: #c00; }
+
+  /* ── Upload ── */
+  .upload-zone {
+    border: 2px dashed #d0d0d0;
+    border-radius: var(--radius-sm);
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: #faf7ff; }
+  .upload-zone.has-image { border-style: solid; border-color: var(--accent); padding: 0; }
+  .upload-zone .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-zone .upload-text { font-size: 14px; color: var(--text-light); }
+  .upload-zone .upload-hint { font-size: 12px; color: #bbb; margin-top: 4px; }
+  .upload-preview { width: 100%; max-height: 300px; object-fit: cover; display: block; }
+  .upload-remove {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .upload-input { display: none; }
+
+  /* ── Consent ── */
+  .consent-box {
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    border: 2px solid #e8e8e8;
+    margin-bottom: 16px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .consent-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+  .consent-body { font-size: 12px; color: #666; line-height: 1.7; }
+  .consent-body b { color: #444; }
+  .consent-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #e8e8e8;
+    background: var(--white);
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .consent-check.active { border-color: var(--accent); background: #f0e8fc; }
+  .consent-checkbox {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 2px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-size: 14px;
+    color: white;
+    font-weight: 700;
+  }
+  .consent-check.active .consent-checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .consent-label { font-size: 14px; font-weight: 600; }
+
+  /* ── Navigation ── */
+  .nav-row { padding: 8px 24px 28px; display: flex; gap: 10px; }
+  .nav-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-btn.secondary { background: var(--chip-bg); color: #666; }
+  .nav-btn.secondary:hover { background: #e0e0e0; }
+  .nav-btn.primary {
+    background: var(--accent-gradient);
+    color: white;
+    box-shadow: 0 4px 16px rgba(144, 96, 224, 0.3);
+  }
+  .nav-btn.primary:hover {
+    box-shadow: 0 6px 20px rgba(144, 96, 224, 0.4);
+    transform: translateY(-1px);
+  }
+  .nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ── Dual range slider ── */
+  .range-slider {
+    position: relative;
+    width: 100%;
+    height: 44px;
+    margin: 4px 0;
+    touch-action: none;
+    user-select: none;
+  }
+  .range-slider-track {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    transform: translateY(-50%);
+  }
+  .range-slider-fill {
+    position: absolute;
+    top: 50%;
+    height: 6px;
+    background: var(--accent-gradient);
+    border-radius: 3px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .range-thumb {
+    position: absolute;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 3px solid #9060E0;
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  .range-thumb:active {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow: 0 3px 12px rgba(144, 96, 224, 0.35);
+  }
+  .range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .range-input-group { flex: 1; }
+  .range-input-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-bottom: 4px;
+  }
+  .range-input-box {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    padding: 8px 12px;
+    transition: border-color 0.2s;
+  }
+  .range-input-box:focus-within { border-color: var(--accent); }
+  .range-input {
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text);
+    width: 100%;
+    background: transparent;
+    -webkit-appearance: none;
+  }
+  .range-input-unit {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+  .range-input-dash {
+    color: #ccc;
+    font-size: 14px;
+    margin-top: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ── Callout ── */
+  .callout-yellow {
+    background: var(--yellow-bg);
+    border-left: 4px solid var(--yellow-border);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: #666;
+  }
+
+  /* ── Error ── */
+  .field-error { font-size: 12px; color: #e53e3e; margin-top: 6px; }
+
+  /* ── Divider ── */
+  .section-divider { height: 1px; background: #e8e8e8; margin: 4px 0 22px; }
+
+  /* ── Transitions ── */
+  .step-content { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Submitting overlay ── */
+  .submitting-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(247,247,247,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 10;
+    border-radius: var(--radius);
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--chip-bg);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Success ── */
+  .success-screen { padding: 60px 24px; text-align: center; }
+  .success-icon {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--green-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 24px;
+  }
+  .success-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .success-subtitle { font-size: 14px; color: var(--text-light); line-height: 1.7; }
+  .success-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 28px;
+    padding: 14px 28px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-gradient);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 4px 16px rgba(144, 96, 224, 0.3);
+    transition: all 0.2s;
+  }
+  .success-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(144, 96, 224, 0.4); }
+
+  /* ── Mobile tweaks ── */
+  @media (max-width: 500px) {
+    .form-root { padding: 12px 8px 40px; }
+    .form-card { border-radius: 16px; }
+    .step-body { padding: 16px 20px 20px; }
+    .nav-row { padding: 8px 20px 24px; }
+    .form-header { padding: 24px 20px 0; }
+    .progress-bar { margin: 14px 20px 0; }
+    .step-header { padding: 20px 20px 4px; }
+    .step-title { font-size: 20px; }
+  }
+`;
+
+
+/* ═══════════════════════════════════════════
+   COMPONENT
+   ═══════════════════════════════════════════ */
+function LinkInSignup() {
+  const [step, setStep] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+  const fileInputRef = useRef(null);
+  const cardRef = useRef(null);
+
+  const [form, setForm] = useState({
+    // Step 0 — basics
+    name: "", gender: "", birthDay: "", birthMonth: "", birthYear: "", email: "", instagram: "",
+    // Step 1 — about you
+    occupation: "", height: "", university: "",
+    // Step 2 — personality
+    trait_thinking: "", trait_expression: "", trait_planning: "",
+    mbti: "", knowLoveLang: "", loveLangRank: LOVE_LANGUAGES.map(l => l.id),
+    // Step 3 — lifestyle
+    interests: [], drinking: "", smoking: "", meetingFreq: "",
+    relGoals: [], kidsPref: "", conflictStyles: [],
+    // Step 4 — display
+    photo: null, photoPreview: null, selfIntro: "",
+    // Step 5 — pref basics
+    prefAgeMin: 18, prefAgeMax: 60, prefHeightMin: 140, prefHeightMax: 200, prefOccupation: [], prefUniversity: [],
+    // Step 6 — pref personality
+    prefMbti: [], prefLoveLang: [],
+    prefThinking: "", prefExpression: "", prefPlanning: "",
+    prefConflict: [], prefDrinking: [], prefSmoking: [],
+    // Step 7 — final
+    extraRequirements: "", referral: [], igUnderstand: false, consent: false,
+  });
+
+  /* ── State helpers ── */
+  const set = useCallback((key, val) => {
+    setForm(prev => ({ ...prev, [key]: val }));
+    setErrors(prev => ({ ...prev, [key]: undefined }));
+  }, []);
+
+  const toggleMulti = useCallback((key, val, max) => {
+    setForm(prev => {
+      const arr = prev[key];
+      if (arr.includes(val)) return { ...prev, [key]: arr.filter(v => v !== val) };
+      if (max && arr.length >= max) return prev;
+      return { ...prev, [key]: [...arr, val] };
+    });
+    setErrors(prev => ({ ...prev, [key]: undefined }));
+  }, []);
+
+  const toggleMultiWithNone = useCallback((key, val, noneVal = "無所謂") => {
+    setForm(prev => {
+      const arr = prev[key];
+      if (val === noneVal) return { ...prev, [key]: [noneVal] };
+      const without = arr.filter(v => v !== noneVal);
+      if (without.includes(val)) return { ...prev, [key]: without.filter(v => v !== val) };
+      return { ...prev, [key]: [...without, val] };
+    });
+  }, []);
+
+  const moveLang = useCallback((idx, dir) => {
+    setForm(prev => {
+      const arr = [...prev.loveLangRank];
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= arr.length) return prev;
+      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+      return { ...prev, loveLangRank: arr };
+    });
+  }, []);
+
+  const handlePhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert("檔案太大，請上傳 10MB 以下嘅圖片 🙏");
+      return;
+    }
+    set("photo", file);
+    const reader = new FileReader();
+    reader.onload = (ev) => set("photoPreview", ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = (e) => {
+    e.stopPropagation();
+    set("photo", null);
+    set("photoPreview", null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  /* ── Validation ── */
+  const validateStep = () => {
+    const e = {};
+    if (step === 0) {
+      if (!form.name.trim()) e.name = "請輸入名字";
+      if (!form.gender) e.gender = "請選擇性別";
+      if (!form.birthDay || !form.birthMonth || !form.birthYear) e.birthday = "請選擇完整生日";
+      if (!form.email.trim()) e.email = "請輸入電郵地址";
+      else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "電郵格式唔正確";
+      if (!form.instagram.trim()) e.instagram = "請輸入 Instagram 名稱";
+    } else if (step === 1) {
+      if (!form.occupation) e.occupation = "請選擇職業";
+      if (!form.height.trim()) e.height = "請輸入身高";
+      else if (isNaN(Number(form.height)) || Number(form.height) < 100 || Number(form.height) > 250) e.height = "請輸入合理身高（100-250cm）";
+      if (!form.university) e.university = "請選擇大學";
+    } else if (step === 2) {
+      if (!form.trait_thinking) e.trait_thinking = "請選擇";
+      if (!form.trait_expression) e.trait_expression = "請選擇";
+      if (!form.trait_planning) e.trait_planning = "請選擇";
+      if (!form.mbti) e.mbti = "請選擇 MBTI";
+      if (!form.knowLoveLang) e.knowLoveLang = "請選擇";
+    } else if (step === 3) {
+      if (form.interests.length < 3) e.interests = "請選擇至少 3 個興趣";
+      if (form.interests.length > 6) e.interests = "最多選 6 個";
+      if (!form.drinking) e.drinking = "請選擇飲酒習慣";
+      if (!form.smoking) e.smoking = "請選擇吸煙習慣";
+      if (!form.meetingFreq) e.meetingFreq = "請選擇見面頻率";
+      if (form.relGoals.length === 0) e.relGoals = "請至少選擇一個";
+      if (!form.kidsPref) e.kidsPref = "請選擇";
+      if (form.conflictStyles.length === 0) e.conflictStyles = "請至少選擇一個";
+      if (form.conflictStyles.length > 2) e.conflictStyles = "最多選 2 項";
+    } else if (step === 4) {
+      if (!form.photo) e.photo = "請上傳一張照片";
+    } else if (step === 5) {
+      // Range sliders always have valid values, no validation needed
+    } else if (step === 7) {
+      if (form.referral.length === 0) e.referral = "請選擇至少一個";
+      if (!form.igUnderstand) e.igUnderstand = "請確認你明白";
+      if (!form.consent) e.consent = "請同意會員條款先繼續";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  /* ── Navigation ── */
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const next = () => {
+    if (!validateStep()) return;
+    if (step < STEPS.length - 1) {
+      setStep(s => s + 1);
+      scrollToTop();
+    }
+  };
+  const prev = () => {
+    if (step > 0) {
+      setStep(s => s - 1);
+      scrollToTop();
+    }
+  };
+
+  /* ── Submit ── */
+  const submit = async () => {
+    if (!validateStep()) return;
+    setSubmitting(true);
+    try {
+      const payload = new FormData();
+      // Compose birthday from dropdowns
+      const birthday = `${form.birthYear}-${form.birthMonth.padStart(2,'0')}-${form.birthDay.padStart(2,'0')}`;
+      payload.append("birthday", birthday);
+      
+      Object.entries(form).forEach(([k, v]) => {
+        if (k === "photo") {
+          if (v) payload.append("photo", v, v.name);
+        } else if (k === "photoPreview" || k === "birthDay" || k === "birthMonth" || k === "birthYear") {
+          // skip — birthday already composed above, photoPreview not needed
+        } else if (Array.isArray(v)) {
+          payload.append(k, JSON.stringify(v));
+        } else if (typeof v === "boolean") {
+          payload.append(k, v ? "true" : "false");
+        } else {
+          payload.append(k, String(v));
+        }
+      });
+
+      const res = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSubmitted(true);
+      scrollToTop();
+    } catch (err) {
+      console.error("Submit error:", err);
+      alert("提交時出現問題，請稍後再試 🙏");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
+  /* ═══════════════════════════════════════════
+     RENDER HELPERS
+     ═══════════════════════════════════════════ */
+  const ErrorMsg = ({ field }) => errors[field] ? <div className="field-error">{errors[field]}</div> : null;
+
+  const DualRange = ({ label, unit, min, max, valMin, valMax, onMinChange, onMaxChange }) => {
+    const trackRef = useRef(null);
+    const valMinRef = useRef(valMin);
+    const valMaxRef = useRef(valMax);
+    valMinRef.current = valMin;
+    valMaxRef.current = valMax;
+
+    const pctMin = ((valMin - min) / (max - min)) * 100;
+    const pctMax = ((valMax - min) / (max - min)) * 100;
+
+    const getVal = useCallback((clientX) => {
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect) return min;
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      return Math.round(min + pct * (max - min));
+    }, [min, max]);
+
+    const startDrag = useCallback((which) => (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const onMove = (ev) => {
+        ev.preventDefault();
+        const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        const val = getVal(x);
+        if (which === "min") {
+          onMinChange(Math.max(min, Math.min(val, valMaxRef.current - 1)));
+        } else {
+          onMaxChange(Math.min(max, Math.max(val, valMinRef.current + 1)));
+        }
+      };
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("touchmove", onMove);
+        window.removeEventListener("touchend", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onUp);
+    }, [getVal, min, max, onMinChange, onMaxChange]);
+
+    const handleInputMin = (e) => {
+      const raw = e.target.value.replace(/\D/g, "");
+      if (raw === "") return;
+      const v = Math.max(min, Math.min(Number(raw), valMax - 1));
+      onMinChange(v);
+    };
+    const handleInputMax = (e) => {
+      const raw = e.target.value.replace(/\D/g, "");
+      if (raw === "") return;
+      const v = Math.min(max, Math.max(Number(raw), valMin + 1));
+      onMaxChange(v);
+    };
+
+    return (
+      <div className="field">
+        <div className="field-label">{label}</div>
+        <div className="range-slider" ref={trackRef}>
+          <div className="range-slider-track" />
+          <div className="range-slider-fill" style={{ left: `${pctMin}%`, width: `${pctMax - pctMin}%` }} />
+          <div
+            className="range-thumb"
+            style={{ left: `${pctMin}%` }}
+            onMouseDown={startDrag("min")}
+            onTouchStart={startDrag("min")}
+          />
+          <div
+            className="range-thumb"
+            style={{ left: `${pctMax}%` }}
+            onMouseDown={startDrag("max")}
+            onTouchStart={startDrag("max")}
+          />
+        </div>
+        <div className="range-inputs">
+          <div className="range-input-group">
+            <div className="range-input-label">最低</div>
+            <div className="range-input-box">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={valMin}
+                onChange={handleInputMin}
+                className="range-input"
+              />
+              <span className="range-input-unit">{unit}</span>
+            </div>
+          </div>
+          <div className="range-input-dash">—</div>
+          <div className="range-input-group">
+            <div className="range-input-label">最高</div>
+            <div className="range-input-box">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={valMax}
+                onChange={handleInputMax}
+                className="range-input"
+              />
+              <span className="range-input-unit">{unit}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const Chip = ({ stateKey, val, label, icon }) => (
+    <div className={`chip ${form[stateKey] === val ? "active" : ""}`} onClick={() => set(stateKey, val)}>
+      {icon && <span className="chip-icon">{icon}</span>}
+      {label}
+    </div>
+  );
+
+  const MultiChip = ({ stateKey, val, label, icon, max }) => (
+    <div className={`chip ${form[stateKey].includes(val) ? "active" : ""}`} onClick={() => toggleMulti(stateKey, val, max)}>
+      {icon && <span className="chip-icon">{icon}</span>}
+      {label}
+    </div>
+  );
+
+  const MultiChipNone = ({ stateKey, val, label }) => (
+    <div className={`chip ${form[stateKey].includes(val) ? "active" : ""}`} onClick={() => toggleMultiWithNone(stateKey, val)}>
+      {label}
+    </div>
+  );
+
+  const Binary = ({ stateKey, opt1, opt2 }) => (
+    <div className="binary-row">
+      <div className={`binary-btn ${form[stateKey] === opt1.val ? "active" : ""}`} onClick={() => set(stateKey, opt1.val)}>
+        <span className="binary-icon">{opt1.icon}</span>
+        {opt1.label}
+      </div>
+      <div className={`binary-btn ${form[stateKey] === opt2.val ? "active" : ""}`} onClick={() => set(stateKey, opt2.val)}>
+        <span className="binary-icon">{opt2.icon}</span>
+        {opt2.label}
+      </div>
+    </div>
+  );
+
+  const Option = ({ stateKey, val, label }) => (
+    <div className={`option-item ${form[stateKey] === val ? "active" : ""}`} onClick={() => set(stateKey, val)}>
+      {label}
+    </div>
+  );
+
+  const MultiOption = ({ stateKey, val, label, max }) => (
+    <div className={`option-item ${form[stateKey].includes(val) ? "active" : ""}`} onClick={() => toggleMulti(stateKey, val, max)}>
+      {label}
+    </div>
+  );
+
+  const MultiOptionNone = ({ stateKey, val, label }) => (
+    <div className={`option-item ${form[stateKey].includes(val) ? "active" : ""}`} onClick={() => toggleMultiWithNone(stateKey, val)}>
+      {label}
+    </div>
+  );
+
+
+  /* ═══════════════════════════════════════════
+     STEP RENDERERS
+     ═══════════════════════════════════════════ */
+
+  /* ── Step 0: 基本資料 ── */
+  const renderStep0 = () => {
+    const months = [
+      { val: "1", label: "1月" }, { val: "2", label: "2月" }, { val: "3", label: "3月" },
+      { val: "4", label: "4月" }, { val: "5", label: "5月" }, { val: "6", label: "6月" },
+      { val: "7", label: "7月" }, { val: "8", label: "8月" }, { val: "9", label: "9月" },
+      { val: "10", label: "10月" }, { val: "11", label: "11月" }, { val: "12", label: "12月" },
+    ];
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 40 }, (_, i) => String(currentYear - 18 - i));
+
+    // Smart day count based on month and year
+    const getDaysInMonth = (month, year) => {
+      if (!month) return 31;
+      const m = parseInt(month);
+      const y = year ? parseInt(year) : 2000;
+      return new Date(y, m, 0).getDate();
+    };
+    const maxDays = getDaysInMonth(form.birthMonth, form.birthYear);
+    const days = Array.from({ length: maxDays }, (_, i) => String(i + 1));
+
+    // Reset day if it exceeds new month's max
+    if (form.birthDay && parseInt(form.birthDay) > maxDays) {
+      set("birthDay", "");
+    }
+
+    return (
+      <div className="step-content" key="s0">
+        <div className="field">
+          <div className="field-label">名字／暱稱 <span className="req">*</span></div>
+          <input className="text-input" placeholder="你想我哋點稱呼你？" value={form.name} onChange={e => set("name", e.target.value)} />
+          <ErrorMsg field="name" />
+        </div>
+        <div className="field">
+          <div className="field-label">性別 <span className="req">*</span></div>
+          <Binary stateKey="gender" opt1={{ val: "M", label: "男性", icon: "👨" }} opt2={{ val: "F", label: "女性", icon: "👩" }} />
+          <ErrorMsg field="gender" />
+        </div>
+        <div className="field">
+          <div className="field-label">🎂 生日 <span className="req">*</span></div>
+          <div className="dob-row">
+            <div className="dob-group">
+              <div className="dob-label">Year</div>
+              <select className="dob-select" value={form.birthYear} onChange={e => set("birthYear", e.target.value)}>
+                <option value=""></option>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div className="dob-group">
+              <div className="dob-label">Month</div>
+              <select className="dob-select" value={form.birthMonth} onChange={e => set("birthMonth", e.target.value)}>
+                <option value=""></option>
+                {months.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+              </select>
+            </div>
+            <div className="dob-group">
+              <div className="dob-label">Day</div>
+              <select className="dob-select" value={form.birthDay} onChange={e => set("birthDay", e.target.value)}>
+                <option value=""></option>
+                {days.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+          <ErrorMsg field="birthday" />
+        </div>
+        <div className="field">
+          <div className="field-label">📧 電郵地址 <span className="req">*</span></div>
+          <div className="field-hint">請確保電郵正確，我哋會用呢個電郵發送配對結果俾你 💌</div>
+          <input className="text-input" type="email" placeholder="your@email.com" value={form.email} onChange={e => set("email", e.target.value)} />
+          <ErrorMsg field="email" />
+        </div>
+        <div className="field">
+          <div className="field-label">Instagram 名稱 <span className="req">*</span></div>
+          <input className="text-input" placeholder="@your_handle" value={form.instagram} onChange={e => set("instagram", e.target.value)} />
+          <ErrorMsg field="instagram" />
+        </div>
+      </div>
+    );
+  };
+
+  /* ── Step 1: 認識你多一點 ── */
+  const renderStep1 = () => (
+    <div className="step-content" key="s1">
+      <div className="field">
+        <div className="field-label">職業 <span className="req">*</span></div>
+        <div className="chip-grid">
+          {OCCUPATIONS.map(o => <Chip key={o.id} stateKey="occupation" val={o.id} label={o.label} icon={o.icon} />)}
+        </div>
+        <ErrorMsg field="occupation" />
+      </div>
+      <div className="field">
+        <div className="field-label">✏️ 身高 (cm) <span className="req">*</span></div>
+        <input className="text-input" type="number" inputMode="numeric" placeholder="例如：170" value={form.height} onChange={e => set("height", e.target.value)} />
+        <ErrorMsg field="height" />
+      </div>
+      <div className="field">
+        <div className="field-label">🎓 就讀大學 <span className="req">*</span></div>
+        <div className="chip-grid">
+          {UNIVERSITIES.map(u => <Chip key={u.id} stateKey="university" val={u.id} label={u.label} />)}
+        </div>
+        <ErrorMsg field="university" />
+      </div>
+    </div>
+  );
+
+  /* ── Step 2: 你嘅性格 ── */
+  const renderStep2 = () => (
+    <div className="step-content" key="s2">
+      <div className="field">
+        <div className="field-label">你偏向？ <span className="req">*</span></div>
+        <Binary stateKey="trait_thinking" opt1={{ val: "rational", label: "理性，實際", icon: "🧠" }} opt2={{ val: "emotional", label: "感性，重感覺", icon: "💜" }} />
+        <ErrorMsg field="trait_thinking" />
+      </div>
+      <div className="field">
+        <div className="field-label">你喺關係中通常係？ <span className="req">*</span></div>
+        <Binary stateKey="trait_expression" opt1={{ val: "expressive", label: "主動表達", icon: "🗣" }} opt2={{ val: "reserved", label: "慢熱內斂", icon: "🔇" }} />
+        <ErrorMsg field="trait_expression" />
+      </div>
+      <div className="field">
+        <div className="field-label">你偏向？ <span className="req">*</span></div>
+        <Binary stateKey="trait_planning" opt1={{ val: "planner", label: "有計劃", icon: "📋" }} opt2={{ val: "spontaneous", label: "彈性即興", icon: "🎲" }} />
+        <ErrorMsg field="trait_planning" />
+      </div>
+
+      <div className="section-divider" />
+
+      <div className="field">
+        <div className="field-label">MBTI <span className="req">*</span></div>
+        <div className="mbti-grid">
+          <div className={`mbti-chip unsure-chip ${form.mbti === "unsure" ? "active" : ""}`} onClick={() => set("mbti", "unsure")}>
+            不清楚
+          </div>
+          {MBTI_TYPES.map(t => (
+            <div key={t} className={`mbti-chip ${form.mbti === t ? "active" : ""}`} onClick={() => set("mbti", t)}>
+              <img className="mbti-img" src={`/mbti/${t}.png`} alt={t} />
+              <div className="mbti-label-row">
+                <span className="dot" style={{ background: MBTI_COLORS[t] }} />
+                {t}
+              </div>
+            </div>
+          ))}
+        </div>
+        <ErrorMsg field="mbti" />
+      </div>
+
+      <div className="section-divider" />
+
+      <div className="field">
+        <div className="field-label">你知道你愛的語言 (Love Language) 嗎？ <span className="req">*</span></div>
+        <Binary stateKey="knowLoveLang" opt1={{ val: "yes", label: "知道", icon: "✅" }} opt2={{ val: "no", label: "不知道", icon: "❓" }} />
+        <ErrorMsg field="knowLoveLang" />
+      </div>
+
+      {form.knowLoveLang === "yes" && (
+        <div className="field">
+          <div className="field-label">你嘅愛的語言排序</div>
+          <div className="field-hint">用箭頭調整順序（最重要嘅排最上面）</div>
+          <div className="rank-list">
+            {form.loveLangRank.map((id, idx) => {
+              const lang = LOVE_LANGUAGES.find(l => l.id === id);
+              return (
+                <div className="rank-item" key={id}>
+                  <div className="rank-num">{idx + 1}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="rank-label">{lang.icon} {lang.label}</div>
+                    <div className="rank-sublabel">{lang.en}</div>
+                  </div>
+                  <div className="rank-arrows">
+                    <button className="rank-arrow" disabled={idx === 0} onClick={() => moveLang(idx, -1)}>▲</button>
+                    <button className="rank-arrow" disabled={idx === form.loveLangRank.length - 1} onClick={() => moveLang(idx, 1)}>▼</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  /* ── Step 3: 生活方式 ── */
+  const renderStep3 = () => {
+    const count = form.interests.length;
+    const countClass = count >= 3 && count <= 6 ? "ok" : count > 0 ? "warn" : "";
+    return (
+      <div className="step-content" key="s3">
+        <div className="field">
+          <div className="field-label">你的興趣（選 3-6 個） <span className="req">*</span></div>
+          <div className={`interest-count ${countClass}`}>已選 {count} / 6</div>
+          {Object.entries(INTERESTS).map(([cat, items]) => (
+            <div className="interest-cat" key={cat}>
+              <div className="interest-cat-label">{cat}</div>
+              <div className="chip-grid">
+                {items.map(i => <MultiChip key={i.id} stateKey="interests" val={i.id} label={i.label} icon={i.icon} max={6} />)}
+              </div>
+            </div>
+          ))}
+          <ErrorMsg field="interests" />
+        </div>
+
+        <div className="section-divider" />
+
+        <div className="field">
+          <div className="field-label">🍷 你的飲酒習慣 <span className="req">*</span></div>
+          <div className="option-list">
+            {DRINKING.map(d => <Option key={d.id} stateKey="drinking" val={d.id} label={d.label} />)}
+          </div>
+          <ErrorMsg field="drinking" />
+        </div>
+        <div className="field">
+          <div className="field-label">🚬 你嘅吸煙習慣是？ <span className="req">*</span></div>
+          <div className="option-list">
+            {SMOKING.map(s => <Option key={s.id} stateKey="smoking" val={s.id} label={s.label} />)}
+          </div>
+          <ErrorMsg field="smoking" />
+        </div>
+        <div className="field">
+          <div className="field-label">🤝 你對一段關係中「見面頻率」嘅期望 <span className="req">*</span></div>
+          <div className="option-list">
+            {MEETING_FREQ.map(m => <Option key={m.id} stateKey="meetingFreq" val={m.id} label={m.label} />)}
+          </div>
+          <ErrorMsg field="meetingFreq" />
+        </div>
+        <div className="field">
+          <div className="field-label">你而家想要嘅係（可多選） <span className="req">*</span></div>
+          <div className="option-list">
+            {REL_GOALS.map(r => <MultiOption key={r.id} stateKey="relGoals" val={r.id} label={r.label} />)}
+          </div>
+          <ErrorMsg field="relGoals" />
+        </div>
+        <div className="field">
+          <div className="field-label">👶 你希望將來有小朋友嗎？ <span className="req">*</span></div>
+          <div className="option-list">
+            {KIDS_PREF.map(k => <Option key={k.id} stateKey="kidsPref" val={k.id} label={k.label} />)}
+          </div>
+          <ErrorMsg field="kidsPref" />
+        </div>
+        <div className="field">
+          <div className="field-label">😤 當出現爭拗或分歧時，以下邊啲描述比較貼近你？（可選最多2項） <span className="req">*</span></div>
+          <div className="option-list">
+            {CONFLICT_STYLES.map(c => <MultiOption key={c.id} stateKey="conflictStyles" val={c.id} label={c.label} max={2} />)}
+          </div>
+          <ErrorMsg field="conflictStyles" />
+        </div>
+      </div>
+    );
+  };
+
+  /* ── Step 4: 個人展示 ── */
+  const renderStep4 = () => (
+    <div className="step-content" key="s4">
+      <div className="field">
+        <div className="field-label">讓對方認識真實的你（1張圖片） <span className="req">*</span></div>
+        <div className="field-hint">一張好照片勝過千言萬語 📸 請上傳清楚看到你樣貌嘅照片，讓配對的人更容易對你一見傾心 😊</div>
+        <div
+          className={`upload-zone ${form.photoPreview ? "has-image" : ""}`}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {form.photoPreview ? (
+            <>
+              <img src={form.photoPreview} className="upload-preview" alt="preview" />
+              <button className="upload-remove" onClick={removePhoto}>✕</button>
+            </>
+          ) : (
+            <>
+              <div className="upload-icon">📷</div>
+              <div className="upload-text">點擊上傳照片</div>
+              <div className="upload-hint">接受 JPG、PNG，最大 10MB</div>
+            </>
+          )}
+          <input ref={fileInputRef} className="upload-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhoto} />
+        </div>
+        <ErrorMsg field="photo" />
+      </div>
+
+      <div className="section-divider" />
+
+      <div className="field">
+        <div className="field-label">💬 請用 30-80 字簡單介紹自己（可選填）</div>
+        <div className="field-hint">這段文字會顯示在你的個人簡介，讓其他人更了解你係怎樣一個人</div>
+        <textarea
+          className="text-input"
+          placeholder="我係一個鍾意⋯⋯嘅人"
+          value={form.selfIntro}
+          onChange={e => set("selfIntro", e.target.value)}
+          maxLength={80}
+        />
+        <div style={{ textAlign: "right", fontSize: 12, color: "#bbb", marginTop: 4 }}>{form.selfIntro.length} / 80</div>
+      </div>
+    </div>
+  );
+
+  /* ── Step 5: 理想對象 — 基本背景 ── */
+  const renderStep5 = () => (
+    <div className="step-content" key="s5">
+      <div className="callout-yellow">
+        直覺揀就可以，AI 可以為你更準確地找到合適嘅人 ✨
+      </div>
+
+      <DualRange
+        label="對方的年齡範圍"
+        unit="歲"
+        min={18} max={60}
+        valMin={form.prefAgeMin} valMax={form.prefAgeMax}
+        onMinChange={v => set("prefAgeMin", v)}
+        onMaxChange={v => set("prefAgeMax", v)}
+      />
+      <DualRange
+        label="對方的身高範圍"
+        unit="cm"
+        min={140} max={200}
+        valMin={form.prefHeightMin} valMax={form.prefHeightMax}
+        onMinChange={v => set("prefHeightMin", v)}
+        onMaxChange={v => set("prefHeightMax", v)}
+      />
+      <div className="field">
+        <div className="field-label">對方的職業（可多選）</div>
+        <div className="chip-grid">
+          <MultiChipNone stateKey="prefOccupation" val="無所謂" label="無所謂" />
+          {OCCUPATIONS.filter(o => o.id !== "other_occ").map(o => <MultiChipNone key={o.id} stateKey="prefOccupation" val={o.id} label={`${o.icon} ${o.label}`} />)}
+        </div>
+      </div>
+      <div className="field">
+        <div className="field-label">🎓 對方就讀的大學（可多選）</div>
+        <div className="chip-grid">
+          <MultiChipNone stateKey="prefUniversity" val="無所謂" label="無所謂" />
+          {UNIVERSITIES.filter(u => u.id !== "other_uni").map(u => <MultiChipNone key={u.id} stateKey="prefUniversity" val={u.id} label={u.label} />)}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── Step 6: 理想對象 — 性格與生活 ── */
+  const renderStep6 = () => (
+    <div className="step-content" key="s6">
+      <div className="field">
+        <div className="field-label">對方的 MBTI（可多選）</div>
+        <div className="mbti-grid">
+          <div className={`mbti-chip unsure-chip ${form.prefMbti.includes("無所謂") ? "active" : ""}`} onClick={() => toggleMultiWithNone("prefMbti", "無所謂")}>
+            無所謂
+          </div>
+          {MBTI_TYPES.map(t => (
+            <div key={t} className={`mbti-chip ${form.prefMbti.includes(t) ? "active" : ""}`} onClick={() => toggleMultiWithNone("prefMbti", t)}>
+              <img className="mbti-img" src={`/mbti/${t}.png`} alt={t} />
+              <div className="mbti-label-row">
+                <span className="dot" style={{ background: MBTI_COLORS[t] }} />
+                {t}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {form.knowLoveLang === "yes" && (
+        <div className="field">
+          <div className="field-label">對方的首2位 Love Language（可以不填）</div>
+          <div className="chip-grid">
+            {LOVE_LANGUAGES.map(l => <MultiChip key={l.id} stateKey="prefLoveLang" val={l.id} label={`${l.icon} ${l.label}`} max={2} />)}
+          </div>
+        </div>
+      )}
+
+      <div className="section-divider" />
+
+      <div className="field">
+        <div className="field-label">你希望對方在思考事情時更傾向（可選填）</div>
+        <div className="binary-row">
+          <div className={`binary-btn ${form.prefThinking === "理性，實際" ? "active" : ""}`} onClick={() => set("prefThinking", form.prefThinking === "理性，實際" ? "" : "理性，實際")}>
+            <span className="binary-icon">🧠</span>理性，實際
+          </div>
+          <div className={`binary-btn ${form.prefThinking === "感性，重感覺" ? "active" : ""}`} onClick={() => set("prefThinking", form.prefThinking === "感性，重感覺" ? "" : "感性，重感覺")}>
+            <span className="binary-icon">💜</span>感性，重感覺
+          </div>
+        </div>
+      </div>
+      <div className="field">
+        <div className="field-label">你希望對方在表達時更傾向（可選填）</div>
+        <div className="binary-row">
+          <div className={`binary-btn ${form.prefExpression === "主動表達" ? "active" : ""}`} onClick={() => set("prefExpression", form.prefExpression === "主動表達" ? "" : "主動表達")}>
+            <span className="binary-icon">🗣</span>主動表達
+          </div>
+          <div className={`binary-btn ${form.prefExpression === "慢熱內斂" ? "active" : ""}`} onClick={() => set("prefExpression", form.prefExpression === "慢熱內斂" ? "" : "慢熱內斂")}>
+            <span className="binary-icon">🔇</span>慢熱內斂
+          </div>
+        </div>
+      </div>
+      <div className="field">
+        <div className="field-label">你希望對方的生活安排更傾向（可選填）</div>
+        <div className="binary-row">
+          <div className={`binary-btn ${form.prefPlanning === "有計劃" ? "active" : ""}`} onClick={() => set("prefPlanning", form.prefPlanning === "有計劃" ? "" : "有計劃")}>
+            <span className="binary-icon">📋</span>有計劃
+          </div>
+          <div className={`binary-btn ${form.prefPlanning === "彈性即興" ? "active" : ""}`} onClick={() => set("prefPlanning", form.prefPlanning === "彈性即興" ? "" : "彈性即興")}>
+            <span className="binary-icon">🎲</span>彈性即興
+          </div>
+        </div>
+      </div>
+
+      <div className="section-divider" />
+
+      <div className="field">
+        <div className="field-label">對方在出現分歧或衝突時的處理方式（可多選）</div>
+        <div className="option-list">
+          <MultiOptionNone stateKey="prefConflict" val="無所謂" label="無所謂" />
+          {CONFLICT_STYLES.map(c => <MultiOptionNone key={c.id} stateKey="prefConflict" val={c.id} label={c.label} />)}
+        </div>
+      </div>
+      <div className="field">
+        <div className="field-label">🍷 對方的飲酒習慣（可多選）</div>
+        <div className="option-list">
+          <MultiOptionNone stateKey="prefDrinking" val="無所謂" label="無所謂" />
+          {DRINKING.map(d => <MultiOptionNone key={d.id} stateKey="prefDrinking" val={d.id} label={d.label} />)}
+        </div>
+      </div>
+      <div className="field">
+        <div className="field-label">🚬 對方的吸煙習慣（可多選）</div>
+        <div className="option-list">
+          <MultiOptionNone stateKey="prefSmoking" val="無所謂" label="無所謂" />
+          {SMOKING.map(s => <MultiOptionNone key={s.id} stateKey="prefSmoking" val={s.id} label={s.label} />)}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── Step 7: 最後一步 ── */
+  const renderStep7 = () => (
+    <div className="step-content" key="s7">
+      <div className="field">
+        <div className="field-label">你對理想對象仲有冇其他要求？（可選填）</div>
+        <div className="field-hint">例如：希望對方唔介意養寵物、對方有運動習慣等</div>
+        <textarea
+          className="text-input"
+          placeholder="寫低你嘅額外要求⋯⋯"
+          value={form.extraRequirements}
+          onChange={e => set("extraRequirements", e.target.value)}
+          maxLength={200}
+        />
+        <div style={{ textAlign: "right", fontSize: 12, color: "#bbb", marginTop: 4 }}>{form.extraRequirements.length} / 200</div>
+      </div>
+
+      <div className="section-divider" />
+
+      <div className="field">
+        <div className="field-label">你點樣知道 link.in.hk？ <span className="req">*</span></div>
+        <div className="chip-grid">
+          {REFERRAL_SOURCES.map(s => <MultiChip key={s} stateKey="referral" val={s} label={s} />)}
+        </div>
+        <ErrorMsg field="referral" />
+      </div>
+
+      <div className="section-divider" />
+
+      <div className="callout-yellow">
+        <b>📱 重要提醒</b><br /><br />
+        我哋會透過 <b>Instagram DM</b> 發送每週配對結果。<br />
+        如果你嘅 IG 設定唔允許陌生人 DM，我哋就無辦法聯絡你，你可能會錯過配對結果 🥲<br /><br />
+        請確保你已經 <b>Follow @link.in.hk</b>，或者將 IG 私訊設定改為允許所有人傳送訊息。
+      </div>
+
+      <div className={`consent-check ${form.igUnderstand ? "active" : ""}`} onClick={() => set("igUnderstand", !form.igUnderstand)} style={{ marginBottom: 20 }}>
+        <div className="consent-checkbox">{form.igUnderstand ? "✓" : ""}</div>
+        <div className="consent-label">明白！</div>
+      </div>
+      <ErrorMsg field="igUnderstand" />
+
+      <div className="section-divider" />
+
+      <div className="consent-box">
+        <div className="consent-title">會員同意及免責聲明</div>
+        <div className="consent-body">
+          在提交此表格前，請你確認並同意以下事項：
+          <br /><br />
+          <b>平台性質</b><br />
+          為配對及社交活動平台，透過問卷資料及 AI／演算法分析，提供配對建議及活動邀請，所有結果僅供參考，並不保證任何配對或關係結果。
+          <br /><br />
+          <b>資料真實性</b><br />
+          你確認所填寫的所有資料均為真實及準確。如資料不實，Link.in.HK 有權暫停或終止你的會員資格，而毋須作出補償。
+          <br /><br />
+          <b>AI 配對聲明</b><br />
+          MBTI、星座、性格分類等僅屬參考分析工具，並非科學或專業建議。你明白配對結果可能與實際體驗有所差異。
+          <br /><br />
+          <b>會員互動及活動風險</b><br />
+          你自願與其他會員聯絡、見面或參與活動，並需自行承擔相關風險。Link.in.HK 不會對會員之間的行為、糾紛、情感或任何損失承擔責任。
+          <br /><br />
+          <b>個人資料使用</b><br />
+          你同意 Link.in.HK 使用你的資料作配對分析、活動通知及相關服務用途，並明白所有資料會按合理方式保密處理。
+          <br /><br />
+          <b>適用法律</b><br />
+          本聲明受香港特別行政區法律管轄。
+        </div>
+      </div>
+
+      <div className={`consent-check ${form.consent ? "active" : ""}`} onClick={() => set("consent", !form.consent)}>
+        <div className="consent-checkbox">{form.consent ? "✓" : ""}</div>
+        <div className="consent-label">我已閱讀並同意</div>
+      </div>
+      <ErrorMsg field="consent" />
+    </div>
+  );
+
+  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7];
+
+
+  /* ═══════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════ */
+
+  if (submitted) {
+    return (
+      <>
+        <style>{STYLES}</style>
+        <div className="form-root">
+          <div className="form-card">
+            <div className="success-screen">
+              <div className="success-icon">✅</div>
+              <div className="success-title">登記完成喇！🎉</div>
+              <div className="success-subtitle">
+                多謝你嘅信任 🤍<br />
+                接下來交俾我哋，我哋會認真了解你，<br />
+                為你搵到最適合嘅人 💚
+              </div>
+              <a href="https://ig.me/m/link.in.hk" className="success-cta" target="_blank" rel="noopener noreferrer">
+                Follow @link.in.hk 📱
+              </a>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <style>{STYLES}</style>
+      <div className="form-root">
+        <div className="form-card" ref={cardRef}>
+          {submitting && (
+            <div className="submitting-overlay">
+              <div className="spinner" />
+              <div style={{ fontSize: 14, color: "#888" }}>提交緊⋯⋯</div>
+            </div>
+          )}
+
+          <div className="form-header">
+            <img src={LOGO_URL} alt="Link.in" className="logo-img" />
+            <div className="step-indicator">{step + 1} / {STEPS.length}</div>
+          </div>
+
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+          </div>
+
+          <div className="step-header">
+            <div className="step-title">{STEPS[step].title}</div>
+            <div className="step-subtitle">{STEPS[step].subtitle}</div>
+          </div>
+
+          <div className="step-body">
+            {stepRenderers[step]()}
+          </div>
+
+          <div className="nav-row">
+            {step > 0 && <button className="nav-btn secondary" onClick={prev}>返回</button>}
+            {step < STEPS.length - 1 ? (
+              <button className="nav-btn primary" onClick={next}>繼續</button>
+            ) : (
+              <button className="nav-btn primary" onClick={submit} disabled={submitting}>
+                {submitting ? "提交緊⋯⋯" : "提交 🎉"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<LinkInSignup />);
+  </script>
+</body>
+</html>
