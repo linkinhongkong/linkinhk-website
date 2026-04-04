@@ -389,6 +389,93 @@ const STYLES = `
     font-weight: 600;
   }
 
+  /* ── Option item with checkbox ── */
+  .check-option {
+    padding: 13px 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #e8e8e8;
+    background: var(--white);
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .check-option:active { transform: scale(0.98); }
+  .check-option.active {
+    border-color: var(--accent);
+    background: #f0e8fc;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .check-option .check-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-size: 12px;
+    color: white;
+    font-weight: 700;
+  }
+  .check-option.active .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ── Option item with radio button ── */
+  .radio-option {
+    padding: 13px 16px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #e8e8e8;
+    background: var(--white);
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .radio-option:active { transform: scale(0.98); }
+  .radio-option.active {
+    border-color: var(--accent);
+    background: #f0e8fc;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .radio-option .radio-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .radio-option.active .radio-dot {
+    border-color: var(--accent);
+  }
+  .radio-option.active .radio-dot::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
   /* ── MBTI grid ── */
   .mbti-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .mbti-chip {
@@ -616,53 +703,28 @@ const STYLES = `
     box-shadow: none !important;
   }
 
-  /* ── Dual range slider ── */
+  /* ── Range bar (visual only) + inputs ── */
   .range-slider {
-    position: relative;
     width: 100%;
-    height: 44px;
-    margin: 4px 0;
-    touch-action: none;
-    user-select: none;
+    height: 6px;
+    position: relative;
+    margin: 8px 0 12px;
+    border-radius: 3px;
   }
   .range-slider-track {
     position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 6px;
     background: #e0e0e0;
     border-radius: 3px;
-    transform: translateY(-50%);
   }
   .range-slider-fill {
     position: absolute;
-    top: 50%;
+    top: 0;
     height: 6px;
     background: var(--accent-gradient);
     border-radius: 3px;
-    transform: translateY(-50%);
-    pointer-events: none;
-  }
-  .range-thumb {
-    position: absolute;
-    top: 50%;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--white);
-    border: 3px solid #9060E0;
-    transform: translate(-50%, -50%);
-    cursor: grab;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 2;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: none;
-  }
-  .range-thumb:active {
-    cursor: grabbing;
-    transform: translate(-50%, -50%) scale(1.15);
-    box-shadow: 0 3px 12px rgba(144, 96, 224, 0.35);
+    transition: left 0.3s, width 0.3s;
   }
   .range-inputs {
     display: flex;
@@ -816,7 +878,7 @@ function LinkInSignup() {
 
   const [form, setForm] = useState({
     // Step 0 — basics
-    name: "", gender: "", birthDay: "", birthMonth: "", birthYear: "", email: "", instagram: "",
+    name: "", gender: "", birthDay: "", birthMonth: "", birthYear: "", email: "", whatsapp: "", instagram: "",
     // Step 1 — about you
     occupation: "", height: "", university: "",
     // Step 2 — personality
@@ -824,7 +886,7 @@ function LinkInSignup() {
     mbti: "", knowLoveLang: "", loveLangRank: LOVE_LANGUAGES.map(l => l.id),
     // Step 3 — lifestyle
     interests: [], drinking: "", smoking: "", meetingFreq: "",
-    relGoals: [], kidsPref: "", conflictStyles: [],
+    relGoals: [], kidsPref: "",
     // Step 4 — display
     photo: null, photoPreview: null, selfIntro: "",
     // Step 5 — pref basics
@@ -832,7 +894,7 @@ function LinkInSignup() {
     // Step 6 — pref personality
     prefMbti: [], prefLoveLang: [],
     prefThinking: "", prefExpression: "", prefPlanning: "",
-    prefConflict: [], prefDrinking: [], prefSmoking: [],
+    prefDrinking: [], prefSmoking: [],
     // Step 7 — final
     extraRequirements: "", referral: [], igUnderstand: false, consent: false,
   });
@@ -902,6 +964,7 @@ function LinkInSignup() {
       if (!form.birthDay || !form.birthMonth || !form.birthYear) e.birthday = "請選擇完整生日";
       if (!form.email.trim()) e.email = "請輸入電郵地址";
       else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "電郵格式唔正確";
+      if (!form.whatsapp.trim()) e.whatsapp = "請輸入 WhatsApp 號碼";
       if (!form.instagram.trim()) e.instagram = "請輸入 Instagram 名稱";
     } else if (step === 1) {
       if (!form.occupation) e.occupation = "請選擇職業";
@@ -922,8 +985,6 @@ function LinkInSignup() {
       if (!form.meetingFreq) e.meetingFreq = "請選擇見面頻率";
       if (form.relGoals.length === 0) e.relGoals = "請至少選擇一個";
       if (!form.kidsPref) e.kidsPref = "請選擇";
-      if (form.conflictStyles.length === 0) e.conflictStyles = "請至少選擇一個";
-      if (form.conflictStyles.length > 2) e.conflictStyles = "最多選 2 項";
     } else if (step === 4) {
       if (!form.photo) e.photo = "請上傳一張照片";
     } else if (step === 5) {
@@ -961,24 +1022,150 @@ function LinkInSignup() {
     if (!validateStep()) return;
     setSubmitting(true);
     try {
+      /* ── Mapping helpers ── */
+      const genderMap = { M: "男性", F: "女性" };
+
+      const occMap = {};
+      OCCUPATIONS.forEach(o => { occMap[o.id] = o.icon + o.label; });
+
+      const uniMap = {};
+      UNIVERSITIES.forEach(u => { uniMap[u.id] = u.label; });
+
+      const attrThinkMap = { rational: "🧠 理性，實際", emotional: "💜 感性，重感覺" };
+      const attrExprMap = { expressive: "🗣 主動表達", reserved: "🔇 慢熱內斂" };
+      const attrPlanMap = { planner: "📋 有計劃", spontaneous: "🎲 彈性即興" };
+
+      const mbtiEmojiMap = {
+        INTJ:"🟣",INTP:"🟣",ENTJ:"🔴",ENTP:"🔴",
+        INFJ:"🟢",INFP:"🟢",ENFJ:"🟢",ENFP:"🟢",
+        ISTJ:"🔵",ISFJ:"🔵",ESTJ:"🔵",ESFJ:"🔵",
+        ISTP:"🟡",ISFP:"🟡",ESTP:"🟡",ESFP:"🟡",
+      };
+
+      const loveLangMap = {
+        words: "肯定的言語 (Words of Affirmation)",
+        time: "精心時刻 (Quality Time)",
+        gifts: "接受禮物 (Receiving Gifts)",
+        service: "服務行動 (Acts of Service)",
+        touch: "身體接觸 (Physical Touch)",
+      };
+
+      const interestMap = {};
+      Object.values(INTERESTS).flat().forEach(i => { interestMap[i.id] = i.icon + i.label; });
+
+      const drinkMap = {};
+      DRINKING.forEach(d => { drinkMap[d.id] = d.label; });
+
+      const smokeMap = {};
+      SMOKING.forEach(s => { smokeMap[s.id] = s.label; });
+
+      const freqMap = {};
+      MEETING_FREQ.forEach(m => { freqMap[m.id] = m.label; });
+
+      const relMap = {};
+      REL_GOALS.forEach(r => { relMap[r.id] = r.label; });
+
+      const kidsMap = {};
+      KIDS_PREF.forEach(k => { kidsMap[k.id] = k.label; });
+
+      /* ── Age buckets ── */
+      const ageBuckets = [
+        { min: 0, max: 19, label: "19 歲或以下" },
+        { min: 20, max: 24, label: "20–24 歲" },
+        { min: 25, max: 29, label: "25–29 歲" },
+        { min: 30, max: 34, label: "30–34 歲" },
+        { min: 35, max: 99, label: "35 歲或以上" },
+      ];
+      const theirAge = ageBuckets
+        .filter(b => b.max >= form.prefAgeMin && b.min <= form.prefAgeMax)
+        .map(b => b.label).join(", ");
+
+      /* ── Height buckets ── */
+      const heightBuckets = [
+        { min: 0, max: 149, label: "150 以下" },
+        { min: 150, max: 159, label: "150-159" },
+        { min: 160, max: 169, label: "160-169" },
+        { min: 170, max: 179, label: "170-179" },
+        { min: 180, max: 999, label: "180 以上" },
+      ];
+      const theirHeight = heightBuckets
+        .filter(b => b.max >= form.prefHeightMin && b.min <= form.prefHeightMax)
+        .map(b => b.label).join(", ");
+
+      /* ── Build payload ── */
+      const birthday = form.birthYear + "-" + form.birthMonth.padStart(2,"0") + "-" + form.birthDay.padStart(2,"0");
+      const cleanIG = form.instagram.trim().toLowerCase().replace(/^@/, "");
+
+      const mbtiVal = form.mbti === "unsure" ? "不清楚" : (mbtiEmojiMap[form.mbti] || "") + form.mbti;
+
+      const loveLangVal = form.knowLoveLang === "yes"
+        ? form.loveLangRank.map(id => loveLangMap[id] || id).join(", ")
+        : "";
+
+      const prefMbtiVal = form.prefMbti.includes("無所謂") ? "無所謂"
+        : form.prefMbti.map(t => (mbtiEmojiMap[t] || "") + t).join(", ");
+
+      const prefLoveLangVal = form.prefLoveLang.length === 0 ? ""
+        : form.prefLoveLang.map(id => loveLangMap[id] || id).join(", ");
+
+      const prefOccVal = form.prefOccupation.includes("無所謂") ? "無所謂"
+        : form.prefOccupation.map(id => occMap[id] || id).join(", ");
+
+      const prefUniVal = form.prefUniversity.includes("無所謂") ? "無所謂"
+        : form.prefUniversity.map(id => uniMap[id] || id).join(", ");
+
+      const prefDrinkVal = form.prefDrinking.includes("無所謂") ? "無所謂"
+        : form.prefDrinking.map(id => drinkMap[id] || id).join(", ");
+
+      const prefSmokeVal = form.prefSmoking.includes("無所謂") ? "無所謂"
+        : form.prefSmoking.map(id => smokeMap[id] || id).join(", ");
+
       const payload = new FormData();
-      // Compose birthday from dropdowns
-      const birthday = `${form.birthYear}-${form.birthMonth.padStart(2,'0')}-${form.birthDay.padStart(2,'0')}`;
-      payload.append("birthday", birthday);
-      
-      Object.entries(form).forEach(([k, v]) => {
-        if (k === "photo") {
-          if (v) payload.append("photo", v, v.name);
-        } else if (k === "photoPreview" || k === "birthDay" || k === "birthMonth" || k === "birthYear") {
-          // skip — birthday already composed above, photoPreview not needed
-        } else if (Array.isArray(v)) {
-          payload.append(k, JSON.stringify(v));
-        } else if (typeof v === "boolean") {
-          payload.append(k, v ? "true" : "false");
-        } else {
-          payload.append(k, String(v));
-        }
-      });
+      if (form.photo) payload.append("photo", form.photo, form.photo.name);
+
+      // DB column name → display value
+      payload.append("Submitted at", new Date().toISOString());
+      payload.append("name", form.name);
+      payload.append("sex", genderMap[form.gender] || form.gender);
+      payload.append("my-age", birthday);
+      payload.append("email", form.email);
+      payload.append("phone", form.whatsapp);
+      payload.append("instagram", cleanIG);
+      payload.append("my-occupation", occMap[form.occupation] || form.occupation);
+      payload.append("my-height", form.height);
+      payload.append("my-uni", uniMap[form.university] || form.university);
+      payload.append("my-attribute-1", attrThinkMap[form.trait_thinking] || "");
+      payload.append("my-attribute-2", attrExprMap[form.trait_expression] || "");
+      payload.append("my-attribute-3", attrPlanMap[form.trait_planning] || "");
+      payload.append("my-MBTI", mbtiVal);
+      payload.append("my-love-language", loveLangVal);
+      payload.append("my-hobby", form.interests.map(id => interestMap[id] || id).join(", "));
+      payload.append("my-drinking-habbit", drinkMap[form.drinking] || form.drinking);
+      payload.append("my-smoking-habbit", smokeMap[form.smoking] || form.smoking);
+      payload.append("my-hangout-frequent", freqMap[form.meetingFreq] || form.meetingFreq);
+      payload.append("my-relationship-goal", form.relGoals.map(id => relMap[id] || id).join(", "));
+      payload.append("my-kids-expectation", kidsMap[form.kidsPref] || form.kidsPref);
+      payload.append("my-bio", form.selfIntro);
+      payload.append("extra-requirements", form.extraRequirements);
+
+      // Partner preferences
+      payload.append("their-age", theirAge);
+      payload.append("their-height", theirHeight);
+      payload.append("their-occupation", prefOccVal);
+      payload.append("their-uni", prefUniVal);
+      payload.append("their-MBTI", prefMbtiVal);
+      payload.append("their-love-language", prefLoveLangVal);
+      payload.append("their-attribute-1", attrThinkMap[form.prefThinking] || "無所謂");
+      payload.append("their-attribute-2", attrExprMap[form.prefExpression] || "無所謂");
+      payload.append("their-attribute-3", attrPlanMap[form.prefPlanning] || "無所謂");
+      // Copy own values as partner preference
+      payload.append("their-meeting-frequency", freqMap[form.meetingFreq] || form.meetingFreq);
+      payload.append("their-kids-preferences", kidsMap[form.kidsPref] || form.kidsPref);
+      payload.append("their-drinking-habbit", prefDrinkVal);
+      payload.append("their-smoking-habbit", prefSmokeVal);
+
+      // Meta
+      payload.append("touchpoint", JSON.stringify(form.referral));
 
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
@@ -1003,78 +1190,18 @@ function LinkInSignup() {
   const ErrorMsg = ({ field }) => errors[field] ? <div className="field-error">{errors[field]}</div> : null;
 
   const DualRange = ({ label, unit, min, max, valMin, valMax, onMinChange, onMaxChange }) => {
-    const trackRef = useRef(null);
-    const valMinRef = useRef(valMin);
-    const valMaxRef = useRef(valMax);
-    valMinRef.current = valMin;
-    valMaxRef.current = valMax;
+    const [editMin, setEditMin] = useState(null);
+    const [editMax, setEditMax] = useState(null);
 
     const pctMin = ((valMin - min) / (max - min)) * 100;
     const pctMax = ((valMax - min) / (max - min)) * 100;
 
-    const getVal = useCallback((clientX) => {
-      const rect = trackRef.current?.getBoundingClientRect();
-      if (!rect) return min;
-      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      return Math.round(min + pct * (max - min));
-    }, [min, max]);
-
-    const startDrag = useCallback((which) => (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const onMove = (ev) => {
-        ev.preventDefault();
-        const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
-        const val = getVal(x);
-        if (which === "min") {
-          onMinChange(Math.max(min, Math.min(val, valMaxRef.current - 1)));
-        } else {
-          onMaxChange(Math.min(max, Math.max(val, valMinRef.current + 1)));
-        }
-      };
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("touchend", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-      window.addEventListener("touchmove", onMove, { passive: false });
-      window.addEventListener("touchend", onUp);
-    }, [getVal, min, max, onMinChange, onMaxChange]);
-
-    const handleInputMin = (e) => {
-      const raw = e.target.value.replace(/\D/g, "");
-      if (raw === "") return;
-      const v = Math.max(min, Math.min(Number(raw), valMax - 1));
-      onMinChange(v);
-    };
-    const handleInputMax = (e) => {
-      const raw = e.target.value.replace(/\D/g, "");
-      if (raw === "") return;
-      const v = Math.min(max, Math.max(Number(raw), valMin + 1));
-      onMaxChange(v);
-    };
-
     return (
       <div className="field">
         <div className="field-label">{label}</div>
-        <div className="range-slider" ref={trackRef}>
+        <div className="range-slider">
           <div className="range-slider-track" />
-          <div className="range-slider-fill" style={{ left: `${pctMin}%`, width: `${pctMax - pctMin}%` }} />
-          <div
-            className="range-thumb"
-            style={{ left: `${pctMin}%` }}
-            onMouseDown={startDrag("min")}
-            onTouchStart={startDrag("min")}
-          />
-          <div
-            className="range-thumb"
-            style={{ left: `${pctMax}%` }}
-            onMouseDown={startDrag("max")}
-            onTouchStart={startDrag("max")}
-          />
+          <div className="range-slider-fill" style={{ left: pctMin + "%", width: (pctMax - pctMin) + "%" }} />
         </div>
         <div className="range-inputs">
           <div className="range-input-group">
@@ -1083,9 +1210,15 @@ function LinkInSignup() {
               <input
                 type="text"
                 inputMode="numeric"
-                value={valMin}
-                onChange={handleInputMin}
                 className="range-input"
+                value={editMin !== null ? editMin : valMin}
+                onFocus={e => { setEditMin(String(valMin)); e.target.select(); }}
+                onChange={e => setEditMin(e.target.value)}
+                onBlur={() => {
+                  const n = parseInt(editMin);
+                  if (!isNaN(n)) onMinChange(Math.max(min, Math.min(n, valMax - 1)));
+                  setEditMin(null);
+                }}
               />
               <span className="range-input-unit">{unit}</span>
             </div>
@@ -1097,9 +1230,15 @@ function LinkInSignup() {
               <input
                 type="text"
                 inputMode="numeric"
-                value={valMax}
-                onChange={handleInputMax}
                 className="range-input"
+                value={editMax !== null ? editMax : valMax}
+                onFocus={e => { setEditMax(String(valMax)); e.target.select(); }}
+                onChange={e => setEditMax(e.target.value)}
+                onBlur={() => {
+                  const n = parseInt(editMax);
+                  if (!isNaN(n)) onMaxChange(Math.min(max, Math.max(n, valMin + 1)));
+                  setEditMax(null);
+                }}
               />
               <span className="range-input-unit">{unit}</span>
             </div>
@@ -1160,6 +1299,36 @@ function LinkInSignup() {
     </div>
   );
 
+  const CheckOptionNone = ({ stateKey, val, label }) => {
+    const isActive = form[stateKey].includes(val);
+    return (
+      <div className={`check-option ${isActive ? "active" : ""}`} onClick={() => toggleMultiWithNone(stateKey, val)}>
+        <div className="check-box">{isActive ? "✓" : ""}</div>
+        <div>{label}</div>
+      </div>
+    );
+  };
+
+  const CheckOption = ({ stateKey, val, label, max }) => {
+    const isActive = form[stateKey].includes(val);
+    return (
+      <div className={`check-option ${isActive ? "active" : ""}`} onClick={() => toggleMulti(stateKey, val, max)}>
+        <div className="check-box">{isActive ? "✓" : ""}</div>
+        <div>{label}</div>
+      </div>
+    );
+  };
+
+  const RadioOption = ({ stateKey, val, label }) => {
+    const isActive = form[stateKey] === val;
+    return (
+      <div className={`radio-option ${isActive ? "active" : ""}`} onClick={() => set(stateKey, val)}>
+        <div className="radio-dot" />
+        <div>{label}</div>
+      </div>
+    );
+  };
+
 
   /* ═══════════════════════════════════════════
      STEP RENDERERS
@@ -1168,10 +1337,10 @@ function LinkInSignup() {
   /* ── Step 0: 基本資料 ── */
   const renderStep0 = () => {
     const months = [
-      { val: "1", label: "1月" }, { val: "2", label: "2月" }, { val: "3", label: "3月" },
-      { val: "4", label: "4月" }, { val: "5", label: "5月" }, { val: "6", label: "6月" },
-      { val: "7", label: "7月" }, { val: "8", label: "8月" }, { val: "9", label: "9月" },
-      { val: "10", label: "10月" }, { val: "11", label: "11月" }, { val: "12", label: "12月" },
+      { val: "1", label: "1" }, { val: "2", label: "2" }, { val: "3", label: "3" },
+      { val: "4", label: "4" }, { val: "5", label: "5" }, { val: "6", label: "6" },
+      { val: "7", label: "7" }, { val: "8", label: "8" }, { val: "9", label: "9" },
+      { val: "10", label: "10" }, { val: "11", label: "11" }, { val: "12", label: "12" },
     ];
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 40 }, (_, i) => String(currentYear - 18 - i));
@@ -1237,7 +1406,14 @@ function LinkInSignup() {
           <ErrorMsg field="email" />
         </div>
         <div className="field">
+          <div className="field-label">📱 WhatsApp 號碼 <span className="req">*</span></div>
+          <div className="field-hint">我哋只會係緊急情況下（例如活動當日未見到你）先會主動聯絡你！請確保電話正確</div>
+          <input className="text-input" type="tel" inputMode="numeric" value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} />
+          <ErrorMsg field="whatsapp" />
+        </div>
+        <div className="field">
           <div className="field-label">Instagram 名稱 <span className="req">*</span></div>
+          <div className="field-hint">有機會我哋send嘅電郵會去左spam，我哋會經 Instagram 提你有配對結果，請確保 Instagram 正確</div>
           <input className="text-input" placeholder="" value={form.instagram} onChange={e => set("instagram", e.target.value)} />
           <ErrorMsg field="instagram" />
         </div>
@@ -1370,44 +1546,37 @@ function LinkInSignup() {
         <div className="field">
           <div className="field-label">🍷 你的飲酒習慣 <span className="req">*</span></div>
           <div className="option-list">
-            {DRINKING.map(d => <Option key={d.id} stateKey="drinking" val={d.id} label={d.label} />)}
+            {DRINKING.map(d => <RadioOption key={d.id} stateKey="drinking" val={d.id} label={d.label} />)}
           </div>
           <ErrorMsg field="drinking" />
         </div>
         <div className="field">
           <div className="field-label">🚬 你嘅吸煙習慣是？ <span className="req">*</span></div>
           <div className="option-list">
-            {SMOKING.map(s => <Option key={s.id} stateKey="smoking" val={s.id} label={s.label} />)}
+            {SMOKING.map(s => <RadioOption key={s.id} stateKey="smoking" val={s.id} label={s.label} />)}
           </div>
           <ErrorMsg field="smoking" />
         </div>
         <div className="field">
           <div className="field-label">🤝 你對一段關係中「見面頻率」嘅期望 <span className="req">*</span></div>
           <div className="option-list">
-            {MEETING_FREQ.map(m => <Option key={m.id} stateKey="meetingFreq" val={m.id} label={m.label} />)}
+            {MEETING_FREQ.map(m => <RadioOption key={m.id} stateKey="meetingFreq" val={m.id} label={m.label} />)}
           </div>
           <ErrorMsg field="meetingFreq" />
         </div>
         <div className="field">
           <div className="field-label">你而家想要嘅係（可多選） <span className="req">*</span></div>
           <div className="option-list">
-            {REL_GOALS.map(r => <MultiOption key={r.id} stateKey="relGoals" val={r.id} label={r.label} />)}
+            {REL_GOALS.map(r => <CheckOption key={r.id} stateKey="relGoals" val={r.id} label={r.label} />)}
           </div>
           <ErrorMsg field="relGoals" />
         </div>
         <div className="field">
           <div className="field-label">👶 你希望將來有小朋友嗎？ <span className="req">*</span></div>
           <div className="option-list">
-            {KIDS_PREF.map(k => <Option key={k.id} stateKey="kidsPref" val={k.id} label={k.label} />)}
+            {KIDS_PREF.map(k => <RadioOption key={k.id} stateKey="kidsPref" val={k.id} label={k.label} />)}
           </div>
           <ErrorMsg field="kidsPref" />
-        </div>
-        <div className="field">
-          <div className="field-label">😤 當出現爭拗或分歧時，以下邊啲描述比較貼近你？（可選最多2項） <span className="req">*</span></div>
-          <div className="option-list">
-            {CONFLICT_STYLES.map(c => <MultiOption key={c.id} stateKey="conflictStyles" val={c.id} label={c.label} max={2} />)}
-          </div>
-          <ErrorMsg field="conflictStyles" />
         </div>
       </div>
     );
@@ -1566,24 +1735,17 @@ function LinkInSignup() {
       <div className="section-divider" />
 
       <div className="field">
-        <div className="field-label">對方在出現分歧或衝突時的處理方式（可多選）</div>
-        <div className="option-list">
-          <MultiOptionNone stateKey="prefConflict" val="無所謂" label="無所謂" />
-          {CONFLICT_STYLES.map(c => <MultiOptionNone key={c.id} stateKey="prefConflict" val={c.id} label={c.label} />)}
-        </div>
-      </div>
-      <div className="field">
         <div className="field-label">🍷 對方的飲酒習慣（可多選）</div>
         <div className="option-list">
-          <MultiOptionNone stateKey="prefDrinking" val="無所謂" label="無所謂" />
-          {DRINKING.map(d => <MultiOptionNone key={d.id} stateKey="prefDrinking" val={d.id} label={d.label} />)}
+          <CheckOptionNone stateKey="prefDrinking" val="無所謂" label="無所謂" />
+          {DRINKING.map(d => <CheckOptionNone key={d.id} stateKey="prefDrinking" val={d.id} label={d.label} />)}
         </div>
       </div>
       <div className="field">
         <div className="field-label">🚬 對方的吸煙習慣（可多選）</div>
         <div className="option-list">
-          <MultiOptionNone stateKey="prefSmoking" val="無所謂" label="無所謂" />
-          {SMOKING.map(s => <MultiOptionNone key={s.id} stateKey="prefSmoking" val={s.id} label={s.label} />)}
+          <CheckOptionNone stateKey="prefSmoking" val="無所謂" label="無所謂" />
+          {SMOKING.map(s => <CheckOptionNone key={s.id} stateKey="prefSmoking" val={s.id} label={s.label} />)}
         </div>
       </div>
     </div>
