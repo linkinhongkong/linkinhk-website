@@ -1146,17 +1146,29 @@ function LinkInSignup() {
       // Meta
       payload.append("touchpoint", JSON.stringify(form.referral));
 
-      await fetch(WEBHOOK_URL, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      const res = await fetch(WEBHOOK_URL, {
         method: "POST",
         body: payload,
-      }).catch(() => {});
-      // CORS may block reading the response, but data goes through
-      setSubmitted(true);
-      scrollToTop();
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (res.ok) {
+        setSubmitted(true);
+        scrollToTop();
+      } else {
+        alert("提交失敗，請稍後再試 🙏");
+      }
     } catch (err) {
       console.error("Submit error:", err);
-      setSubmitted(true);
-      scrollToTop();
+      if (err.name === "AbortError") {
+        alert("提交超時，請檢查網絡後再試 🙏");
+      } else {
+        alert("提交失敗，請檢查網絡後再試 🙏");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1845,7 +1857,8 @@ function LinkInSignup() {
           {submitting && (
             <div className="submitting-overlay">
               <div className="spinner" />
-              <div style={{ fontSize: 14, color: "#888" }}>提交緊⋯⋯</div>
+              <div style={{ fontSize: 15, color: "#666", fontWeight: 600 }}>提交緊⋯⋯</div>
+              <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>通常需要約 10 秒，請稍等 🙏</div>
             </div>
           )}
 
