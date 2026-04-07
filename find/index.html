@@ -28,33 +28,17 @@ const STORAGE_KEY = "linkin_part1_data";
 /* ═══════════════════════════════════════════
    DATA
    ═══════════════════════════════════════════ */
-const OCCUPATIONS = [
-  { id: "finance", label: "金融／銀行", icon: "🏦" },
-  { id: "business", label: "商業／市場", icon: "📊" },
-  { id: "it", label: "IT／科技", icon: "👨‍💻" },
-  { id: "design", label: "設計／創意", icon: "🎨" },
-  { id: "education", label: "教育", icon: "📚" },
-  { id: "medical", label: "醫療", icon: "🏥" },
-  { id: "engineering", label: "工程", icon: "🏗" },
-  { id: "legal", label: "法律／會計", icon: "⚖️" },
-  { id: "service", label: "服務業", icon: "🍽" },
-  { id: "freelance", label: "自僱／創業", icon: "✨" },
-  { id: "student", label: "學生", icon: "🎓" },
+const PRIORITY_ITEMS = [
+  { id: "looks", icon: "✨", label: "外在條件", desc: "長相、身高、穿著打扮" },
+  { id: "personality", icon: "💜", label: "性格", desc: "溫柔、體貼、包容、幽默" },
+  { id: "values", icon: "🌱", label: "價值觀", desc: "未來規劃、對金錢嘅看法" },
 ];
-
-const CRITERIA_CHIPS = {
-  "外表": ["瘦", "肌肉", "可愛", "靚仔／靚女", "有型"],
-  "性格": ["開朗", "內斂", "幽默", "成熟", "溫柔", "有自信", "細心"],
-  "生活方式": ["愛運動", "愛旅行", "愛美食", "宅", "有寵物"],
-  "價值觀": ["顧家", "上進"],
-};
 
 const STEPS = [
   { title: "你想搵⋯⋯", subtitle: "讓我哋了解你嘅理想對象 ✨" },
   { title: "年齡同身高", subtitle: "你心目中嘅範圍 📏" },
-  { title: "職業背景", subtitle: "想認識邊個行業嘅人？💼" },
-  { title: "佢應該係點樣？", subtitle: "揀最多 5 個你最重視嘅特質 ✨" },
-  { title: "仲有冇其他想講？", subtitle: "用文字話我哋聽 💬" },
+  { title: "你最重視乜嘢？", subtitle: "拖動排序，最重要嘅放最上面 💫" },
+  { title: "仲有冇其他想講？", subtitle: "用文字話我哋聽，越具體越好 💬" },
 ];
 
 /* ═══════════════════════════════════════════
@@ -276,23 +260,55 @@ const STYLES = `
     flex-shrink: 0;
   }
 
-  /* Criteria categories */
-  .criteria-cat { margin-bottom: 16px; }
-  .criteria-cat-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-light);
-    margin-bottom: 8px;
+  /* Priority ranking */
+  .rank-list { display: flex; flex-direction: column; gap: 10px; }
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    border: 2px solid #e8e8e8;
+    user-select: none;
   }
-  .criteria-count {
-    display: inline-block;
-    font-size: 12px;
-    padding: 3px 10px;
-    border-radius: 12px;
-    margin-bottom: 12px;
+  .rank-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
-  .criteria-count.ok { background: var(--green-bg); color: var(--green-text); }
-  .criteria-count.warn { background: #fff0f0; color: #c00; }
+  .rank-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .rank-content { flex: 1; min-width: 0; }
+  .rank-label { font-size: 15px; font-weight: 600; color: var(--text); }
+  .rank-desc { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .rank-arrows { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .rank-arrow {
+    width: 32px; height: 26px;
+    border: none;
+    background: var(--chip-bg);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rank-arrow:hover { background: #ddd; }
+  .rank-arrow:disabled { opacity: 0.3; cursor: default; }
 
   .nav-row { padding: 8px 24px 28px; display: flex; gap: 10px; }
   .nav-btn {
@@ -393,8 +409,7 @@ function FindForm() {
     targetGender: "",
     ageMin: 18, ageMax: 60,
     heightMin: 140, heightMax: 200,
-    occupations: [],
-    criteria: [],
+    priorityOrder: ["looks", "personality", "values"],
     freeText: "",
   });
 
@@ -428,12 +443,9 @@ function FindForm() {
       else if (form.ageMin >= form.ageMax) e.age = "最低年齡要細過最高年齡";
       if (!form.heightMin || !form.heightMax) e.height = "請輸入身高範圍";
       else if (form.heightMin >= form.heightMax) e.height = "最低身高要細過最高身高";
-    } else if (step === 2) {
-      if (form.occupations.length === 0) e.occupations = "請至少揀一個（或揀無所謂）";
-    } else if (step === 3) {
-      // criteria optional but max 5
-      if (form.criteria.length > 5) e.criteria = "最多揀 5 個";
     }
+    // Step 2 (priority ranking) — always valid (default order is set)
+    // Step 3 (free text) — optional, no validation
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -600,95 +612,62 @@ function FindForm() {
     </div>
   );
 
+  const movePriority = (idx, dir) => {
+    setForm(prev => {
+      const arr = [...prev.priorityOrder];
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= arr.length) return prev;
+      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+      return { ...prev, priorityOrder: arr };
+    });
+  };
+
   const renderStep2 = () => (
     <div className="step-content">
       <div className="field">
-        <div className="field-label">想認識邊個行業嘅人？（可多選）</div>
-        <div className="field-hint">揀「無所謂」就唔會限制行業</div>
-        <div className="chip-grid">
-          <div
-            className={`chip ${form.occupations.includes("無所謂") ? "active" : ""}`}
-            onClick={() => {
-              if (form.occupations.includes("無所謂")) {
-                set("occupations", []);
-              } else {
-                set("occupations", ["無所謂"]);
-              }
-            }}
-          >
-            無所謂
-          </div>
-          {OCCUPATIONS.map(o => (
-            <div
-              key={o.id}
-              className={`chip ${form.occupations.includes(o.id) ? "active" : ""}`}
-              onClick={() => {
-                const without = form.occupations.filter(v => v !== "無所謂");
-                if (without.includes(o.id)) {
-                  set("occupations", without.filter(v => v !== o.id));
-                } else {
-                  set("occupations", [...without, o.id]);
-                }
-              }}
-            >
-              <span className="chip-icon">{o.icon}</span>
-              {o.label}
-            </div>
-          ))}
+        <div className="field-label">你最重視乜嘢？</div>
+        <div className="field-hint">用箭頭調整順序，最重要嘅放最上面</div>
+        <div className="rank-list">
+          {form.priorityOrder.map((id, idx) => {
+            const item = PRIORITY_ITEMS.find(p => p.id === id);
+            return (
+              <div className="rank-item" key={id}>
+                <div className="rank-num">{idx + 1}</div>
+                <div className="rank-icon">{item.icon}</div>
+                <div className="rank-content">
+                  <div className="rank-label">{item.label}</div>
+                  <div className="rank-desc">{item.desc}</div>
+                </div>
+                <div className="rank-arrows">
+                  <button className="rank-arrow" disabled={idx === 0} onClick={() => movePriority(idx, -1)}>▲</button>
+                  <button className="rank-arrow" disabled={idx === form.priorityOrder.length - 1} onClick={() => movePriority(idx, 1)}>▼</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <ErrorMsg field="occupations" />
       </div>
     </div>
   );
 
-  const renderStep3 = () => {
-    const count = form.criteria.length;
-    const countClass = count > 0 && count <= 5 ? "ok" : count > 5 ? "warn" : "";
-    return (
-      <div className="step-content">
-        <div className="field">
-          <div className="field-label">揀最多 5 個你最重視嘅特質</div>
-          <div className={`criteria-count ${countClass}`}>已選 {count} / 5</div>
-          {Object.entries(CRITERIA_CHIPS).map(([cat, items]) => (
-            <div className="criteria-cat" key={cat}>
-              <div className="criteria-cat-label">{cat}</div>
-              <div className="chip-grid">
-                {items.map(label => (
-                  <div
-                    key={label}
-                    className={`chip ${form.criteria.includes(label) ? "active" : ""}`}
-                    onClick={() => toggleArray("criteria", label, 5)}
-                  >
-                    {label}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          <ErrorMsg field="criteria" />
-        </div>
-      </div>
-    );
-  };
-
-  const renderStep4 = () => (
+  const renderStep3 = () => (
     <div className="step-content">
       <div className="field">
         <div className="field-label">用文字話我哋聽你想搵咩樣嘅人（可選填）</div>
-        <div className="field-hint">越具體越好，例如：希望對方鍾意行山、有時間陪我食飯</div>
+        <div className="field-hint">越具體越好，例如：希望對方鍾意行山、顧家、唔食煙</div>
         <textarea
           className="text-input"
           placeholder="寫低你心目中嘅理想對象⋯⋯"
           value={form.freeText}
           onChange={e => set("freeText", e.target.value)}
-          maxLength={200}
+          maxLength={300}
         />
-        <div style={{ textAlign: "right", fontSize: 12, color: "#bbb", marginTop: 4 }}>{form.freeText.length} / 200</div>
+        <div style={{ textAlign: "right", fontSize: 12, color: "#bbb", marginTop: 4 }}>{form.freeText.length} / 300</div>
       </div>
     </div>
   );
 
-  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4];
+  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3];
 
   return (
     <>
