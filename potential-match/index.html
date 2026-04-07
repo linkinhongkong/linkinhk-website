@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Link.in — 你嘅潛在配對</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body style="margin:0">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+const NEXT_PAGE_URL = "/member-form";
+const PREV_PAGE_URL = "/find";
+const LOGO_URL = "/logo.png";
+
+const STYLES = `
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bg: #f0f0f0;
+    --card: #f7f7f7;
+    --white: #ffffff;
+    --text: #333;
+    --text-light: #888;
+    --accent: #9060E0;
+    --accent-pink: #FF6EB4;
+    --accent-gradient: linear-gradient(135deg, #FF6EB4, #A259FF);
+    --chip-bg: #efefef;
+    --green-bg: #e8f8ee;
+    --green-text: #1a7a3a;
+    --yellow-bg: #fefce8;
+    --yellow-border: #eab308;
+    --radius: 20px;
+    --radius-sm: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .root {
+    min-height: 100dvh;
+    padding: 24px 16px 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .container { width: 100%; max-width: 480px; }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 0 4px;
+  }
+  .logo-img { height: 22px; opacity: 0.85; }
+
+  .header-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px 24px 24px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--accent-gradient);
+  }
+  .header-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .header-sub {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  .header-emoji {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+
+  /* Match card */
+  .match-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 22px 22px 20px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+    position: relative;
+    animation: fadeUp 0.5s ease both;
+  }
+  .match-card:nth-child(2) { animation-delay: 0.1s; }
+  .match-card:nth-child(3) { animation-delay: 0.2s; }
+  .match-card:nth-child(4) { animation-delay: 0.3s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .match-num {
+    display: inline-block;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--accent);
+    background: #f0e8fc;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
+
+  .basic-section {
+    background: #fafafa;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .basic-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .basic-chip {
+    background: var(--white);
+    border: 1px solid #e8e8e8;
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 13px;
+    color: #555;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .bio-section {
+    background: #fafafa;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .bio-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #444;
+    white-space: pre-wrap;
+  }
+
+  .reason-section {
+    background: var(--green-bg);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+  }
+  .reason-section .section-label {
+    color: var(--green-text);
+  }
+  .reason-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #1f5e39;
+  }
+
+  /* CTA */
+  .cta-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .cta-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .cta-sub {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+  .cta-btn {
+    display: inline-block;
+    width: 100%;
+    padding: 16px;
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(144, 96, 224, 0.3);
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(144, 96, 224, 0.4);
+  }
+  .cta-btn:active { transform: scale(0.98); }
+  .back-link {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-light);
+    text-decoration: none;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* No match */
+  .no-match-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 36px 24px 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .no-match-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--accent-gradient);
+  }
+  .no-match-emoji { font-size: 48px; margin-bottom: 16px; }
+  .no-match-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+  .no-match-text { font-size: 14px; color: var(--text-light); line-height: 1.7; margin-bottom: 22px; }
+
+  /* Loading */
+  .loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid var(--chip-bg);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { margin-top: 14px; font-size: 14px; color: var(--text-light); }
+
+  @media (max-width: 500px) {
+    .root { padding: 16px 12px 80px; }
+    .header-card { padding: 24px 20px; border-radius: 16px; }
+    .match-card { padding: 20px; border-radius: 16px; }
+    .cta-card { padding: 20px; border-radius: 16px; }
+    .header-title { font-size: 21px; }
+  }
+`;
+
+function PotentialMatch() {
+  const [matches, setMatches] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("linkin_part2_matches");
+      if (raw) {
+        const data = JSON.parse(raw);
+        setMatches(data.matches || []);
+      } else {
+        setMatches([]);
+      }
+    } catch (e) {
+      setMatches([]);
+    }
+    setLoaded(true);
+  }, []);
+
+  const goToForm = () => {
+    window.location.href = NEXT_PAGE_URL;
+  };
+
+  if (!loaded) {
+    return (
+      <>
+        <style>{STYLES}</style>
+        <div className="root">
+          <div className="loading-screen">
+            <div className="spinner" />
+            <div className="loading-text">載入緊⋯⋯</div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const hasMatches = matches && matches.length > 0;
+
+  return (
+    <>
+      <style>{STYLES}</style>
+      <div className="root">
+        <div className="container">
+          <div className="top-bar">
+            <img src={LOGO_URL} alt="Link.in" className="logo-img" />
+          </div>
+
+          {hasMatches ? (
+            <>
+              <div className="header-card">
+                <div className="header-emoji">✨</div>
+                <div className="header-title">為你搵到嘅人</div>
+                <div className="header-sub">
+                  根據你嘅需求，我哋為你揀咗以下幾位<br/>
+                  完成註冊就可以了解佢哋多啲 💚
+                </div>
+              </div>
+
+              {matches.map((m, i) => (
+                <div className="match-card" key={i}>
+                  <div className="match-num">配對 {String(i + 1).padStart(2, '0')}</div>
+
+                  <div className="basic-section">
+                    <div className="section-label">📍 基本資料</div>
+                    <div className="basic-chips">
+                      {m.age && <span className="basic-chip">🎂 {m.age} 歲</span>}
+                      {m.height && <span className="basic-chip">📏 {m.height} cm</span>}
+                      {m.occupation && <span className="basic-chip">💼 {m.occupation}</span>}
+                      {m.zodiac && <span className="basic-chip">{m.zodiac}</span>}
+                      {m.mbti && <span className="basic-chip">{m.mbti}</span>}
+                    </div>
+                  </div>
+
+                  {m.bio && (
+                    <div className="bio-section">
+                      <div className="section-label">💬 對方的自我介紹</div>
+                      <div className="bio-text">{m.bio}</div>
+                    </div>
+                  )}
+
+                  {m.reasoning && (
+                    <div className="reason-section">
+                      <div className="section-label">💚 點解佢可能適合你？</div>
+                      <div className="reason-text">{m.reasoning}</div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <div className="cta-card">
+                <div className="cta-title">想了解佢哋多啲？</div>
+                <div className="cta-sub">
+                  完成你嘅個人資料，我哋就可以幫你正式配對 💫
+                </div>
+                <button className="cta-btn" onClick={goToForm}>
+                  繼續完成註冊 →
+                </button>
+                <a href={PREV_PAGE_URL} className="back-link">← 返回修改你嘅需求</a>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="no-match-card">
+                <div className="no-match-emoji">🌱</div>
+                <div className="no-match-title">暫時未搵到你想認識嘅人</div>
+                <div className="no-match-text">
+                  我哋每日都有新會員加入<br/>
+                  繼續填寫資料，下次有適合嘅人會通知你 💚
+                </div>
+                <button className="cta-btn" onClick={goToForm}>
+                  繼續完成註冊 →
+                </button>
+                <div style={{ marginTop: 12 }}>
+                  <a href={PREV_PAGE_URL} className="back-link">← 返回修改你嘅需求</a>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PotentialMatch />);
+  </script>
+</body>
+</html>
