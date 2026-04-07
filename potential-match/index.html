@@ -14,7 +14,7 @@
 <body style="margin:0">
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
 const NEXT_PAGE_URL = "/member-form";
 const PREV_PAGE_URL = "/find";
@@ -101,23 +101,121 @@ const STYLES = `
     margin-bottom: 12px;
   }
 
-  /* Match card */
+  /* Total candidates banner */
+  .total-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-gradient);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 14px;
+    box-shadow: 0 4px 14px rgba(162, 89, 255, 0.28);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  .total-banner .big-num {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+
+  /* Swipe carousel */
+  .carousel-wrap {
+    position: relative;
+    margin: 0 -16px 8px;
+  }
+  .carousel {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 4px 16px 18px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .carousel::-webkit-scrollbar { display: none; }
+
   .match-card {
+    flex: 0 0 calc(100% - 32px);
+    max-width: calc(100% - 32px);
+    scroll-snap-align: center;
     background: var(--white);
     border-radius: var(--radius);
-    padding: 22px 22px 20px;
-    margin-bottom: 14px;
+    padding: 0 0 20px;
     box-shadow: var(--shadow);
     position: relative;
+    overflow: hidden;
     animation: fadeUp 0.5s ease both;
   }
-  .match-card:nth-child(2) { animation-delay: 0.1s; }
-  .match-card:nth-child(3) { animation-delay: 0.2s; }
-  .match-card:nth-child(4) { animation-delay: 0.3s; }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* Blurred photo */
+  .photo-wrap {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f0e8fc, #ffe8f1);
+  }
+  .photo-blur {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(38px) saturate(1.1);
+    transform: scale(1.25); /* avoid blur edge bleed */
+  }
+  .photo-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    opacity: 0.55;
+  }
+  .photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.35));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+    color: white;
+  }
+  .lock-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+  }
+  .lock-text {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+  .lock-sub {
+    font-size: 11px;
+    font-weight: 400;
+    margin-top: 4px;
+    opacity: 0.9;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+
+  .card-body { padding: 18px 20px 0; }
 
   .match-num {
     display: inline-block;
@@ -136,7 +234,7 @@ const STYLES = `
     background: #fafafa;
     border-radius: var(--radius-sm);
     padding: 14px 16px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
   .section-label {
     font-size: 12px;
@@ -169,7 +267,7 @@ const STYLES = `
     background: #fafafa;
     border-radius: var(--radius-sm);
     padding: 14px 16px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
   .bio-text {
     font-size: 14px;
@@ -192,12 +290,68 @@ const STYLES = `
     color: #1f5e39;
   }
 
+  /* Arrow buttons */
+  .arrow-btn {
+    position: absolute;
+    top: 100px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    font-size: 18px;
+    color: var(--accent);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .arrow-btn:hover { transform: translateY(-50%) scale(1.08); background: white; }
+  .arrow-btn:active { transform: translateY(-50%) scale(0.94); }
+  .arrow-btn.prev { left: 8px; transform: translateY(-50%); }
+  .arrow-btn.next { right: 8px; transform: translateY(-50%); }
+  .arrow-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* Dots indicator */
+  .dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d0d0d0;
+    transition: all 0.3s;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+  }
+  .dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background: var(--accent);
+  }
+
+  .swipe-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 14px;
+  }
+
   /* CTA */
   .cta-card {
     background: var(--white);
     border-radius: var(--radius);
     padding: 24px;
-    margin-top: 24px;
+    margin-top: 16px;
     box-shadow: var(--shadow);
     text-align: center;
   }
@@ -284,15 +438,21 @@ const STYLES = `
   @media (max-width: 500px) {
     .root { padding: 16px 12px 80px; }
     .header-card { padding: 24px 20px; border-radius: 16px; }
-    .match-card { padding: 20px; border-radius: 16px; }
+    .match-card { border-radius: 16px; }
     .cta-card { padding: 20px; border-radius: 16px; }
     .header-title { font-size: 21px; }
+    .carousel-wrap { margin: 0 -12px 8px; }
+    .carousel { padding: 4px 12px 18px; gap: 12px; }
+    .match-card { flex: 0 0 calc(100% - 24px); max-width: calc(100% - 24px); }
   }
 `;
 
 function PotentialMatch() {
   const [matches, setMatches] = useState(null);
+  const [totalCandidates, setTotalCandidates] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const carouselRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -300,6 +460,7 @@ function PotentialMatch() {
       if (raw) {
         const data = JSON.parse(raw);
         setMatches(data.matches || []);
+        setTotalCandidates(data.totalCandidates || 0);
       } else {
         setMatches([]);
       }
@@ -308,6 +469,29 @@ function PotentialMatch() {
     }
     setLoaded(true);
   }, []);
+
+  // Track active slide based on scroll position
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const cardWidth = el.scrollWidth / (matches?.length || 1);
+      const idx = Math.round(el.scrollLeft / cardWidth);
+      setActiveIdx(idx);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [matches]);
+
+  const scrollTo = (idx) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / (matches?.length || 1);
+    el.scrollTo({ left: cardWidth * idx, behavior: 'smooth' });
+  };
+
+  const goPrev = () => scrollTo(Math.max(0, activeIdx - 1));
+  const goNext = () => scrollTo(Math.min((matches?.length || 1) - 1, activeIdx + 1));
 
   const goToForm = () => {
     window.location.href = NEXT_PAGE_URL;
@@ -347,43 +531,106 @@ function PotentialMatch() {
                   根據你嘅需求，我哋為你揀咗以下幾位<br/>
                   完成註冊就可以了解佢哋多啲 💚
                 </div>
+                {totalCandidates > 0 && (
+                  <div className="total-banner">
+                    💘 總共有 <span className="big-num">{totalCandidates}+</span> 位可能合適嘅人
+                  </div>
+                )}
               </div>
 
-              {matches.map((m, i) => (
-                <div className="match-card" key={i}>
-                  <div className="match-num">配對 {String(i + 1).padStart(2, '0')}</div>
+              <div className="swipe-hint">← 左右滑動睇更多 →</div>
 
-                  <div className="basic-section">
-                    <div className="section-label">📍 基本資料</div>
-                    <div className="basic-chips">
-                      {m.age && <span className="basic-chip">🎂 {m.age} 歲</span>}
-                      {m.height && <span className="basic-chip">📏 {m.height} cm</span>}
-                      {m.occupation && <span className="basic-chip">💼 {m.occupation}</span>}
-                      {m.zodiac && <span className="basic-chip">{m.zodiac}</span>}
-                      {m.mbti && <span className="basic-chip">{m.mbti}</span>}
-                    </div>
-                  </div>
+              <div className="carousel-wrap">
+                {matches.length > 1 && (
+                  <button
+                    className="arrow-btn prev"
+                    onClick={goPrev}
+                    disabled={activeIdx === 0}
+                    aria-label="上一個"
+                  >←</button>
+                )}
+                {matches.length > 1 && (
+                  <button
+                    className="arrow-btn next"
+                    onClick={goNext}
+                    disabled={activeIdx === matches.length - 1}
+                    aria-label="下一個"
+                  >→</button>
+                )}
 
-                  {m.bio && (
-                    <div className="bio-section">
-                      <div className="section-label">💬 對方的自我介紹</div>
-                      <div className="bio-text">{m.bio}</div>
-                    </div>
-                  )}
+                <div className="carousel" ref={carouselRef}>
+                  {matches.map((m, i) => (
+                    <div className="match-card" key={i}>
+                      <div className="photo-wrap">
+                        {m["my-photo"] ? (
+                          <img
+                            src={m["my-photo"]}
+                            alt=""
+                            className="photo-blur"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="photo-fallback">👤</div>
+                        )}
+                        <div className="photo-overlay">
+                          <div className="lock-icon">🔒</div>
+                          <div className="lock-text">完成註冊先可以睇相</div>
+                          <div className="lock-sub">保護每位會員嘅私隱 💚</div>
+                        </div>
+                      </div>
 
-                  {m.reasoning && (
-                    <div className="reason-section">
-                      <div className="section-label">💚 點解佢可能適合你？</div>
-                      <div className="reason-text">{m.reasoning}</div>
+                      <div className="card-body">
+                        <div className="match-num">配對 {String(i + 1).padStart(2, '0')}</div>
+
+                        <div className="basic-section">
+                          <div className="section-label">📍 基本資料</div>
+                          <div className="basic-chips">
+                            {m.age && <span className="basic-chip">🎂 {m.age} 歲</span>}
+                            {m.height && <span className="basic-chip">📏 {m.height} cm</span>}
+                            {m.occupation && <span className="basic-chip">💼 {m.occupation}</span>}
+                            {m.zodiac && <span className="basic-chip">{m.zodiac}</span>}
+                            {m.mbti && <span className="basic-chip">{m.mbti}</span>}
+                          </div>
+                        </div>
+
+                        {m.bio && (
+                          <div className="bio-section">
+                            <div className="section-label">💬 對方的自我介紹</div>
+                            <div className="bio-text">{m.bio}</div>
+                          </div>
+                        )}
+
+                        {m.reasoning && (
+                          <div className="reason-section">
+                            <div className="section-label">💚 點解佢可能適合你？</div>
+                            <div className="reason-text">{m.reasoning}</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {matches.length > 1 && (
+                <div className="dots">
+                  {matches.map((_, i) => (
+                    <button
+                      key={i}
+                      className={`dot ${i === activeIdx ? 'active' : ''}`}
+                      onClick={() => scrollTo(i)}
+                      aria-label={`配對 ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
 
               <div className="cta-card">
                 <div className="cta-title">想了解佢哋多啲？</div>
                 <div className="cta-sub">
-                  完成你嘅個人資料，我哋就可以幫你正式配對 💫
+                  {totalCandidates > 0
+                    ? `仲有 ${totalCandidates}+ 位等緊你，完成註冊即刻解鎖 💫`
+                    : '完成你嘅個人資料，我哋就可以幫你正式配對 💫'}
                 </div>
                 <button className="cta-btn" onClick={goToForm}>
                   繼續完成註冊 →
