@@ -1207,7 +1207,7 @@ function LinkInSignup() {
       payload.append("touchpoint", JSON.stringify(form.referral));
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch(WEBHOOK_URL, {
         method: "POST",
@@ -1832,7 +1832,7 @@ function LinkInSignup() {
             <div className="submitting-overlay">
               <div className="spinner" />
               <div style={{ fontSize: 15, color: "#666", fontWeight: 600 }}>提交緊⋯⋯</div>
-              <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>通常需要約 10 秒，請稍等 🙏</div>
+              <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>通常需要約 10-30 秒，請稍等 🙏</div>
             </div>
           )}
 
