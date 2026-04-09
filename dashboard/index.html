@@ -398,57 +398,375 @@
       );
     }
 
+    // ---------------- Bottom Sheet ----------------
+    function BottomSheet({ open, title, fields, profile, onClose }) {
+      // Local edit state - resets each time sheet opens
+      const [values, setValues] = useState({});
+
+      useEffect(() => {
+        if (open) {
+          const initial = {};
+          fields.forEach(f => {
+            initial[f.key] = profile[f.key] || "";
+          });
+          setValues(initial);
+          // Lock body scroll
+          document.body.style.overflow = "hidden";
+        } else {
+          document.body.style.overflow = "";
+        }
+        return () => { document.body.style.overflow = ""; };
+      }, [open]);
+
+      if (!open) return null;
+
+      const handleChange = (key, val) => {
+        setValues(prev => ({ ...prev, [key]: val }));
+      };
+
+      const handleSave = () => {
+        // No-op for now - write workflow comes next iteration
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 fade-in"
+            onClick={onClose}
+          />
+
+          {/* Sheet */}
+          <div className="relative bg-white w-full max-w-2xl rounded-t-2xl flex flex-col fade-in" style={{ maxHeight: "90vh" }}>
+            {/* Sticky header */}
+            <div className="sticky top-0 bg-white border-b border-stone-200 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+              <h3 className="font-semibold text-stone-900">{title}</h3>
+              <button
+                onClick={onClose}
+                className="text-stone-400 hover:text-stone-700 p-1"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto px-5 py-4 flex-1">
+              {fields.map(f => (
+                <div key={f.key} className="mb-4">
+                  <label className="block text-xs text-stone-500 mb-1.5">
+                    {f.label}
+                    {f.readOnly && <span className="ml-2 text-stone-400">(不可修改)</span>}
+                  </label>
+                  {f.type === "textarea" ? (
+                    <textarea
+                      value={values[f.key] || ""}
+                      onChange={(e) => handleChange(f.key, e.target.value)}
+                      disabled={f.readOnly}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition disabled:bg-stone-50 disabled:text-stone-400 resize-none"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={values[f.key] || ""}
+                      onChange={(e) => handleChange(f.key, e.target.value)}
+                      disabled={f.readOnly}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition disabled:bg-stone-50 disabled:text-stone-400"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Sticky footer */}
+            <div className="sticky bottom-0 bg-white border-t border-stone-200 px-5 py-3">
+              <button
+                onClick={handleSave}
+                className="w-full bg-stone-900 hover:bg-stone-800 text-white font-medium py-3 rounded-lg transition"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ---------------- Card wrapper ----------------
+    function Card({ icon, title, helper, onEdit, children }) {
+      return (
+        <div className="bg-white rounded-xl border border-stone-200 p-5 mb-3">
+          {(title || onEdit) && (
+            <div className="flex items-start justify-between mb-1">
+              {title && (
+                <h3 className="font-semibold text-stone-900">
+                  {icon && <span className="mr-1.5">{icon}</span>}
+                  {title}
+                </h3>
+              )}
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="text-stone-400 hover:text-stone-700 transition p-1 -mt-1 -mr-1"
+                  title="編輯"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {helper && (
+            <p className="text-xs text-stone-500 mb-3">{helper}</p>
+          )}
+          {children}
+        </div>
+      );
+    }
+
+    // ---------------- Display row (read-only inside cards) ----------------
+    function Row({ label, value, isChips }) {
+      const chips = isChips ? (value || "").split(",").map(s => s.trim()).filter(Boolean) : [];
+      return (
+        <div className="py-2.5 border-b border-stone-100 last:border-b-0">
+          <div className="text-xs text-stone-500 mb-1">{label}</div>
+          {isChips ? (
+            chips.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {chips.map((chip, i) => (
+                  <span key={i} className="inline-block px-2.5 py-1 bg-stone-100 text-stone-700 text-xs rounded-full">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="text-stone-300">—</div>
+            )
+          ) : (
+            <div className="text-stone-900 break-words">
+              {value || <span className="text-stone-300">—</span>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ---------------- Profile completeness ----------------
+    const COMPLETENESS_FIELDS = [
+      "my-photo-1", "my-photo-2", "my-photo-3",
+      "name", "my-age", "my-occupation",
+      "my-bio", "my-activities", "my-hobby",
+      "sex", "my-height", "my-uni", "instagram",
+      "my-MBTI", "my-love-language",
+      "my-drinking-habbit", "my-smoking-habbit",
+      "my-kids-expectation", "my-religion",
+      "email", "phone"
+    ];
+
+    function calculateCompleteness(profile) {
+      const filled = COMPLETENESS_FIELDS.filter(key => {
+        const val = profile[key];
+        return val !== undefined && val !== null && String(val).trim() !== "";
+      }).length;
+      const total = COMPLETENESS_FIELDS.length;
+      const missing = total - filled;
+      const percent = Math.round((filled / total) * 100);
+      return { filled, total, missing, percent };
+    }
+
     // ---------------- Who I Am ----------------
     function WhoIAm({ profile }) {
+      const [editingCard, setEditingCard] = useState(null);
+
       const photos = [
         profile["my-photo-1"],
         profile["my-photo-2"],
         profile["my-photo-3"]
       ];
 
-      return (
-        <div className="bg-white rounded-xl border border-stone-200 p-5 fade-in">
-          {/* Photos */}
-          <div className="mb-4">
-            <div className="text-xs text-stone-500 mb-2 flex items-center justify-between">
-              <span>相片</span>
-              <button className="text-stone-400 hover:text-stone-700 p-1">
-                <PencilIcon className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {photos.map((url, i) => (
-                <div key={i} className="aspect-square bg-stone-100 rounded-lg overflow-hidden">
-                  {url ? (
-                    <img src={url} alt={`photo-${i+1}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">
-                      無相片
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      const { missing, percent } = calculateCompleteness(profile);
 
-          <Field label="姓名" value={profile.name} />
-          <Field label="電郵" value={profile.email} editable={false} />
-          <Field label="性別" value={profile.sex} />
-          <Field label="年齡" value={profile["my-age"]} />
-          <Field label="電話" value={profile.phone} />
-          <Field label="Instagram" value={profile.instagram} />
-          <Field label="職業" value={profile["my-occupation"]} />
-          <Field label="身高 (cm)" value={profile["my-height"]} />
-          <Field label="大學" value={profile["my-uni"]} />
-          <Field label="MBTI" value={profile["my-MBTI"]} />
-          <Field label="愛的語言" value={profile["my-love-language"]} />
-          <ChipsField label="興趣" value={profile["my-hobby"]} />
-          <Field label="飲酒習慣" value={profile["my-drinking-habbit"]} />
-          <Field label="吸煙習慣" value={profile["my-smoking-habbit"]} />
-          <Field label="對小朋友的期望" value={profile["my-kids-expectation"]} />
-          <Field label="宗教" value={profile["my-religion"]} />
-          <Field label="自我介紹" value={profile["my-bio"]} />
-          <ChipsField label="想一齊做嘅活動" value={profile["my-activities"]} />
+      // Field configs for each card's bottom sheet
+      const cardConfigs = {
+        summary: {
+          title: "編輯個人簡介",
+          fields: [
+            { key: "my-photo-1", label: "相片 1 (URL)" },
+            { key: "my-photo-2", label: "相片 2 (URL)" },
+            { key: "my-photo-3", label: "相片 3 (URL)" },
+            { key: "name", label: "姓名" },
+            { key: "my-age", label: "出生日期" },
+            { key: "my-occupation", label: "職業" },
+          ]
+        },
+        about: {
+          title: "編輯 ✨ 讓人更了解你",
+          fields: [
+            { key: "my-bio", label: "自我介紹", type: "textarea" },
+            { key: "my-activities", label: "想一齊做嘅活動 (用逗號分隔)" },
+            { key: "my-hobby", label: "興趣 (用逗號分隔)" },
+          ]
+        },
+        basic: {
+          title: "編輯 📌 基本資料",
+          fields: [
+            { key: "sex", label: "性別" },
+            { key: "my-height", label: "身高 (cm)" },
+            { key: "my-uni", label: "大學" },
+            { key: "instagram", label: "Instagram" },
+          ]
+        },
+        personality: {
+          title: "編輯 🧠 個性 & 相處",
+          fields: [
+            { key: "my-MBTI", label: "MBTI" },
+            { key: "my-love-language", label: "愛的語言" },
+          ]
+        },
+        lifestyle: {
+          title: "編輯 🌿 生活習慣",
+          fields: [
+            { key: "my-drinking-habbit", label: "飲酒習慣" },
+            { key: "my-smoking-habbit", label: "吸煙習慣" },
+          ]
+        },
+        relationship: {
+          title: "編輯 💛 關係觀",
+          fields: [
+            { key: "my-kids-expectation", label: "對小朋友的想法" },
+            { key: "my-religion", label: "宗教" },
+          ]
+        },
+        account: {
+          title: "編輯 ⚙️ 帳戶設定",
+          fields: [
+            { key: "email", label: "電郵", readOnly: true },
+            { key: "phone", label: "電話" },
+          ]
+        },
+      };
+
+      const openSheet = (cardKey) => setEditingCard(cardKey);
+      const closeSheet = () => setEditingCard(null);
+
+      return (
+        <div className="fade-in">
+          {/* ---------- Card 1: Summary ---------- */}
+          <Card onEdit={() => openSheet("summary")}>
+            {/* Photos: 1 large + 2 stacked */}
+            <div className="grid grid-cols-3 grid-rows-2 gap-2 mb-4" style={{ aspectRatio: "3/2" }}>
+              <div className="col-span-2 row-span-2 bg-stone-100 rounded-lg overflow-hidden">
+                {photos[0] ? (
+                  <img src={photos[0]} alt="photo-1" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">無相片</div>
+                )}
+              </div>
+              <div className="bg-stone-100 rounded-lg overflow-hidden">
+                {photos[1] ? (
+                  <img src={photos[1]} alt="photo-2" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">無相片</div>
+                )}
+              </div>
+              <div className="bg-stone-100 rounded-lg overflow-hidden">
+                {photos[2] ? (
+                  <img src={photos[2]} alt="photo-3" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">無相片</div>
+                )}
+              </div>
+            </div>
+
+            {/* Name + key info */}
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-stone-900 mb-1">
+                {profile.name || <span className="text-stone-300">未填寫</span>}
+              </h2>
+              <div className="text-sm text-stone-600 space-y-0.5">
+                {profile["my-age"] && <div>🎂 {profile["my-age"]}</div>}
+                {profile["my-occupation"] && <div>💼 {profile["my-occupation"]}</div>}
+              </div>
+            </div>
+
+            {/* Completeness */}
+            <div className="bg-stone-50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-stone-700">個人檔案完成度</span>
+                <span className="text-sm font-semibold text-stone-900">{percent}%</span>
+              </div>
+              <div className="h-2 bg-stone-200 rounded-full overflow-hidden mb-2">
+                <div
+                  className="h-full bg-gradient-to-r from-yellow-300 to-yellow-500 transition-all"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              {missing > 0 ? (
+                <p className="text-xs text-stone-500">
+                  再填 <span className="font-semibold text-stone-900">{missing}</span> 項提升配對機會
+                </p>
+              ) : (
+                <p className="text-xs text-green-600">✨ 完美!你嘅檔案已經填齊曬</p>
+              )}
+            </div>
+          </Card>
+
+          {/* ---------- Card 2: About ---------- */}
+          <Card
+            icon="✨"
+            title="讓人更了解你"
+            helper="填得越多,我哋越容易幫你搵到適合的人"
+            onEdit={() => openSheet("about")}
+          >
+            <Row label="自我介紹" value={profile["my-bio"]} />
+            <Row label="想一齊做嘅活動" value={profile["my-activities"]} isChips />
+            <Row label="興趣" value={profile["my-hobby"]} isChips />
+          </Card>
+
+          {/* ---------- Card 3: Basic ---------- */}
+          <Card icon="📌" title="基本資料" onEdit={() => openSheet("basic")}>
+            <Row label="性別" value={profile.sex} />
+            <Row label="身高 (cm)" value={profile["my-height"]} />
+            <Row label="大學" value={profile["my-uni"]} />
+            <Row label="Instagram" value={profile.instagram} />
+          </Card>
+
+          {/* ---------- Card 4: Personality ---------- */}
+          <Card icon="🧠" title="個性 & 相處" onEdit={() => openSheet("personality")}>
+            <Row label="MBTI" value={profile["my-MBTI"]} />
+            <Row label="愛的語言" value={profile["my-love-language"]} />
+          </Card>
+
+          {/* ---------- Card 5: Lifestyle ---------- */}
+          <Card icon="🌿" title="生活習慣" onEdit={() => openSheet("lifestyle")}>
+            <Row label="飲酒習慣" value={profile["my-drinking-habbit"]} />
+            <Row label="吸煙習慣" value={profile["my-smoking-habbit"]} />
+          </Card>
+
+          {/* ---------- Card 6: Relationship ---------- */}
+          <Card icon="💛" title="關係觀" onEdit={() => openSheet("relationship")}>
+            <Row label="對小朋友的想法" value={profile["my-kids-expectation"]} />
+            <Row label="宗教" value={profile["my-religion"]} />
+          </Card>
+
+          {/* ---------- Card 7: Account ---------- */}
+          <Card icon="⚙️" title="帳戶設定" onEdit={() => openSheet("account")}>
+            <Row label="電郵" value={profile.email} />
+            <Row label="電話" value={profile.phone} />
+          </Card>
+
+          {/* ---------- Bottom sheet ---------- */}
+          {editingCard && (
+            <BottomSheet
+              open={true}
+              title={cardConfigs[editingCard].title}
+              fields={cardConfigs[editingCard].fields}
+              profile={profile}
+              onClose={closeSheet}
+            />
+          )}
         </div>
       );
     }
