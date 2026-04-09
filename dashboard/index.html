@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>會員專區 · Link in HK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "Microsoft JhengHei", sans-serif;
+      background-color: #fafaf9;
+      /* Padding for fixed bottom nav */
+      padding-bottom: 80px;
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .spin {
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    /* Range slider track */
+    .range-track {
+      background: linear-gradient(to right, #fef3c7, #fbbf24, #fef3c7);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const GET_PROFILE_URL = "https://linkinhk.app.n8n.cloud/webhook/get-profile";
+
+    // ---------------- Icon components ----------------
+    const HeartIcon = ({ className }) => (
+      <svg className={className} fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+      </svg>
+    );
+    const CalendarIcon = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    );
+    const HistoryIcon = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+    const UserIcon = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    );
+    const PencilIcon = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+    );
+    const LogoutIcon = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+    );
+
+    // ---------------- Reusable components ----------------
+    function Field({ label, value, editable = true, onEdit }) {
+      return (
+        <div className="flex items-start justify-between py-3 border-b border-stone-100">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="text-xs text-stone-500 mb-1">{label}</div>
+            <div className="text-stone-900 break-words">
+              {value || <span className="text-stone-300">—</span>}
+            </div>
+          </div>
+          {editable && (
+            <button
+              onClick={onEdit}
+              className="text-stone-400 hover:text-stone-700 transition p-1 flex-shrink-0"
+              title="編輯"
+            >
+              <PencilIcon className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    function ChipsField({ label, value, editable = true }) {
+      const chips = (value || "").split(",").map(s => s.trim()).filter(Boolean);
+      return (
+        <div className="flex items-start justify-between py-3 border-b border-stone-100">
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="text-xs text-stone-500 mb-2">{label}</div>
+            {chips.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {chips.map((chip, i) => (
+                  <span key={i} className="inline-block px-2.5 py-1 bg-stone-100 text-stone-700 text-xs rounded-full">
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="text-stone-300">—</div>
+            )}
+          </div>
+          {editable && (
+            <button className="text-stone-400 hover:text-stone-700 transition p-1 flex-shrink-0">
+              <PencilIcon className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    function Toggle({ on, onChange, disabled = false }) {
+      return (
+        <button
+          onClick={!disabled ? onChange : undefined}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
+            on ? "bg-yellow-400" : "bg-stone-200"
+          } ${disabled ? "opacity-80 cursor-default" : "cursor-pointer"}`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
+              on ? "translate-x-[18px]" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+      );
+    }
+
+    function WantField({ label, value, fieldKey, dealBreakers, children }) {
+      const isDealBreaker = dealBreakers.includes(fieldKey);
+      return (
+        <div className="py-3 border-b border-stone-100">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-stone-500">{label}</div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-stone-400">Deal breaker</span>
+              <Toggle on={isDealBreaker} disabled />
+              <button className="text-stone-400 hover:text-stone-700 transition p-1">
+                <PencilIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <div className="text-stone-900 break-words">
+            {children || value || <span className="text-stone-300">—</span>}
+          </div>
+        </div>
+      );
+    }
+
+    function RangeDisplay({ min, max, unit }) {
+      return (
+        <div>
+          <div className="text-center font-medium text-stone-900 mb-2">
+            {min || "—"}{unit} <span className="text-stone-400 mx-1">至</span> {max || "—"}{unit}
+          </div>
+          <div className="h-2 range-track rounded-full"></div>
+        </div>
+      );
+    }
+
+    // ---------------- Tabs ----------------
+    const TABS = [
+      { id: "match", label: "配對", Icon: HeartIcon },
+      { id: "events", label: "活動", Icon: CalendarIcon },
+      { id: "history", label: "紀錄", Icon: HistoryIcon },
+      { id: "profile", label: "我", Icon: UserIcon },
+    ];
+
+    // ---------------- Main App ----------------
+    function Dashboard() {
+      const [loading, setLoading] = useState(true);
+      const [profile, setProfile] = useState(null);
+      const [error, setError] = useState(null);
+      const [activeTab, setActiveTab] = useState("match");
+      const [profileSubTab, setProfileSubTab] = useState("me"); // "me" | "want"
+
+      // ---------------- Hash routing ----------------
+      useEffect(() => {
+        const handleHash = () => {
+          const hash = window.location.hash.replace("#", "");
+          if (TABS.some(t => t.id === hash)) {
+            setActiveTab(hash);
+          } else {
+            setActiveTab("match");
+          }
+        };
+        handleHash();
+        window.addEventListener("hashchange", handleHash);
+        return () => window.removeEventListener("hashchange", handleHash);
+      }, []);
+
+      // ---------------- Fetch profile on load ----------------
+      useEffect(() => {
+        const fetchProfile = async () => {
+          const token = localStorage.getItem("linkinhk_token");
+
+          if (!token) {
+            window.location.href = "/login";
+            return;
+          }
+
+          try {
+            const res = await fetch(GET_PROFILE_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({})
+            });
+
+            if (res.status === 401) {
+              localStorage.removeItem("linkinhk_token");
+              localStorage.removeItem("linkinhk_email");
+              window.location.href = "/login";
+              return;
+            }
+
+            const data = await res.json();
+
+            if (data.success && data.profile) {
+              setProfile(data.profile);
+            } else {
+              setError(data.error || "載入失敗");
+            }
+          } catch (err) {
+            console.error(err);
+            setError("網絡連線錯誤");
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchProfile();
+      }, []);
+
+      const changeTab = (tabId) => {
+        window.location.hash = tabId;
+      };
+
+      const handleLogout = () => {
+        localStorage.removeItem("linkinhk_token");
+        localStorage.removeItem("linkinhk_email");
+        window.location.href = "/login";
+      };
+
+      // ---------------- Loading state ----------------
+      if (loading) {
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center">
+            <div className="w-10 h-10 border-4 border-stone-200 border-t-stone-900 rounded-full spin mb-4"></div>
+            <p className="text-sm text-stone-500">載入中...</p>
+          </div>
+        );
+      }
+
+      // ---------------- Error state ----------------
+      if (error) {
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center px-6">
+            <div className="text-5xl mb-4">⚠️</div>
+            <p className="text-stone-700 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-stone-900 text-white px-6 py-2 rounded-lg text-sm"
+            >
+              重新載入
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen">
+          {/* Header */}
+          <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
+            <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+              <img src="/logo.png" alt="Link in HK" className="h-7 w-auto" />
+              <div className="text-xs text-stone-500 truncate ml-3">
+                {profile?.email}
+              </div>
+            </div>
+          </header>
+
+          {/* Main content */}
+          <main className="max-w-2xl mx-auto px-4 py-6">
+            {activeTab === "match" && <MatchTab />}
+            {activeTab === "events" && <EventsTab />}
+            {activeTab === "history" && <HistoryTab />}
+            {activeTab === "profile" && (
+              <ProfileTab
+                profile={profile}
+                subTab={profileSubTab}
+                setSubTab={setProfileSubTab}
+                onLogout={handleLogout}
+              />
+            )}
+          </main>
+
+          {/* Bottom nav */}
+          <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-20">
+            <div className="max-w-2xl mx-auto flex justify-around">
+              {TABS.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => changeTab(id)}
+                  className={`flex-1 flex flex-col items-center justify-center py-2.5 transition ${
+                    activeTab === id ? "text-stone-900" : "text-stone-400"
+                  }`}
+                >
+                  <Icon className="w-6 h-6 mb-0.5" />
+                  <span className="text-[11px] font-medium">{label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
+      );
+    }
+
+    // ---------------- Placeholder tabs ----------------
+    function Placeholder({ emoji, title }) {
+      return (
+        <div className="fade-in flex flex-col items-center justify-center py-20">
+          <div className="text-6xl mb-4">{emoji}</div>
+          <h2 className="text-xl font-semibold text-stone-700 mb-2">{title}</h2>
+          <p className="text-sm text-stone-500">建設緊,敬請期待 ✨</p>
+        </div>
+      );
+    }
+    const MatchTab = () => <Placeholder emoji="💘" title="配對" />;
+    const EventsTab = () => <Placeholder emoji="📅" title="活動" />;
+    const HistoryTab = () => <Placeholder emoji="🕐" title="配對紀錄" />;
+
+    // ---------------- Profile tab ----------------
+    function ProfileTab({ profile, subTab, setSubTab, onLogout }) {
+      const dealBreakers = (profile["deal-breaker"] || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      return (
+        <div className="fade-in">
+          {/* Sub-tabs */}
+          <div className="bg-white rounded-xl border border-stone-200 p-1 flex mb-4">
+            <button
+              onClick={() => setSubTab("me")}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${
+                subTab === "me"
+                  ? "bg-stone-900 text-white"
+                  : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              我自己
+            </button>
+            <button
+              onClick={() => setSubTab("want")}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition ${
+                subTab === "want"
+                  ? "bg-stone-900 text-white"
+                  : "text-stone-500 hover:text-stone-900"
+              }`}
+            >
+              我想要
+            </button>
+          </div>
+
+          {subTab === "me" ? <WhoIAm profile={profile} /> : <WhatIWant profile={profile} dealBreakers={dealBreakers} />}
+
+          {/* Logout button */}
+          <button
+            onClick={onLogout}
+            className="w-full mt-6 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
+          >
+            <LogoutIcon className="w-4 h-4" />
+            登出
+          </button>
+        </div>
+      );
+    }
+
+    // ---------------- Who I Am ----------------
+    function WhoIAm({ profile }) {
+      const photos = [
+        profile["my-photo-1"],
+        profile["my-photo-2"],
+        profile["my-photo-3"]
+      ];
+
+      return (
+        <div className="bg-white rounded-xl border border-stone-200 p-5 fade-in">
+          {/* Photos */}
+          <div className="mb-4">
+            <div className="text-xs text-stone-500 mb-2 flex items-center justify-between">
+              <span>相片</span>
+              <button className="text-stone-400 hover:text-stone-700 p-1">
+                <PencilIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((url, i) => (
+                <div key={i} className="aspect-square bg-stone-100 rounded-lg overflow-hidden">
+                  {url ? (
+                    <img src={url} alt={`photo-${i+1}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-stone-300 text-xs">
+                      無相片
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Field label="姓名" value={profile.name} />
+          <Field label="電郵" value={profile.email} editable={false} />
+          <Field label="性別" value={profile.sex} />
+          <Field label="年齡" value={profile["my-age"]} />
+          <Field label="電話" value={profile.phone} />
+          <Field label="Instagram" value={profile.instagram} />
+          <Field label="職業" value={profile["my-occupation"]} />
+          <Field label="身高 (cm)" value={profile["my-height"]} />
+          <Field label="大學" value={profile["my-uni"]} />
+          <Field label="MBTI" value={profile["my-MBTI"]} />
+          <Field label="愛的語言" value={profile["my-love-language"]} />
+          <ChipsField label="興趣" value={profile["my-hobby"]} />
+          <Field label="飲酒習慣" value={profile["my-drinking-habbit"]} />
+          <Field label="吸煙習慣" value={profile["my-smoking-habbit"]} />
+          <Field label="對小朋友的期望" value={profile["my-kids-expectation"]} />
+          <Field label="宗教" value={profile["my-religion"]} />
+          <Field label="自我介紹" value={profile["my-bio"]} />
+          <ChipsField label="想一齊做嘅活動" value={profile["my-activities"]} />
+        </div>
+      );
+    }
+
+    // ---------------- What I Want ----------------
+    function WhatIWant({ profile, dealBreakers }) {
+      return (
+        <div className="bg-white rounded-xl border border-stone-200 p-5 fade-in">
+          <WantField label="年齡範圍" fieldKey="their-age" dealBreakers={dealBreakers}>
+            <RangeDisplay
+              min={profile["their-age-min"]}
+              max={profile["their-age-max"]}
+              unit="歲"
+            />
+          </WantField>
+
+          <WantField label="身高範圍" fieldKey="their-height" dealBreakers={dealBreakers}>
+            <RangeDisplay
+              min={profile["their-height-min"]}
+              max={profile["their-height-max"]}
+              unit="cm"
+            />
+          </WantField>
+
+          <WantField label="職業" value={profile["their-occupation"]} fieldKey="their-occupation" dealBreakers={dealBreakers} />
+          <WantField label="大學" value={profile["their-uni"]} fieldKey="their-uni" dealBreakers={dealBreakers} />
+          <WantField label="MBTI" value={profile["their-MBTI"]} fieldKey="their-MBTI" dealBreakers={dealBreakers} />
+          <WantField label="愛的語言" value={profile["their-love-language"]} fieldKey="their-love-language" dealBreakers={dealBreakers} />
+          <WantField label="對小朋友的想法" value={profile["their-kids-preferences"]} fieldKey="their-kids-preferences" dealBreakers={dealBreakers} />
+          <WantField label="飲酒習慣" value={profile["their-drinking-habbit"]} fieldKey="their-drinking-habbit" dealBreakers={dealBreakers} />
+          <WantField label="吸煙習慣" value={profile["their-smoking-habbit"]} fieldKey="their-smoking-habbit" dealBreakers={dealBreakers} />
+          <WantField label="宗教" value={profile["their-religion"]} fieldKey="their-religion" dealBreakers={dealBreakers} />
+          <WantField label="其他要求" value={profile["extra-requirements"]} fieldKey="extra-requirements" dealBreakers={dealBreakers} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Dashboard />);
+  </script>
+</body>
+</html>
