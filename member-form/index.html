@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>Link.in — 會員登記</title>
+  <title>Link in HK — 會員登記</title>
   <meta name="description" content="AI 配對服務，每星期為你搵到最適合嘅人">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,11 +136,35 @@ const KIDS_PREF = [
 ];
 const REFERRAL_SOURCES = ["Instagram", "Threads", "朋友推薦", "網上搜尋", "其它"];
 
+const ACTIVITIES = {
+  "☕️ 輕鬆chill型": [
+    { id: "coffee_chat", label: "飲咖啡／輕鬆傾下計", icon: "☕️" },
+    { id: "dessert_cafe", label: "食甜品／cafe hopping", icon: "🍰" },
+    { id: "walk_seaside", label: "散步／海邊chill下", icon: "🌇" },
+  ],
+  "🎨 有互動但唔尷尬": [
+    { id: "handcraft", label: "一齊做手作（陶瓷／畫畫）", icon: "🎨" },
+    { id: "board_game", label: "玩board game／輕鬆小遊戲", icon: "🎲" },
+    { id: "market_exhibit", label: "行市集／睇展覽", icon: "🛍️" },
+  ],
+  "🎯 活動型（快啲破冰）": [
+    { id: "archery_sport", label: "射箭／小運動", icon: "🏹" },
+    { id: "roller_indoor", label: "Roller／室內活動", icon: "🛼" },
+    { id: "vr_game", label: "VR／遊戲體驗", icon: "🎮" },
+  ],
+  "🍷 深入交流型": [
+    { id: "drink_chat", label: "飲酒傾計", icon: "🍷" },
+    { id: "deep_talk", label: "有主題嘅深度對話（人生／感情）", icon: "🌌" },
+  ],
+};
+const ACTIVITY_OTHER_ID = "other_activity";
+
 const STEPS = [
   { title: "基本資料", subtitle: "讓我哋認識你 ✨" },
   { title: "你嘅性格", subtitle: "了解你嘅內在世界 🧠" },
   { title: "生活方式", subtitle: "日常習慣同價值觀 🌿" },
   { title: "興趣愛好", subtitle: "平時鍾意做啲咩 🌸" },
+  { title: "理想見面方式", subtitle: "配對成功後想點樣見面 ✨" },
   { title: "個人展示", subtitle: "一張好照片勝過千言萬語 📸" },
   { title: "聯絡方式", subtitle: "方便我哋搵到你 📮" },
   { title: "自我介紹", subtitle: "講下你嘅故事 💭" },
@@ -948,7 +972,9 @@ function LinkInSignup() {
     kidsPref: "",
     // Page 4 — interests
     interests: [],
-    // Page 5 — photos (1-3)
+    // Page 5 — activities (new)
+    activities: [], activitiesOther: "",
+    // Page 6 — photos (1-3)
     photos: [], photoPreviews: [],
     // Page 6 — contact: birthday, height, phone, email, IG
     birthDay: "", birthMonth: "", birthYear: "",
@@ -957,7 +983,7 @@ function LinkInSignup() {
     // Page 7 — bio
     selfIntro: "",
     // Page 8 — final: referral, IG understand, consent
-    referral: [], igUnderstand: false, consent: false,
+    referral: [], consent: false,
   });
 
   /* ── State helpers ── */
@@ -1071,9 +1097,13 @@ function LinkInSignup() {
       if (form.interests.length < 3) e.interests = "請選擇至少 3 個興趣";
       if (form.interests.length > 6) e.interests = "最多選 6 個";
     } else if (step === 4) {
+      // activities: min 1, no max
+      if (form.activities.length < 1) e.activities = "請選擇至少 1 個";
+      if (form.activities.includes(ACTIVITY_OTHER_ID) && !form.activitiesOther.trim()) e.activitiesOther = "請填寫你嘅想法";
+    } else if (step === 5) {
       // photos: min 1, max 3
       if (!form.photos || form.photos.length < 1) e.photos = "請上傳至少一張照片";
-    } else if (step === 5) {
+    } else if (step === 6) {
       // birthday, height, phone, email, ig
       if (!form.birthDay || !form.birthMonth || !form.birthYear) e.birthday = "請選擇完整生日";
       if (!form.height.trim()) e.height = "請輸入身高";
@@ -1082,11 +1112,10 @@ function LinkInSignup() {
       if (!form.email.trim()) e.email = "請輸入電郵地址";
       else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "電郵格式唔正確";
       if (!form.instagram.trim()) e.instagram = "請輸入 Instagram 名稱";
-    } else if (step === 6) {
-      // bio — optional, no validation required
     } else if (step === 7) {
+      // bio — optional, no validation required
+    } else if (step === 8) {
       if (form.referral.length === 0) e.referral = "請選擇至少一個";
-      if (!form.igUnderstand) e.igUnderstand = "請確認你明白";
       if (!form.consent) e.consent = "請同意會員條款先繼續";
     }
     setErrors(e);
@@ -1145,6 +1174,9 @@ function LinkInSignup() {
       const interestMap = {};
       Object.values(INTERESTS).flat().forEach(i => { interestMap[i.id] = i.icon + i.label; });
 
+      const activityMap = {};
+      Object.values(ACTIVITIES).flat().forEach(a => { activityMap[a.id] = a.icon + " " + a.label; });
+
       const drinkMap = {};
       DRINKING.forEach(d => { drinkMap[d.id] = d.label; });
 
@@ -1198,6 +1230,8 @@ function LinkInSignup() {
       payload.append("my-MBTI", mbtiVal);
       payload.append("my-love-language", loveLangVal);
       payload.append("my-hobby", form.interests.map(id => interestMap[id] || id).join(", "));
+      payload.append("my-activities", form.activities.filter(id => id !== ACTIVITY_OTHER_ID).map(id => activityMap[id] || id).join(", "));
+      payload.append("my-activities-others", form.activities.includes(ACTIVITY_OTHER_ID) ? form.activitiesOther.trim() : "");
       payload.append("my-drinking-habbit", drinkMap[form.drinking] || form.drinking);
       payload.append("my-smoking-habbit", smokeMap[form.smoking] || form.smoking);
       payload.append("my-kids-expectation", kidsMap[form.kidsPref] || form.kidsPref);
@@ -1562,15 +1596,59 @@ function LinkInSignup() {
     );
   };
 
-  /* ── Step 4: 個人展示 — photos (1-3) ── */
+  /* ── Step 4: 理想見面方式 — activities (min 1, no max) ── */
   const renderStep4 = () => {
+    const otherSelected = form.activities.includes(ACTIVITY_OTHER_ID);
+    const count = form.activities.length;
+    return (
+      <div className="step-content" key="s4">
+        <div className="field">
+          <div className="field-label">如果成功配對，你會想用咩方式見面？✨ <span className="req">*</span></div>
+          <div className="field-hint">
+            我哋會根據你哋嘅選擇，幫你安排一個自然、唔尷尬嘅見面體驗 🤍<br/>
+            冇標準答案，可以揀多啲～亦都可以填你自己嘅 idea！
+          </div>
+          <div className={`interest-count ${count >= 1 ? "ok" : ""}`}>已選 {count}</div>
+          {Object.entries(ACTIVITIES).map(([cat, items]) => (
+            <div className="interest-cat" key={cat}>
+              <div className="interest-cat-label">{cat}</div>
+              <div className="chip-grid">
+                {items.map(a => <MultiChip key={a.id} stateKey="activities" val={a.id} label={a.label} icon={a.icon} />)}
+              </div>
+            </div>
+          ))}
+          <div className="interest-cat">
+            <div className="interest-cat-label">✏️ 其它</div>
+            <div className="chip-grid">
+              <MultiChip stateKey="activities" val={ACTIVITY_OTHER_ID} label="其它（自己填）" icon="✏️" />
+            </div>
+          </div>
+          <ErrorMsg field="activities" />
+          {otherSelected && (
+            <div style={{ marginTop: 12 }}>
+              <input
+                className="text-input"
+                placeholder="例如：一齊去煮飯、行山睇日落…"
+                value={form.activitiesOther}
+                onChange={e => set("activitiesOther", e.target.value)}
+              />
+              <ErrorMsg field="activitiesOther" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  /* ── Step 5: 個人展示 — photos (1-3) ── */
+  const renderStep5 = () => {
     const MAX = 3;
     const slots = Array.from({ length: MAX });
     const canAdd = form.photos.length < MAX;
     const openPicker = () => { if (canAdd) fileInputRef.current?.click(); };
 
     return (
-      <div className="step-content" key="s4">
+      <div className="step-content" key="s5">
         <div className="field">
           <div className="field-label">讓對方認識真實的你（1-3 張照片） <span className="req">*</span></div>
           <div className="field-hint">
@@ -1629,7 +1707,7 @@ function LinkInSignup() {
   };
 
   /* ── Step 5: 聯絡方式 — birthday, height, phone, email, IG ── */
-  const renderStep5 = () => {
+  const renderStep6 = () => {
     const months = [
       { val: "1", label: "1" }, { val: "2", label: "2" }, { val: "3", label: "3" },
       { val: "4", label: "4" }, { val: "5", label: "5" }, { val: "6", label: "6" },
@@ -1653,7 +1731,7 @@ function LinkInSignup() {
     }
 
     return (
-      <div className="step-content" key="s5">
+      <div className="step-content" key="s6">
         <div className="field">
           <div className="field-label">🎂 生日 <span className="req">*</span></div>
           <div className="dob-row">
@@ -1712,9 +1790,9 @@ function LinkInSignup() {
     );
   };
 
-  /* ── Step 6: 自我介紹 — bio ── */
-  const renderStep6 = () => (
-    <div className="step-content" key="s6">
+  /* ── Step 7: 自我介紹 — bio ── */
+  const renderStep7 = () => (
+    <div className="step-content" key="s7">
       <div className="field">
         <div className="field-label">💬 請用 30-80 字簡單介紹自己（可選填）</div>
         <div className="field-hint">這段文字會顯示在你的個人簡介，讓其他人更了解你係怎樣一個人 🌿</div>
@@ -1723,39 +1801,24 @@ function LinkInSignup() {
           placeholder="我係一個鍾意⋯⋯嘅人"
           value={form.selfIntro}
           onChange={e => set("selfIntro", e.target.value)}
-          maxLength={80}
-          rows={5}
+          maxLength={400}
+          rows={8}
         />
-        <div style={{ textAlign: "right", fontSize: 12, color: "#bbb", marginTop: 4 }}>{form.selfIntro.length} / 80</div>
+        <div style={{ textAlign: "right", fontSize: 12, color: "#bbb", marginTop: 4 }}>{form.selfIntro.length} / 400</div>
       </div>
     </div>
   );
 
-  /* ── Step 7: 最後一步 — touchpoint, IG understand, consent ── */
-  const renderStep7 = () => (
-    <div className="step-content" key="s7">
+  /* ── Step 8: 最後一步 — touchpoint, consent ── */
+  const renderStep8 = () => (
+    <div className="step-content" key="s8">
       <div className="field">
-        <div className="field-label">你點樣知道 link.in.hk？ <span className="req">*</span></div>
+        <div className="field-label">你點樣知道 Link in HK？ <span className="req">*</span></div>
         <div className="chip-grid">
           {REFERRAL_SOURCES.map(s => <MultiChip key={s} stateKey="referral" val={s} label={s} />)}
         </div>
         <ErrorMsg field="referral" />
       </div>
-
-      <div className="section-divider" />
-
-      <div className="callout-yellow">
-        <b>📱 重要提醒</b><br /><br />
-        我哋會透過 <b>Instagram DM</b> 發送每週配對結果。<br />
-        如果你嘅 IG 設定唔允許陌生人 DM，我哋就無辦法聯絡你，你可能會錯過配對結果 🥲<br /><br />
-        請確保你已經 <b>Follow @link.in.hk</b>，或者將 IG 私訊設定改為允許所有人傳送訊息。
-      </div>
-
-      <div className={`consent-check ${form.igUnderstand ? "active" : ""}`} onClick={() => set("igUnderstand", !form.igUnderstand)} style={{ marginBottom: 20 }}>
-        <div className="consent-checkbox">{form.igUnderstand ? "✓" : ""}</div>
-        <div className="consent-label">明白！</div>
-      </div>
-      <ErrorMsg field="igUnderstand" />
 
       <div className="section-divider" />
 
@@ -1768,16 +1831,16 @@ function LinkInSignup() {
           為配對及社交活動平台，透過問卷資料及 AI／演算法分析，提供配對建議及活動邀請，所有結果僅供參考，並不保證任何配對或關係結果。
           <br /><br />
           <b>資料真實性</b><br />
-          你確認所填寫的所有資料均為真實及準確。如資料不實，Link.in.HK 有權暫停或終止你的會員資格，而毋須作出補償。
+          你確認所填寫的所有資料均為真實及準確。如資料不實，Link in HK 有權暫停或終止你的會員資格，而毋須作出補償。
           <br /><br />
           <b>AI 配對聲明</b><br />
           MBTI、星座、性格分類等僅屬參考分析工具，並非科學或專業建議。你明白配對結果可能與實際體驗有所差異。
           <br /><br />
           <b>會員互動及活動風險</b><br />
-          你自願與其他會員聯絡、見面或參與活動，並需自行承擔相關風險。Link.in.HK 不會對會員之間的行為、糾紛、情感或任何損失承擔責任。
+          你自願與其他會員聯絡、見面或參與活動，並需自行承擔相關風險。Link in HK 不會對會員之間的行為、糾紛、情感或任何損失承擔責任。
           <br /><br />
           <b>個人資料使用</b><br />
-          你同意 Link.in.HK 使用你的資料作配對分析、活動通知及相關服務用途，並明白所有資料會按合理方式保密處理。
+          你同意 Link in HK 使用你的資料作配對分析、活動通知及相關服務用途，並明白所有資料會按合理方式保密處理。
           <br /><br />
           <b>適用法律</b><br />
           本聲明受香港特別行政區法律管轄。
@@ -1792,7 +1855,7 @@ function LinkInSignup() {
     </div>
   );
 
-  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7];
+  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7, renderStep8];
 
 
   /* ═══════════════════════════════════════════
@@ -1813,8 +1876,8 @@ function LinkInSignup() {
                 接下來交俾我哋，我哋會認真了解你，<br />
                 為你搵到最適合嘅人 💚
               </div>
-              <a href="https://ig.me/m/link.in.hk" className="success-cta" target="_blank" rel="noopener noreferrer">
-                Follow @link.in.hk 📱
+              <a href="https://ig.me/m/linkinhk" className="success-cta" target="_blank" rel="noopener noreferrer">
+                Follow @linkinhk 📱
               </a>
             </div>
           </div>
@@ -1837,7 +1900,7 @@ function LinkInSignup() {
           )}
 
           <div className="form-header">
-            <img src={LOGO_URL} alt="Link.in" className="logo-img" />
+            <img src={LOGO_URL} alt="Link in HK" className="logo-img" />
             <div className="step-indicator">{step + 1} / {STEPS.length}</div>
           </div>
 
@@ -1855,7 +1918,7 @@ function LinkInSignup() {
           </div>
 
           <div className="nav-row">
-            {step > 0 && <button className="nav-btn secondary" onClick={prev}>返回</button>}
+            {step > 0 && <button className="nav-btn secondary" onClick={prev}>上一頁</button>}
             {step < STEPS.length - 1 ? (
               <button className="nav-btn primary" onClick={next}>繼續</button>
             ) : (
