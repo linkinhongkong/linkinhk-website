@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>會員登入 · Link in HK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "Microsoft JhengHei", sans-serif;
+      background-color: #fafaf9;
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const WEBHOOK_URL = "https://linkinhk.app.n8n.cloud/webhook/request-otp";
+
+    function LoginPage() {
+      const [email, setEmail] = useState("");
+      const [status, setStatus] = useState("idle"); // idle | loading | sent | error
+      const [errorMsg, setErrorMsg] = useState("");
+
+      const handleSubmit = async () => {
+        if (!email.trim()) {
+          setErrorMsg("請輸入電郵地址");
+          setStatus("error");
+          return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+          setErrorMsg("電郵格式不正確");
+          setStatus("error");
+          return;
+        }
+
+        setStatus("loading");
+        setErrorMsg("");
+
+        try {
+          const res = await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim().toLowerCase() })
+          });
+
+          const data = await res.json();
+
+          if (res.status === 429) {
+            setErrorMsg(data.error || "請稍候再試");
+            setStatus("error");
+            return;
+          }
+
+          if (data.success) {
+            setStatus("sent");
+          } else {
+            setErrorMsg(data.error || "發生錯誤,請稍後再試");
+            setStatus("error");
+          }
+        } catch (err) {
+          setErrorMsg("網絡連線錯誤,請稍後再試");
+          setStatus("error");
+        }
+      };
+
+      const handleKeyDown = (e) => {
+        if (e.key === "Enter" && status !== "loading") {
+          handleSubmit();
+        }
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12">
+          <div className="w-full max-w-md">
+
+            {/* Logo */}
+            <div className="flex justify-center mb-8">
+              <img src="/logo.png" alt="Link in HK" className="h-12 w-auto" />
+            </div>
+
+            {/* Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8 fade-in">
+
+              {status !== "sent" ? (
+                <>
+                  <h1 className="text-2xl font-semibold text-stone-900 mb-2">會員登入</h1>
+                  <p className="text-sm text-stone-500 mb-6">
+                    輸入你的電郵,我哋會寄一個驗證碼俾你 ✉️
+                  </p>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-stone-700 mb-2">
+                      電郵地址
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (status === "error") setStatus("idle");
+                      }}
+                      onKeyDown={handleKeyDown}
+                      placeholder="you@example.com"
+                      disabled={status === "loading"}
+                      className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition disabled:bg-stone-50"
+                    />
+                  </div>
+
+                  {status === "error" && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 fade-in">
+                      {errorMsg}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleSubmit}
+                    disabled={status === "loading"}
+                    className="w-full bg-stone-900 hover:bg-stone-800 text-white font-medium py-3 px-4 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {status === "loading" ? "傳送緊..." : "傳送驗證碼"}
+                  </button>
+
+                  <div className="mt-6 pt-6 border-t border-stone-100 text-center">
+                    <p className="text-sm text-stone-500">
+                      仲未係會員?{" "}
+                      <a
+                        href="/find"
+                        className="text-stone-900 font-medium underline underline-offset-2 hover:text-yellow-600 transition"
+                      >
+                        即刻登記
+                      </a>
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="fade-in text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-yellow-50 border-2 border-yellow-300 rounded-full flex items-center justify-center">
+                    <span className="text-3xl">📬</span>
+                  </div>
+                  <h1 className="text-2xl font-semibold text-stone-900 mb-2">
+                    請查看你的電郵
+                  </h1>
+                  <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+                    我哋已經寄咗一個 6 位數字驗證碼去<br />
+                    <span className="text-stone-900 font-medium">{email}</span>
+                  </p>
+
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-left mb-6">
+                    <p className="text-xs text-stone-700 leading-relaxed">
+                      💡 驗證碼將於 10 分鐘後失效。如果未收到,記得睇下垃圾郵件資料夾。
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setStatus("idle");
+                      setEmail("");
+                    }}
+                    className="text-sm text-stone-500 hover:text-stone-900 underline underline-offset-2 transition"
+                  >
+                    使用另一個電郵
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <p className="text-center text-xs text-stone-400 mt-6">
+              Link in HK · linkinhk.com
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<LoginPage />);
+  </script>
+</body>
+</html>
