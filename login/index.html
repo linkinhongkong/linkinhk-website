@@ -20,6 +20,12 @@
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    .spin {
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -30,10 +36,11 @@
 
     const REQUEST_OTP_URL = "https://linkinhk.app.n8n.cloud/webhook/request-otp";
     const VERIFY_OTP_URL = "https://linkinhk.app.n8n.cloud/webhook/verify-otp";
+    const VERIFY_SESSION_URL = "https://linkinhk.app.n8n.cloud/webhook/verify-session";
 
     function LoginPage() {
-      // screens: "email" | "code" | "loggedIn"
-      const [screen, setScreen] = useState("email");
+      // screens: "checking" | "email" | "code" | "loggedIn"
+      const [screen, setScreen] = useState("checking");
 
       const [email, setEmail] = useState("");
       const [code, setCode] = useState("");
@@ -53,14 +60,48 @@
         }
       }, [screen]);
 
-      // Check if already logged in on page load
+      // ---------------- Verify session on page load ----------------
       useEffect(() => {
-        const savedToken = localStorage.getItem("linkinhk_token");
-        const savedEmail = localStorage.getItem("linkinhk_email");
-        if (savedToken && savedEmail) {
-          setLoggedInEmail(savedEmail);
-          setScreen("loggedIn");
-        }
+        const verifySession = async () => {
+          const savedToken = localStorage.getItem("linkinhk_token");
+
+          if (!savedToken) {
+            setScreen("email");
+            return;
+          }
+
+          try {
+            const res = await fetch(VERIFY_SESSION_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${savedToken}`
+              },
+              body: JSON.stringify({})
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.email) {
+              // Session valid — go straight to logged in
+              localStorage.setItem("linkinhk_email", data.email);
+              setLoggedInEmail(data.email);
+              setScreen("loggedIn");
+            } else {
+              // Session invalid — clear and show login
+              localStorage.removeItem("linkinhk_token");
+              localStorage.removeItem("linkinhk_email");
+              setScreen("email");
+            }
+          } catch (err) {
+            // Network error — fall back to login screen but don't clear token
+            // (might just be temporary connectivity issue)
+            console.error("Session check failed:", err);
+            setScreen("email");
+          }
+        };
+
+        verifySession();
       }, []);
 
       // ---------------- Email submit ----------------
@@ -133,7 +174,6 @@
           const data = await res.json();
 
           if (data.success && data.token) {
-            // Save session token
             localStorage.setItem("linkinhk_token", data.token);
             localStorage.setItem("linkinhk_email", data.email);
             setLoggedInEmail(data.email);
@@ -209,7 +249,6 @@
       };
 
       const handleCodeChange = (e) => {
-        // Only digits, max 6
         const val = e.target.value.replace(/\D/g, "").slice(0, 6);
         setCode(val);
         if (status === "error") {
@@ -229,6 +268,14 @@
 
             {/* Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8 fade-in" key={screen}>
+
+              {/* ---------- CHECKING SCREEN ---------- */}
+              {screen === "checking" && (
+                <div className="text-center py-8">
+                  <div className="w-10 h-10 mx-auto mb-4 border-4 border-stone-200 border-t-stone-900 rounded-full spin"></div>
+                  <p className="text-sm text-stone-500">檢查登入狀態中...</p>
+                </div>
+              )}
 
               {/* ---------- EMAIL SCREEN ---------- */}
               {screen === "email" && (
