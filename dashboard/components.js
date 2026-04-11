@@ -371,6 +371,81 @@ function MultiSelectChips({ label, groups, value, onChange, supportOther, otherV
   );
 }
 
+// ---------------- Form input: rank list (drag-style with up/down arrows) ----------------
+// Used for love language: user reorders all options by importance.
+// Value is stored as a CSV string in the user's preferred order.
+function RankList({ label, options, value, onChange, helper }) {
+  // Parse the stored CSV into an ordered array of option objects.
+  // If the stored value is missing or partial, fall back to the default order.
+  const parseRanked = () => {
+    const stored = String(value || "").split(",").map(s => s.trim()).filter(Boolean);
+    const matched = stored
+      .map(part => options.find(opt => optionToStored(opt) === part))
+      .filter(Boolean);
+    // Append any options that weren't in the stored value (in their default order)
+    const missing = options.filter(opt => !matched.find(m => m.label === opt.label));
+    return [...matched, ...missing];
+  };
+
+  const [ranked, setRanked] = useState(parseRanked);
+
+  // Re-parse when the underlying value prop changes (e.g. sheet reopened)
+  useEffect(() => {
+    setRanked(parseRanked());
+  }, [value]);
+
+  const move = (idx, direction) => {
+    const newRanked = [...ranked];
+    const target = idx + direction;
+    if (target < 0 || target >= newRanked.length) return;
+    [newRanked[idx], newRanked[target]] = [newRanked[target], newRanked[idx]];
+    setRanked(newRanked);
+    onChange(optionsToCSV(newRanked));
+  };
+
+  return (
+    <div className="mb-4">
+      <label className="block text-xs text-stone-500 mb-1.5">{label}</label>
+      {helper && <p className="text-xs text-stone-400 mb-2">{helper}</p>}
+      <div className="space-y-2">
+        {ranked.map((opt, idx) => (
+          <div
+            key={opt.label}
+            className="flex items-center gap-3 px-3 py-2.5 bg-stone-100 rounded-lg border-2 border-transparent"
+          >
+            <span className="text-sm font-semibold text-purple-500 w-5 text-center">
+              {idx + 1}
+            </span>
+            <span className="flex-1 text-sm text-stone-700">
+              {opt.icon && <span className="mr-1">{opt.icon}</span>}
+              {opt.label}
+            </span>
+            <div className="flex flex-col gap-0.5">
+              <button
+                type="button"
+                onClick={() => move(idx, -1)}
+                disabled={idx === 0}
+                className="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => move(idx, 1)}
+                disabled={idx === ranked.length - 1}
+                className="w-6 h-6 flex items-center justify-center text-stone-500 hover:text-stone-900 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ▼
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 // ---------------- Bottom Sheet ----------------
 function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const [values, setValues] = useState({});
@@ -466,6 +541,8 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         return <DateField key={f.key} label={f.label} value={val} onChange={onChange} />;
       case "select":
         return <SelectChips key={f.key} label={f.label} options={f.options} value={val} onChange={onChange} />;
+      case "rank":
+        return <RankList key={f.key} label={f.label} options={f.options} value={val} onChange={onChange} />;
       case "multiselect":
         return (
           <MultiSelectChips
