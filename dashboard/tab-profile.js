@@ -2,7 +2,7 @@
 // tab-profile.js — Profile tab wrapper with sub-tab switcher
 // ============================================================
 
-function ProfileTab({ profile, subTab, setSubTab, onLogout }) {
+function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) {
   // deal-breaker can be a Multiple Select (array) or comma-separated string
   const rawDealBreaker = profile["deal-breaker"];
   const dealBreakers = Array.isArray(rawDealBreaker)
@@ -36,7 +36,7 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout }) {
       </div>
 
       {subTab === "me"
-        ? <WhoIAm profile={profile} />
+        ? <WhoIAm profile={profile} onProfileUpdated={onProfileUpdated} />
         : <WhatIWant profile={profile} dealBreakers={dealBreakers} />
       }
 
