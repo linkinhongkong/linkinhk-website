@@ -2,6 +2,6 @@
 // tab-history.js — match history
 // ============================================================
 
-function HistoryTab({ profile }) {
+function HistoryTab({ profile, history }) {
   return <Placeholder emoji="🕐" title="配對紀錄" />;
 }
