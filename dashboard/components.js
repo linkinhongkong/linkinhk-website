@@ -446,6 +446,277 @@ function RankList({ label, options, value, onChange, helper }) {
 }
 
 
+// ---------------- Form input: number range (min-max) ----------------
+function NumberRange({ label, minValue, maxValue, onMinChange, onMaxChange, unit = "", minLabel = "最低", maxLabel = "最高" }) {
+  return (
+    <div className="mb-4">
+      <label className="block text-sm font-semibold text-stone-900 mb-2">{label}</label>
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <div className="text-xs text-stone-500 mb-1">{minLabel}</div>
+          <div className="relative">
+            <input
+              type="number"
+              value={minValue || ""}
+              onChange={(e) => onMinChange(e.target.value)}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
+            />
+            {unit && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
+                {unit}
+              </span>
+            )}
+          </div>
+        </div>
+        <span className="text-stone-400 mt-5">—</span>
+        <div className="flex-1">
+          <div className="text-xs text-stone-500 mb-1">{maxLabel}</div>
+          <div className="relative">
+            <input
+              type="number"
+              value={maxValue || ""}
+              onChange={(e) => onMaxChange(e.target.value)}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-lg font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
+            />
+            {unit && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
+                {unit}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Form input: limited multi-select (max N) ----------------
+// value is a comma-separated string in DB.
+// Blocks new selection when max reached and shows a hint.
+function LimitedMultiSelect({ label, options, value, onChange, max = 2, hint }) {
+  const selectedSet = new Set(
+    String(value || "").split(",").map(s => s.trim()).filter(Boolean)
+  );
+  const atLimit = selectedSet.size >= max;
+
+  const toggle = (opt) => {
+    const stored = optionToStored(opt);
+    const newSet = new Set(selectedSet);
+    if (newSet.has(stored)) {
+      newSet.delete(stored);
+    } else {
+      if (newSet.size >= max) return; // blocked
+      newSet.add(stored);
+    }
+    onChange(Array.from(newSet).join(", "));
+  };
+
+  return (
+    <div className="mb-4">
+      <label className="block text-xs text-stone-500 mb-2">{label}</label>
+      {hint && <p className="text-[11px] text-stone-400 mb-2">{hint}</p>}
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt, i) => {
+          const stored = optionToStored(opt);
+          const selected = selectedSet.has(stored);
+          const disabled = !selected && atLimit;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggle(opt)}
+              disabled={disabled}
+              className={`px-4 py-2 rounded-full text-sm transition border-2 ${
+                selected
+                  ? "border-purple-400 bg-purple-50 text-purple-700"
+                  : disabled
+                  ? "border-transparent bg-stone-50 text-stone-300 cursor-not-allowed"
+                  : "border-transparent bg-stone-100 text-stone-700 hover:bg-stone-200"
+              }`}
+            >
+              {opt.icon && <span className="mr-1">{opt.icon}</span>}
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+      {atLimit && (
+        <p className="text-[11px] text-purple-500 mt-2">最多揀 {max} 項</p>
+      )}
+    </div>
+  );
+}
+
+// ---------------- Deal-breaker toggle row ----------------
+function DealBreakerToggle({ on, onChange }) {
+  return (
+    <div className="flex items-center justify-between px-3 py-2 bg-stone-50 rounded-lg mb-4">
+      <div>
+        <div className="text-xs font-medium text-stone-700">硬性篩選條件</div>
+        <div className="text-[10px] text-stone-400">開啟後,唔符合會直接排除</div>
+      </div>
+      <Toggle on={on} onChange={onChange} />
+    </div>
+  );
+}
+
+// ---------------- Want Bottom Sheet ----------------
+// Specialized sheet for "我想要" cards. Supports:
+//  - NumberRange fields (age/height min+max)
+//  - Per-field deal-breaker toggles
+//  - LimitedMultiSelect (love language, max 2)
+//  - Regular SelectChips (existing for single-selects)
+//  - TextAreaField (extra-requirements)
+// On save, writes field values AND the updated deal-breaker array in one call.
+function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
+  const [values, setValues] = useState({});
+  const [dealBreakers, setDealBreakers] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      const initial = {};
+      fields.forEach(f => {
+        if (f.type === "range") {
+          initial[f.minKey] = profile[f.minKey] || "";
+          initial[f.maxKey] = profile[f.maxKey] || "";
+        } else {
+          initial[f.key] = profile[f.key] || "";
+        }
+      });
+      setValues(initial);
+      // Current deal-breaker (can be array or CSV string from Airtable)
+      const raw = profile["deal-breaker"];
+      const arr = Array.isArray(raw)
+        ? [...raw]
+        : String(raw || "").split(",").map(s => s.trim()).filter(Boolean);
+      setDealBreakers(arr);
+      setError(null);
+      setSaving(false);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  if (!open) return null;
+
+  const setVal = (key, val) => setValues(prev => ({ ...prev, [key]: val }));
+
+  const toggleDealBreaker = (key) => {
+    setDealBreakers(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+
+    const updates = {};
+    fields.forEach(f => {
+      if (f.type === "range") {
+        updates[f.minKey] = values[f.minKey] || "";
+        updates[f.maxKey] = values[f.maxKey] || "";
+      } else {
+        updates[f.key] = values[f.key] || "";
+      }
+    });
+    // Send deal-breaker as an array (Airtable Multiple Select accepts array)
+    updates["deal-breaker"] = dealBreakers;
+
+    try {
+      const res = await authenticatedFetch(
+        "https://linkinhk.app.n8n.cloud/webhook/update-profile",
+        { method: "POST", body: JSON.stringify({ updates }) }
+      );
+      const data = await res.json();
+      if (data.success && data.profile) {
+        if (onSaved) onSaved(data.profile);
+        onClose();
+      } else {
+        setError(data.error || "保存失敗,請再試");
+        setSaving(false);
+      }
+    } catch (err) {
+      if (err.message !== "Unauthorized" && err.message !== "No token") {
+        setError("網絡連線錯誤");
+        setSaving(false);
+      }
+    }
+  };
+
+  const renderField = (f) => {
+    const hasDealBreaker = !f.noDealBreaker && f.dealBreakerKey;
+    const dbOn = hasDealBreaker && dealBreakers.includes(f.dealBreakerKey);
+
+    let inputEl;
+    if (f.type === "range") {
+      inputEl = (
+        <NumberRange
+          label={f.label}
+          minValue={values[f.minKey]}
+          maxValue={values[f.maxKey]}
+          onMinChange={(v) => setVal(f.minKey, v)}
+          onMaxChange={(v) => setVal(f.maxKey, v)}
+          unit={f.unit}
+        />
+      );
+    } else if (f.type === "select") {
+      inputEl = <SelectChips label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} />;
+    } else if (f.type === "limitedmulti") {
+      inputEl = <LimitedMultiSelect label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} max={f.max || 2} hint={f.hint} />;
+    } else if (f.type === "textarea") {
+      inputEl = <TextAreaField label={f.label} value={values[f.key]} onChange={(v) => setVal(f.key, v)} placeholder={f.placeholder} />;
+    } else {
+      inputEl = <TextField label={f.label} value={values[f.key]} onChange={(v) => setVal(f.key, v)} />;
+    }
+
+    return (
+      <div key={f.key || f.minKey} className="pb-2">
+        {inputEl}
+        {hasDealBreaker && (
+          <DealBreakerToggle on={dbOn} onChange={() => toggleDealBreaker(f.dealBreakerKey)} />
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/40 fade-in" onClick={!saving ? onClose : undefined} />
+      <div className="relative bg-white w-full max-w-2xl rounded-t-2xl flex flex-col fade-in" style={{ maxHeight: "90vh" }}>
+        <div className="sticky top-0 bg-white border-b border-stone-200 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+          <h3 className="font-semibold text-stone-900">{title}</h3>
+          <button onClick={onClose} disabled={saving} className="text-stone-400 hover:text-stone-700 p-1 disabled:opacity-50">
+            <CloseIcon className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4 flex-1">
+          {fields.map(renderField)}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="sticky bottom-0 bg-white border-t border-stone-200 px-5 py-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full text-white font-medium py-3 rounded-full transition disabled:opacity-60"
+            style={{ background: "linear-gradient(to right, #FF6EB4, #A259FF)" }}
+          >
+            {saving ? "保存中..." : "保存"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------- Bottom Sheet ----------------
 function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const [values, setValues] = useState({});
