@@ -36,7 +36,6 @@
 
     const REQUEST_OTP_URL = "https://linkinhk.app.n8n.cloud/webhook/request-otp";
     const VERIFY_OTP_URL = "https://linkinhk.app.n8n.cloud/webhook/verify-otp";
-    const VERIFY_SESSION_URL = "https://linkinhk.app.n8n.cloud/webhook/verify-session";
 
     function LoginPage() {
       // screens: "checking" | "email" | "code" | "loggedIn"
@@ -60,48 +59,17 @@
         }
       }, [screen]);
 
-      // ---------------- Verify session on page load ----------------
+      // ---------------- Optimistic redirect on page load ----------------
+      // If user has a saved token, trust it and redirect to dashboard.
+      // The dashboard's bootstrap call will validate the token and bounce back
+      // here if it's invalid. Saves one n8n execution per session.
       useEffect(() => {
-        const verifySession = async () => {
-          const savedToken = localStorage.getItem("linkinhk_token");
-
-          if (!savedToken) {
-            setScreen("email");
-            return;
-          }
-
-          try {
-            const res = await fetch(VERIFY_SESSION_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${savedToken}`
-              },
-              body: JSON.stringify({})
-            });
-
-            const data = await res.json();
-
-            if (data.success && data.email) {
-              // Session valid — go straight to dashboard
-              localStorage.setItem("linkinhk_email", data.email);
-              window.location.href = "/dashboard";
-              return;
-            } else {
-              // Session invalid — clear and show login
-              localStorage.removeItem("linkinhk_token");
-              localStorage.removeItem("linkinhk_email");
-              setScreen("email");
-            }
-          } catch (err) {
-            // Network error — fall back to login screen but don't clear token
-            // (might just be temporary connectivity issue)
-            console.error("Session check failed:", err);
-            setScreen("email");
-          }
-        };
-
-        verifySession();
+        const savedToken = localStorage.getItem("linkinhk_token");
+        if (savedToken) {
+          window.location.href = "/dashboard";
+          return;
+        }
+        setScreen("email");
       }, []);
 
       // ---------------- Email submit ----------------
