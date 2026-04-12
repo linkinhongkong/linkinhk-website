@@ -7,6 +7,7 @@ const { useState, useEffect } = React;
 // ---------------- API endpoints ----------------
 const API = {
   GET_PROFILE: "https://linkinhk.app.n8n.cloud/webhook/get-profile",
+  BOOTSTRAP: "https://linkinhk.app.n8n.cloud/webhook/get-dashboard-bootstrap",
 };
 
 // ---------------- Tab definitions ----------------
