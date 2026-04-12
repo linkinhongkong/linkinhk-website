@@ -547,6 +547,48 @@ function LimitedMultiSelect({ label, options, value, onChange, max = 2, hint }) 
   );
 }
 
+// ---------------- Form input: flat multi-select (unlimited) ----------------
+function FlatMultiSelect({ label, options, value, onChange }) {
+  const selectedSet = new Set(
+    String(value || "").split(",").map(s => s.trim()).filter(Boolean)
+  );
+
+  const toggle = (opt) => {
+    const stored = optionToStored(opt);
+    const newSet = new Set(selectedSet);
+    if (newSet.has(stored)) newSet.delete(stored);
+    else newSet.add(stored);
+    onChange(Array.from(newSet).join(", "));
+  };
+
+  return (
+    <div className="mb-4">
+      <label className="block text-xs text-stone-500 mb-2">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt, i) => {
+          const stored = optionToStored(opt);
+          const selected = selectedSet.has(stored);
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => toggle(opt)}
+              className={`px-4 py-2 rounded-full text-sm transition border-2 ${
+                selected
+                  ? "border-purple-400 bg-purple-50 text-purple-700"
+                  : "border-transparent bg-stone-100 text-stone-700 hover:bg-stone-200"
+              }`}
+            >
+              {opt.icon && <span className="mr-1">{opt.icon}</span>}
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ---------------- Deal-breaker toggle row ----------------
 function DealBreakerToggle({ on, onChange }) {
   return (
@@ -666,6 +708,8 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
       );
     } else if (f.type === "select") {
       inputEl = <SelectChips label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} />;
+    } else if (f.type === "flatmulti") {
+      inputEl = <FlatMultiSelect label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} />;
     } else if (f.type === "limitedmulti") {
       inputEl = <LimitedMultiSelect label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} max={f.max || 2} hint={f.hint} />;
     } else if (f.type === "textarea") {
