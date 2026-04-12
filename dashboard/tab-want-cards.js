@@ -28,14 +28,14 @@ const WANT_CARD_CONFIGS = {
   background: {
     title: "編輯 🎓 背景",
     fields: [
-      { key: "their-occupation", label: "職業", type: "select", options: OPTIONS.occupation, dealBreakerKey: "occupation" },
-      { key: "their-uni", label: "大學", type: "select", options: OPTIONS.university, dealBreakerKey: "uni" },
+      { key: "their-occupation", label: "職業 (可多選)", type: "flatmulti", options: OPTIONS.occupation, dealBreakerKey: "occupation" },
+      { key: "their-uni", label: "大學 (可多選)", type: "flatmulti", options: OPTIONS.university, dealBreakerKey: "uni" },
     ],
   },
   personality: {
     title: "編輯 🧠 個性 & 相處方式",
     fields: [
-      { key: "their-MBTI", label: "MBTI", type: "select", options: OPTIONS.mbti, dealBreakerKey: "MBTI" },
+      { key: "their-MBTI", label: "MBTI (可多選)", type: "flatmulti", options: OPTIONS.mbti, dealBreakerKey: "MBTI" },
       {
         key: "their-love-language",
         label: "愛的語言",
@@ -50,15 +50,15 @@ const WANT_CARD_CONFIGS = {
   lifestyle: {
     title: "編輯 🌿 生活方式",
     fields: [
-      { key: "their-drinking-habbit", label: "飲酒習慣", type: "select", options: OPTIONS.drinking, dealBreakerKey: "drinking-habbit" },
-      { key: "their-smoking-habbit", label: "吸煙習慣", type: "select", options: OPTIONS.smoking, dealBreakerKey: "smoking-habbit" },
+      { key: "their-drinking-habbit", label: "飲酒習慣 (可多選)", type: "flatmulti", options: OPTIONS.drinking, dealBreakerKey: "drinking-habbit" },
+      { key: "their-smoking-habbit", label: "吸煙習慣 (可多選)", type: "flatmulti", options: OPTIONS.smoking, dealBreakerKey: "smoking-habbit" },
     ],
   },
   relationship: {
     title: "編輯 💛 關係觀",
     fields: [
-      { key: "their-kids-preferences", label: "對小朋友的想法", type: "select", options: OPTIONS.kids, dealBreakerKey: "kids-preferences" },
-      { key: "their-religion", label: "宗教", type: "select", options: OPTIONS.religion, dealBreakerKey: "religion" },
+      { key: "their-kids-preferences", label: "對小朋友的想法 (可多選)", type: "flatmulti", options: OPTIONS.kids, dealBreakerKey: "kids-preferences" },
+      { key: "their-religion", label: "宗教 (可多選)", type: "flatmulti", options: OPTIONS.religion, dealBreakerKey: "religion" },
     ],
   },
   extra: {
