@@ -104,7 +104,7 @@ const INTERESTS = {
     { id: "swimming", label: "游水", icon: "🏊" },
     { id: "football", label: "足球", icon: "⚽" },
     { id: "basketball", label: "籃球", icon: "🏀" },
-    { id: "pickleball", label: "Pickleball", icon: "🏓" },
+    { id: "pickleball", label: "匹克球", icon: "🏓" },
     { id: "badminton", label: "羽毛球", icon: "🏸" },
     { id: "table_tennis", label: "乒乓球", icon: "🏓" },
     { id: "tennis", label: "網球", icon: "🎾" },
@@ -112,8 +112,8 @@ const INTERESTS = {
     { id: "bowling", label: "保齡球", icon: "🎳" },
     { id: "golf", label: "高爾夫", icon: "⛳" },
     { id: "ice_hockey", label: "冰球", icon: "🏒" },
-    { id: "snowboarding", label: "Snowboarding", icon: "🏂" },
-    { id: "wakesurf", label: "Wakesurf", icon: "🏄" },
+    { id: "snowboarding", label: "滑雪", icon: "🏂" },
+    { id: "wakesurf", label: "無繩滑水", icon: "🏄" },
   ],
   "文化／藝術": [
     { id: "music", label: "音樂／演唱會", icon: "🎵" },
@@ -1131,9 +1131,9 @@ function LinkInSignup() {
       if (form.religion === "other_religion" && !form.religionOther.trim()) e.religionOther = "請填寫你嘅信仰";
       if (!form.kidsPref) e.kidsPref = "請選擇";
     } else if (step === 3) {
-      // hobbies
-      if (form.interests.length < 3) e.interests = "請選擇至少 3 個興趣";
-      if (form.interests.length > 6) e.interests = "最多選 6 個";
+      // hobbies (17 Apr: now no min / max)
+      //if (form.interests.length < 3) e.interests = "請選擇至少 3 個興趣";
+      //if (form.interests.length > 6) e.interests = "最多選 6 個";
     } else if (step === 4) {
       // activities: min 1, no max
       if (form.activities.length < 1) e.activities = "請選擇至少 1 個";
