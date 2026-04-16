@@ -38,6 +38,8 @@ const OCCUPATIONS = [
   { id: "legal", label: "法律", icon: "⚖️" },
   { id: "accounting", label: "會計", icon: "🧮" },
   { id: "service", label: "服務業", icon: "🍽" },
+  { id: "uniform", label: "制服團隊", icon: "👮" },
+  { id: "pilot", label: "機師", icon: "✈️" },
   { id: "freelance", label: "自僱／創業", icon: "✨" },
   { id: "student", label: "學生", icon: "🎓" },
   { id: "other_occ", label: "其他", icon: "💼" },
@@ -56,7 +58,8 @@ const UNIVERSITIES = [
   { id: "shue_yan", label: "樹仁大學" },
   { id: "hsu", label: "恒生大學" },
   { id: "sfu", label: "聖方濟各大學" },
-  { id: "other_uni", label: "其它" },
+  { id: "overseas", label: "海外升學" },
+  { id: "other_uni", label: "其他" },
 ];
 
 const RELIGIONS = [
@@ -65,7 +68,7 @@ const RELIGIONS = [
   { id: "catholic", label: "天主教" },
   { id: "buddhist", label: "佛教" },
   { id: "taoist", label: "道教" },
-  { id: "other_religion", label: "其它" },
+  { id: "other_religion", label: "其他" },
 ];
 
 const MBTI_TYPES = [
@@ -93,28 +96,46 @@ const LOVE_LANGUAGES = [
 const INTERESTS = {
   "運動／戶外": [
     { id: "hiking", label: "行山／遠足", icon: "🥾" },
-    { id: "gym", label: "健身／瑜伽", icon: "🏋️" },
-    { id: "running", label: "跑步／單車", icon: "🏃" },
-    { id: "ball_sports", label: "球類運動", icon: "🏀" },
+    { id: "gym", label: "健身", icon: "🏋️" },
+    { id: "yoga", label: "瑜伽", icon: "🧘" },
+    { id: "pilates", label: "Pilates", icon: "🤸" },
+    { id: "running", label: "跑步", icon: "🏃" },
+    { id: "cycling", label: "單車", icon: "🚴" },
+    { id: "swimming", label: "游水", icon: "🏊" },
+    { id: "football", label: "足球", icon: "⚽" },
+    { id: "basketball", label: "籃球", icon: "🏀" },
+    { id: "pickleball", label: "Pickleball", icon: "🏓" },
+    { id: "badminton", label: "羽毛球", icon: "🏸" },
+    { id: "table_tennis", label: "乒乓球", icon: "🏓" },
+    { id: "tennis", label: "網球", icon: "🎾" },
+    { id: "thai_boxing", label: "泰拳", icon: "🥊" },
+    { id: "bowling", label: "保齡球", icon: "🎳" },
+    { id: "golf", label: "高爾夫", icon: "⛳" },
+    { id: "ice_hockey", label: "冰球", icon: "🏒" },
+    { id: "snowboarding", label: "Snowboarding", icon: "🏂" },
+    { id: "wakesurf", label: "Wakesurf", icon: "🏄" },
   ],
   "文化／藝術": [
     { id: "music", label: "音樂／演唱會", icon: "🎵" },
     { id: "reading", label: "閱讀", icon: "📖" },
     { id: "art", label: "藝術展覽", icon: "🎨" },
     { id: "photo", label: "攝影", icon: "📸" },
+    { id: "dancing", label: "跳舞", icon: "💃" },
   ],
   "生活品味": [
     { id: "coffee", label: "咖啡文化", icon: "☕" },
     { id: "foodie", label: "美食探店", icon: "🍽" },
     { id: "cooking", label: "煮飯／烘焙", icon: "🍳" },
     { id: "travel", label: "旅行", icon: "✈️" },
-    { id: "pets", label: "寵物", icon: "🐾" },
+    { id: "cats", label: "貓", icon: "🐱" },
+    { id: "dogs", label: "狗", icon: "🐶" },
   ],
   "娛樂休閒": [
     { id: "gaming", label: "打機", icon: "🎮" },
     { id: "board_games", label: "桌遊", icon: "🎲" },
     { id: "karaoke", label: "唱K", icon: "🎤" },
-    { id: "drama", label: "睇劇", icon: "📺" },
+    { id: "netflix", label: "Netflix", icon: "📺" },
+    { id: "cinema", label: "睇戲", icon: "🎬" },
   ],
 };
 
@@ -134,12 +155,22 @@ const KIDS_PREF = [
   { id: "lean_no", label: "傾向無，但仍然保持開放" },
   { id: "no", label: "唔考慮有小朋友" },
 ];
-const REFERRAL_SOURCES = ["Instagram", "Threads", "朋友推薦", "網上搜尋", "其它"];
+const SEX_OPTIONS = [
+  { val: "male", label: "男性", icon: "👨" },
+  { val: "female", label: "女性", icon: "👩" },
+];
+const SEXUAL_ORIENTATION = [
+  { id: "straight", label: "異性戀" },
+  { id: "gay", label: "同性戀" },
+  { id: "bisexual", label: "雙性戀" },
+];
+const REFERRAL_SOURCES = ["Instagram", "Threads", "朋友推薦", "網上搜尋", "其他"];
 
 const ACTIVITIES = {
   "☕️ 輕鬆chill型": [
     { id: "coffee_chat", label: "飲咖啡／輕鬆傾下計", icon: "☕️" },
     { id: "dessert_cafe", label: "食甜品／cafe hopping", icon: "🍰" },
+    { id: "dinner", label: "食晚飯", icon: "🍽️" },
     { id: "walk_seaside", label: "散步／海邊chill下", icon: "🌇" },
   ],
   "🎨 有互動但唔尷尬": [
@@ -960,10 +991,13 @@ function LinkInSignup() {
   const cardRef = useRef(null);
 
   const [form, setForm] = useState({
-    // Page 1 — basics: name, occupation, uni
+    // Page 1 — basics: name, sex, orientation, occupation, uni, DOB, height
     name: "",
+    sex: "", sexualOrientation: "",
     occupation: "", occupationOther: "",
-    university: "", universityOther: "",
+    university: "", universityOther: "", overseasUni: "",
+    birthDay: "", birthMonth: "", birthYear: "",
+    height: "",
     // Page 2 — personality: MBTI, love language
     mbti: "", knowLoveLang: "", loveLangRank: LOVE_LANGUAGES.map(l => l.id),
     // Page 3 — lifestyle: smoke, drink, religion, kids
@@ -976,9 +1010,7 @@ function LinkInSignup() {
     activities: [], activitiesOther: "",
     // Page 6 — photos (1-3)
     photos: [], photoPreviews: [],
-    // Page 6 — contact: birthday, height, phone, email, IG
-    birthDay: "", birthMonth: "", birthYear: "",
-    height: "",
+    // Page 6 — contact: phone, email, IG
     whatsapp: "", email: "", instagram: "",
     // Page 7 — bio
     selfIntro: "",
@@ -1075,12 +1107,18 @@ function LinkInSignup() {
   const validateStep = () => {
     const e = {};
     if (step === 0) {
-      // name, occupation (+other), uni (+other)
+      // name, sex, orientation, occupation (+other), uni (+other/overseas), DOB, height
       if (!form.name.trim()) e.name = "請輸入名字";
+      if (!form.sex) e.sex = "請選擇性別";
+      if (!form.sexualOrientation) e.sexualOrientation = "請選擇性取向";
       if (!form.occupation) e.occupation = "請選擇職業";
       if (form.occupation === "other_occ" && !form.occupationOther.trim()) e.occupationOther = "請填寫你嘅職業";
-      if (!form.university) e.university = "請選擇大學";
-      if (form.university === "other_uni" && !form.universityOther.trim()) e.universityOther = "請填寫你嘅大學";
+      if (!form.university) e.university = "請選擇學院";
+      if (form.university === "other_uni" && !form.universityOther.trim()) e.universityOther = "請填寫";
+      if (form.university === "overseas" && !form.overseasUni.trim()) e.overseasUni = "請填寫";
+      if (!form.birthDay || !form.birthMonth || !form.birthYear) e.birthday = "請選擇完整生日";
+      if (!form.height.trim()) e.height = "請輸入身高";
+      else if (isNaN(Number(form.height)) || Number(form.height) < 100 || Number(form.height) > 250) e.height = "請輸入合理身高（100-250cm）";
     } else if (step === 1) {
       // MBTI + love language
       if (!form.mbti) e.mbti = "請選擇 MBTI";
@@ -1104,10 +1142,7 @@ function LinkInSignup() {
       // photos: min 1, max 3
       if (!form.photos || form.photos.length < 1) e.photos = "請上傳至少一張照片";
     } else if (step === 6) {
-      // birthday, height, phone, email, ig
-      if (!form.birthDay || !form.birthMonth || !form.birthYear) e.birthday = "請選擇完整生日";
-      if (!form.height.trim()) e.height = "請輸入身高";
-      else if (isNaN(Number(form.height)) || Number(form.height) < 100 || Number(form.height) > 250) e.height = "請輸入合理身高（100-250cm）";
+      // phone, email, ig
       if (!form.whatsapp.trim()) e.whatsapp = "請輸入 WhatsApp 號碼";
       if (!form.email.trim()) e.email = "請輸入電郵地址";
       else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "電郵格式唔正確";
@@ -1186,7 +1221,7 @@ function LinkInSignup() {
       const kidsMap = {};
       KIDS_PREF.forEach(k => { kidsMap[k.id] = k.label; });
 
-      /* ── Build values (with "其它" overrides) ── */
+      /* ── Build values (with "其他" overrides) ── */
       const birthday = form.birthYear + "-" + form.birthMonth.padStart(2,"0") + "-" + form.birthDay.padStart(2,"0");
       const cleanIG = form.instagram.trim().toLowerCase().replace(/^@/, "");
 
@@ -1196,13 +1231,15 @@ function LinkInSignup() {
         ? form.loveLangRank.map(id => loveLangMap[id] || id).join(", ")
         : "";
 
-      // "其它" overrides — raw user text replaces the mapped label
+      // "其他" overrides — raw user text replaces the mapped label
       const occupationVal = form.occupation === "other_occ"
         ? form.occupationOther.trim()
         : (occMap[form.occupation] || form.occupation);
 
       const universityVal = form.university === "other_uni"
         ? form.universityOther.trim()
+        : form.university === "overseas"
+        ? "海外升學 — " + form.overseasUni.trim()
         : (uniMap[form.university] || form.university);
 
       const religionVal = form.religion === "other_religion"
@@ -1219,6 +1256,8 @@ function LinkInSignup() {
       // DB column name → display value
       payload.append("Submitted at", new Date().toISOString());
       payload.append("name", form.name);
+      payload.append("sex", form.sex === "male" ? "男性" : "女性");
+      payload.append("sexual-orientation", form.sexualOrientation === "straight" ? "異性戀" : form.sexualOrientation === "gay" ? "同性戀" : "雙性戀");
       payload.append("my-age", birthday);
       payload.append("email", form.email);
       payload.append("phone", form.whatsapp);
@@ -1419,13 +1458,50 @@ function LinkInSignup() {
      STEP RENDERERS
      ═══════════════════════════════════════════ */
 
-  /* ── Step 0: 基本資料 — name, occupation, uni ── */
-  const renderStep0 = () => (
+  /* ── Step 0: 基本資料 — name, sex, orientation, occupation, uni, DOB, height ── */
+  const renderStep0 = () => {
+    const months = [
+      { val: "1", label: "1" }, { val: "2", label: "2" }, { val: "3", label: "3" },
+      { val: "4", label: "4" }, { val: "5", label: "5" }, { val: "6", label: "6" },
+      { val: "7", label: "7" }, { val: "8", label: "8" }, { val: "9", label: "9" },
+      { val: "10", label: "10" }, { val: "11", label: "11" }, { val: "12", label: "12" },
+    ];
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 40 }, (_, i) => String(currentYear - 18 - i));
+
+    const getDaysInMonth = (month, year) => {
+      if (!month) return 31;
+      const m = parseInt(month);
+      const y = year ? parseInt(year) : 2000;
+      return new Date(y, m, 0).getDate();
+    };
+    const maxDays = getDaysInMonth(form.birthMonth, form.birthYear);
+    const days = Array.from({ length: maxDays }, (_, i) => String(i + 1));
+
+    if (form.birthDay && parseInt(form.birthDay) > maxDays) {
+      set("birthDay", "");
+    }
+
+    return (
     <div className="step-content" key="s0">
       <div className="field">
         <div className="field-label">名字／暱稱 <span className="req">*</span></div>
         <input className="text-input" placeholder="你想我哋點稱呼你？" value={form.name} onChange={e => set("name", e.target.value)} />
         <ErrorMsg field="name" />
+      </div>
+
+      <div className="field">
+        <div className="field-label">性別 <span className="req">*</span></div>
+        <Binary stateKey="sex" opt1={{ val: "male", label: "男性", icon: "👨" }} opt2={{ val: "female", label: "女性", icon: "👩" }} />
+        <ErrorMsg field="sex" />
+      </div>
+
+      <div className="field">
+        <div className="field-label">性取向 <span className="req">*</span></div>
+        <div className="option-list">
+          {SEXUAL_ORIENTATION.map(o => <RadioOption key={o.id} stateKey="sexualOrientation" val={o.id} label={o.label} />)}
+        </div>
+        <ErrorMsg field="sexualOrientation" />
       </div>
 
       <div className="field">
@@ -1438,7 +1514,7 @@ function LinkInSignup() {
           <div style={{ marginTop: 10 }}>
             <input
               className="text-input"
-              placeholder="請填寫你嘅職業"
+              placeholder="請填寫"
               value={form.occupationOther}
               onChange={e => set("occupationOther", e.target.value)}
             />
@@ -1448,16 +1524,27 @@ function LinkInSignup() {
       </div>
 
       <div className="field">
-        <div className="field-label">🎓 大學 <span className="req">*</span></div>
+        <div className="field-label">🎓 學院 <span className="req">*</span></div>
         <div className="chip-grid">
           {UNIVERSITIES.map(u => <Chip key={u.id} stateKey="university" val={u.id} label={u.label} />)}
         </div>
         <ErrorMsg field="university" />
+        {form.university === "overseas" && (
+          <div style={{ marginTop: 10 }}>
+            <input
+              className="text-input"
+              placeholder="請填寫"
+              value={form.overseasUni}
+              onChange={e => set("overseasUni", e.target.value)}
+            />
+            <ErrorMsg field="overseasUni" />
+          </div>
+        )}
         {form.university === "other_uni" && (
           <div style={{ marginTop: 10 }}>
             <input
               className="text-input"
-              placeholder="請填寫你嘅大學"
+              placeholder="請填寫"
               value={form.universityOther}
               onChange={e => set("universityOther", e.target.value)}
             />
@@ -1465,8 +1552,43 @@ function LinkInSignup() {
           </div>
         )}
       </div>
+
+      <div className="field">
+        <div className="field-label">🎂 生日 <span className="req">*</span></div>
+        <div className="dob-row">
+          <div className="dob-group">
+            <div className="dob-label">年</div>
+            <select className="dob-select" value={form.birthYear} onChange={e => set("birthYear", e.target.value)}>
+              <option value=""></option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="dob-group">
+            <div className="dob-label">月</div>
+            <select className="dob-select" value={form.birthMonth} onChange={e => set("birthMonth", e.target.value)}>
+              <option value=""></option>
+              {months.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+            </select>
+          </div>
+          <div className="dob-group">
+            <div className="dob-label">日</div>
+            <select className="dob-select" value={form.birthDay} onChange={e => set("birthDay", e.target.value)}>
+              <option value=""></option>
+              {days.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        </div>
+        <ErrorMsg field="birthday" />
+      </div>
+
+      <div className="field">
+        <div className="field-label">📏 身高 (cm) <span className="req">*</span></div>
+        <input className="text-input" type="number" inputMode="numeric" placeholder="例如：170" value={form.height} onChange={e => set("height", e.target.value)} />
+        <ErrorMsg field="height" />
+      </div>
     </div>
-  );
+    );
+  };
 
   /* ── Step 1: 你嘅性格 — MBTI + Love Language ── */
   const renderStep1 = () => (
@@ -1618,9 +1740,9 @@ function LinkInSignup() {
             </div>
           ))}
           <div className="interest-cat">
-            <div className="interest-cat-label">✏️ 其它</div>
+            <div className="interest-cat-label">✏️ 其他</div>
             <div className="chip-grid">
-              <MultiChip stateKey="activities" val={ACTIVITY_OTHER_ID} label="其它（自己填）" icon="✏️" />
+              <MultiChip stateKey="activities" val={ACTIVITY_OTHER_ID} label="其他（自己填）" icon="✏️" />
             </div>
           </div>
           <ErrorMsg field="activities" />
@@ -1706,66 +1828,10 @@ function LinkInSignup() {
     );
   };
 
-  /* ── Step 5: 聯絡方式 — birthday, height, phone, email, IG ── */
+  /* ── Step 6: 聯絡方式 — phone, email, IG ── */
   const renderStep6 = () => {
-    const months = [
-      { val: "1", label: "1" }, { val: "2", label: "2" }, { val: "3", label: "3" },
-      { val: "4", label: "4" }, { val: "5", label: "5" }, { val: "6", label: "6" },
-      { val: "7", label: "7" }, { val: "8", label: "8" }, { val: "9", label: "9" },
-      { val: "10", label: "10" }, { val: "11", label: "11" }, { val: "12", label: "12" },
-    ];
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 40 }, (_, i) => String(currentYear - 18 - i));
-
-    const getDaysInMonth = (month, year) => {
-      if (!month) return 31;
-      const m = parseInt(month);
-      const y = year ? parseInt(year) : 2000;
-      return new Date(y, m, 0).getDate();
-    };
-    const maxDays = getDaysInMonth(form.birthMonth, form.birthYear);
-    const days = Array.from({ length: maxDays }, (_, i) => String(i + 1));
-
-    if (form.birthDay && parseInt(form.birthDay) > maxDays) {
-      set("birthDay", "");
-    }
-
     return (
       <div className="step-content" key="s6">
-        <div className="field">
-          <div className="field-label">🎂 生日 <span className="req">*</span></div>
-          <div className="dob-row">
-            <div className="dob-group">
-              <div className="dob-label">年</div>
-              <select className="dob-select" value={form.birthYear} onChange={e => set("birthYear", e.target.value)}>
-                <option value=""></option>
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div className="dob-group">
-              <div className="dob-label">月</div>
-              <select className="dob-select" value={form.birthMonth} onChange={e => set("birthMonth", e.target.value)}>
-                <option value=""></option>
-                {months.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
-              </select>
-            </div>
-            <div className="dob-group">
-              <div className="dob-label">日</div>
-              <select className="dob-select" value={form.birthDay} onChange={e => set("birthDay", e.target.value)}>
-                <option value=""></option>
-                {days.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-          </div>
-          <ErrorMsg field="birthday" />
-        </div>
-
-        <div className="field">
-          <div className="field-label">📏 身高 (cm) <span className="req">*</span></div>
-          <input className="text-input" type="number" inputMode="numeric" placeholder="例如：170" value={form.height} onChange={e => set("height", e.target.value)} />
-          <ErrorMsg field="height" />
-        </div>
-
         <div className="field">
           <div className="field-label">📱 WhatsApp 號碼 <span className="req">*</span></div>
           <div className="field-hint">我哋只會係緊急情況下（例如活動當日未見到你）先會主動聯絡你！請確保電話正確</div>
