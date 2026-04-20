@@ -21,7 +21,7 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) 
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
-          我自己
+          關於我
         </button>
         <button
           onClick={() => setSubTab("want")}
@@ -31,7 +31,7 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) 
               : "text-stone-500 hover:text-stone-900"
           }`}
         >
-          我想要
+          理想對象
         </button>
       </div>
 
