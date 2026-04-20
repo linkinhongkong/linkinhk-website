@@ -1290,8 +1290,8 @@ function LinkInSignup() {
       clearTimeout(timeout);
 
       if (res.ok) {
-        setSubmitted(true);
-        scrollToTop();
+        window.location.href = "/thank-you";
+        return;
       } else {
         alert("提交失敗，請稍後再試 🙏");
       }
@@ -1703,7 +1703,7 @@ function LinkInSignup() {
       <div className="step-content" key="s3">
         <div className="field">
           <div className="field-label">你的興趣 <span className="req">*</span></div>
-          <div className={`interest-count ${countClass}`}>已選 {count}/div>
+          <div className={`interest-count ${countClass}`}>已選 {count}</div>
           {Object.entries(INTERESTS).map(([cat, items]) => (
             <div className="interest-cat" key={cat}>
               <div className="interest-cat-label">{cat}</div>
