@@ -19,7 +19,7 @@ const COMPLETENESS_FIELDS = [
   "my-photo-1", "my-photo-2", "my-photo-3",
   "name", "my-age", "my-occupation",
   "my-bio", "my-activities", "my-hobby",
-  "sex", "my-height", "my-uni", "instagram",
+  "sex", "sexual-orientation","my-height", "my-uni", "instagram",
   "my-MBTI", "my-love-language",
   "my-drinking-habbit", "my-smoking-habbit",
   "my-kids-expectation", "my-religion",
