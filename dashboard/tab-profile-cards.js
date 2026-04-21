@@ -24,7 +24,6 @@ const PROFILE_CARD_CONFIGS = {
     title: "編輯個人簡介",
     fields: [
       { key: "name", label: "姓名" },
-      // my-age is read-only — not editable
       { key: "my-occupation", label: "職業", type: "select", options: OPTIONS.occupation },
       { key: "my-uni", label: "大學", type: "select", options: OPTIONS.university },
       { key: "my-height", label: "身高", type: "number", unit: "cm", min: 100, max: 250 },
@@ -36,7 +35,6 @@ const PROFILE_CARD_CONFIGS = {
       },
     ]
   },
-  // bio removed from about — now in standalone card via update-bio webhook
   about: {
     title: "編輯 ✨ 讓人更了解你",
     fields: [
@@ -330,7 +328,6 @@ function WhoIAm({ profile, onProfileUpdated }) {
       <div className="bg-white rounded-xl border border-stone-200 p-5 mb-4 relative">
         <CardEditBtn onClick={function() { openSheet("summary"); }} />
 
-        {/* Name + sex chip + orientation chips — same row */}
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <h2 className="text-xl font-semibold text-stone-900">
             {profile.name || <span className="text-stone-300">未填寫</span>}
@@ -348,7 +345,6 @@ function WhoIAm({ profile, onProfileUpdated }) {
           {profile["my-uni"] && <div>🎓 {profile["my-uni"]}</div>}
         </div>
 
-        {/* Completeness bar */}
         <div className="bg-stone-50 rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-stone-700">個人檔案完成度</span>
@@ -370,7 +366,7 @@ function WhoIAm({ profile, onProfileUpdated }) {
         </div>
       </div>
 
-      {/* ---------- Card 3: Bio (自我介紹) ---------- */}
+      {/* ---------- Card 3: Bio ---------- */}
       <Card icon="💬" title="自我介紹" onEdit={function() { setEditingBio(true); }}>
         <div className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">
           {profile["my-bio"] || <span className="text-stone-300">未填寫</span>}
@@ -413,7 +409,7 @@ function WhoIAm({ profile, onProfileUpdated }) {
         <Row label="電話" value={profile.phone} />
       </Card>
 
-      {/* ---------- Standard BottomSheet for normal card edits ---------- */}
+      {/* ---------- Standard BottomSheet ---------- */}
       {editingCard && (
         <BottomSheet
           open={true}
