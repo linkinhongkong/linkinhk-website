@@ -20,7 +20,7 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) 
               ? "bg-stone-900 text-white"
               : "text-stone-500 hover:text-stone-900")}
         >
-          我自己
+          關於我
         </button>
         <button
           onClick={function() { window.location.hash = "ideal"; }}
@@ -29,7 +29,7 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) 
               ? "bg-stone-900 text-white"
               : "text-stone-500 hover:text-stone-900")}
         >
-          我想要
+          理想型
         </button>
       </div>
 
