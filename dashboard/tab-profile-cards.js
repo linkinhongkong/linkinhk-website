@@ -6,9 +6,9 @@
 var UPDATE_BIO_URL = "https://linkinhk.app.n8n.cloud/webhook/update-bio";
 var UPDATE_PHOTO_URL = "https://linkinhk.app.n8n.cloud/webhook/update-photo";
 
-// --- Helper: authenticated POST ---
+// --- Helper: authenticated POST (uses same token key as lib.js) ---
 function authPostCustom(url, body, isFormData) {
-  var token = localStorage.getItem("token") || "";
+  var token = getToken() || "";
   var headers = { "Authorization": "Bearer " + token };
   if (!isFormData) { headers["Content-Type"] = "application/json"; }
   return fetch(url, {
@@ -19,7 +19,7 @@ function authPostCustom(url, body, isFormData) {
 }
 
 // ---------------- Card edit configs (for standard BottomSheet) ----------------
-const PROFILE_CARD_CONFIGS = {
+var PROFILE_CARD_CONFIGS = {
   summary: {
     title: "編輯個人簡介",
     fields: [
@@ -31,7 +31,7 @@ const PROFILE_CARD_CONFIGS = {
         key: "sexual-orientation",
         label: "性取向",
         type: "multiselect",
-        options: ["異性戀", "同性戀", "雙性戀"],
+        groups: { "性取向": ["異性戀", "同性戀", "雙性戀"] },
       },
     ]
   },
@@ -131,8 +131,8 @@ function BioEditSheet({ open, currentBio, onClose, onSaved }) {
     authPostCustom(UPDATE_BIO_URL, { bio: text })
       .then(function(result) {
         setSaving(false);
-        if (result && result.success && onSaved) {
-          onSaved(result);
+        if (result && result.success && result.profile && onSaved) {
+          onSaved(result.profile);
         }
         onClose();
       })
@@ -212,6 +212,7 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
     function uploadNext(pos) {
       if (pos >= uploads.length) {
         setSaving(false);
+        // Photo uploads don't return a full profile — caller should re-bootstrap
         if (onSaved) onSaved();
         onClose();
         return;
@@ -311,10 +312,38 @@ function WhoIAm({ profile, onProfileUpdated }) {
     orientationValues = String(orientationRaw).split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean);
   }
 
+  // Safe profile update handler — only update state if we get a valid profile object
+  function handleProfileUpdated(newProfile) {
+    if (newProfile && typeof newProfile === "object" && newProfile.email && onProfileUpdated) {
+      onProfileUpdated(newProfile);
+    }
+  }
+
   return (
     <div className="fade-in">
 
-      {/* ---------- Card 1: Photos ---------- */}
+      {/* ---------- Card 1: Completeness ---------- */}
+      <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-stone-700">個人檔案完成度</span>
+          <span className="text-sm font-semibold text-stone-900">{percent}%</span>
+        </div>
+        <div className="h-2 bg-stone-200 rounded-full overflow-hidden mb-2">
+          <div
+            className="h-full bg-gradient-to-r from-yellow-300 to-yellow-500 transition-all"
+            style={{ width: percent + "%" }}
+          />
+        </div>
+        {missing > 0 ? (
+          <p className="text-xs text-stone-500">
+            再填 <span className="font-semibold text-stone-900">{missing}</span> 項提升配對機會
+          </p>
+        ) : (
+          <p className="text-xs text-green-600">✨ 完美!你嘅檔案已經填齊曬</p>
+        )}
+      </div>
+
+      {/* ---------- Card 2: Photos ---------- */}
       <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4 relative">
         <CardEditBtn onClick={function() { setEditingPhotos(true); }} />
         <div className="grid grid-cols-3 grid-rows-2 gap-2" style={{ aspectRatio: "3/2" }}>
@@ -324,7 +353,7 @@ function WhoIAm({ profile, onProfileUpdated }) {
         </div>
       </div>
 
-      {/* ---------- Card 2: Summary ---------- */}
+      {/* ---------- Card 3: Summary ---------- */}
       <div className="bg-white rounded-xl border border-stone-200 p-5 mb-4 relative">
         <CardEditBtn onClick={function() { openSheet("summary"); }} />
 
@@ -338,42 +367,22 @@ function WhoIAm({ profile, onProfileUpdated }) {
           })}
         </div>
 
-        <div className="text-sm text-stone-600 space-y-0.5 mb-4">
+        <div className="text-sm text-stone-600 space-y-0.5">
           {profile["my-age"] && <div>🎂 {profile["my-age"]}</div>}
           {profile["my-height"] && <div>📏 {profile["my-height"]} cm</div>}
           {profile["my-occupation"] && <div>💼 {profile["my-occupation"]}</div>}
           {profile["my-uni"] && <div>🎓 {profile["my-uni"]}</div>}
         </div>
-
-        <div className="bg-stone-50 rounded-lg p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-stone-700">個人檔案完成度</span>
-            <span className="text-sm font-semibold text-stone-900">{percent}%</span>
-          </div>
-          <div className="h-2 bg-stone-200 rounded-full overflow-hidden mb-2">
-            <div
-              className="h-full bg-gradient-to-r from-yellow-300 to-yellow-500 transition-all"
-              style={{ width: percent + "%" }}
-            />
-          </div>
-          {missing > 0 ? (
-            <p className="text-xs text-stone-500">
-              再填 <span className="font-semibold text-stone-900">{missing}</span> 項提升配對機會
-            </p>
-          ) : (
-            <p className="text-xs text-green-600">✨ 完美!你嘅檔案已經填齊曬</p>
-          )}
-        </div>
       </div>
 
-      {/* ---------- Card 3: Bio ---------- */}
+      {/* ---------- Card 4: Bio ---------- */}
       <Card icon="💬" title="自我介紹" onEdit={function() { setEditingBio(true); }}>
         <div className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">
           {profile["my-bio"] || <span className="text-stone-300">未填寫</span>}
         </div>
       </Card>
 
-      {/* ---------- Card 4: About ---------- */}
+      {/* ---------- Card 5: About ---------- */}
       <Card
         icon="✨"
         title="讓人更了解你"
@@ -384,25 +393,25 @@ function WhoIAm({ profile, onProfileUpdated }) {
         <Row label="興趣" value={profile["my-hobby"]} isChips />
       </Card>
 
-      {/* ---------- Card 5: Personality ---------- */}
+      {/* ---------- Card 6: Personality ---------- */}
       <Card icon="🧠" title="個性 & 相處" onEdit={function() { openSheet("personality"); }}>
         <Row label="MBTI" value={profile["my-MBTI"]} />
         <Row label="愛的語言" value={profile["my-love-language"]} />
       </Card>
 
-      {/* ---------- Card 6: Lifestyle ---------- */}
+      {/* ---------- Card 7: Lifestyle ---------- */}
       <Card icon="🌿" title="生活習慣" onEdit={function() { openSheet("lifestyle"); }}>
         <Row label="飲酒習慣" value={profile["my-drinking-habbit"]} />
         <Row label="吸煙習慣" value={profile["my-smoking-habbit"]} />
       </Card>
 
-      {/* ---------- Card 7: Relationship ---------- */}
+      {/* ---------- Card 8: Relationship ---------- */}
       <Card icon="💛" title="關係觀" onEdit={function() { openSheet("relationship"); }}>
         <Row label="對小朋友的想法" value={profile["my-kids-expectation"]} />
         <Row label="宗教" value={profile["my-religion"]} />
       </Card>
 
-      {/* ---------- Card 8: Account ---------- */}
+      {/* ---------- Card 9: Account ---------- */}
       <Card icon="⚙️" title="帳戶設定" onEdit={function() { openSheet("account"); }}>
         <Row label="電郵" value={profile.email} />
         <Row label="Instagram" value={profile.instagram} />
@@ -417,7 +426,7 @@ function WhoIAm({ profile, onProfileUpdated }) {
           fields={PROFILE_CARD_CONFIGS[editingCard].fields}
           profile={profile}
           onClose={closeSheet}
-          onSaved={onProfileUpdated}
+          onSaved={handleProfileUpdated}
         />
       )}
 
@@ -427,9 +436,9 @@ function WhoIAm({ profile, onProfileUpdated }) {
           open={true}
           currentBio={profile["my-bio"]}
           onClose={function() { setEditingBio(false); }}
-          onSaved={function(result) {
+          onSaved={function(newProfile) {
             setEditingBio(false);
-            if (onProfileUpdated) onProfileUpdated(result);
+            handleProfileUpdated(newProfile);
           }}
         />
       )}
@@ -442,7 +451,8 @@ function WhoIAm({ profile, onProfileUpdated }) {
           onClose={function() { setEditingPhotos(false); }}
           onSaved={function() {
             setEditingPhotos(false);
-            if (onProfileUpdated) onProfileUpdated();
+            // Photo workflow returns url, not full profile — page reload needed to see changes
+            window.location.reload();
           }}
         />
       )}
