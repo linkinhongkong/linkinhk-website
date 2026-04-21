@@ -106,18 +106,6 @@ function PhotoCell({ url, alt, className }) {
   );
 }
 
-function CardEditBtn({ onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-white shadow-sm border border-stone-200"
-      style={{ zIndex: 5, lineHeight: 1 }}
-    >
-      <span className="text-stone-500 text-sm">✏️</span>
-    </button>
-  );
-}
-
 // ================== Bio Edit Sheet ==================
 
 function BioEditSheet({ open, currentBio, onClose, onSaved }) {
@@ -212,7 +200,6 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
     function uploadNext(pos) {
       if (pos >= uploads.length) {
         setSaving(false);
-        // Photo uploads don't return a full profile — caller should re-bootstrap
         if (onSaved) onSaved();
         onClose();
         return;
@@ -312,7 +299,7 @@ function WhoIAm({ profile, onProfileUpdated }) {
     orientationValues = String(orientationRaw).split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean);
   }
 
-  // Safe profile update handler — only update state if we get a valid profile object
+  // Safe profile update handler
   function handleProfileUpdated(newProfile) {
     if (newProfile && typeof newProfile === "object" && newProfile.email && onProfileUpdated) {
       onProfileUpdated(newProfile);
@@ -343,20 +330,17 @@ function WhoIAm({ profile, onProfileUpdated }) {
         )}
       </div>
 
-      {/* ---------- Card 2: Photos ---------- */}
-      <div className="bg-white rounded-xl border border-stone-200 p-4 mb-4 relative">
-        <CardEditBtn onClick={function() { setEditingPhotos(true); }} />
+      {/* ---------- Card 2: Photos (uses Card for consistent edit icon) ---------- */}
+      <Card onEdit={function() { setEditingPhotos(true); }}>
         <div className="grid grid-cols-3 grid-rows-2 gap-2" style={{ aspectRatio: "3/2" }}>
           <PhotoCell url={photos[0]} alt="photo-1" className="col-span-2 row-span-2" />
           <PhotoCell url={photos[1]} alt="photo-2" />
           <PhotoCell url={photos[2]} alt="photo-3" />
         </div>
-      </div>
+      </Card>
 
-      {/* ---------- Card 3: Summary ---------- */}
-      <div className="bg-white rounded-xl border border-stone-200 p-5 mb-4 relative">
-        <CardEditBtn onClick={function() { openSheet("summary"); }} />
-
+      {/* ---------- Card 3: Summary (uses Card for consistent edit icon) ---------- */}
+      <Card onEdit={function() { openSheet("summary"); }}>
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <h2 className="text-xl font-semibold text-stone-900">
             {profile.name || <span className="text-stone-300">未填寫</span>}
@@ -373,7 +357,7 @@ function WhoIAm({ profile, onProfileUpdated }) {
           {profile["my-occupation"] && <div>💼 {profile["my-occupation"]}</div>}
           {profile["my-uni"] && <div>🎓 {profile["my-uni"]}</div>}
         </div>
-      </div>
+      </Card>
 
       {/* ---------- Card 4: Bio ---------- */}
       <Card icon="💬" title="自我介紹" onEdit={function() { setEditingBio(true); }}>
@@ -451,7 +435,6 @@ function WhoIAm({ profile, onProfileUpdated }) {
           onClose={function() { setEditingPhotos(false); }}
           onSaved={function() {
             setEditingPhotos(false);
-            // Photo workflow returns url, not full profile — page reload needed to see changes
             window.location.reload();
           }}
         />
