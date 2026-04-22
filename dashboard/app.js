@@ -16,14 +16,11 @@ function Dashboard() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace("#", "");
-
-      // #ideal is a virtual route → profile tab with "want" sub-tab
       if (hash === "ideal") {
         setActiveTab("profile");
         setProfileSubTab("want");
       } else if (TAB_IDS.includes(hash)) {
         setActiveTab(hash);
-        // Landing on #profile always defaults to "me" sub-tab
         if (hash === "profile") setProfileSubTab("me");
       } else {
         setActiveTab("match");
@@ -42,9 +39,7 @@ function Dashboard() {
           method: "POST",
           body: JSON.stringify({})
         });
-
         const data = await res.json();
-
         if (data.success) {
           setProfile(data.profile || null);
           setCurrentMatch(data.currentMatch || null);
@@ -62,36 +57,25 @@ function Dashboard() {
         setLoading(false);
       }
     };
-
     fetchBootstrap();
   }, []);
 
-  const changeTab = (tabId) => {
-    window.location.hash = tabId;
-  };
-
-  const handleLogout = () => {
-    clearAuth();
-    redirectToLogin();
-  };
+  const changeTab = (tabId) => { window.location.hash = tabId; };
+  const handleLogout = () => { clearAuth(); redirectToLogin(); };
 
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen message={error} />;
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <img src="/logo.png" alt="Link in HK" className="h-7 w-auto" />
-          <div className="text-xs text-stone-500 truncate ml-3">
-            {profile?.email}
-          </div>
+    <div>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <img src="/logo.png" alt="Link in HK" className="logo-img" />
+          <div className="app-header-email">{profile?.email}</div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="app-main">
         {activeTab === "match" && (
           <MatchTab
             profile={profile}
@@ -112,19 +96,16 @@ function Dashboard() {
         )}
       </main>
 
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 z-20">
-        <div className="max-w-2xl mx-auto flex justify-around">
+      <nav className="bottom-nav">
+        <div className="bottom-nav-inner">
           {TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => changeTab(id)}
-              className={`flex-1 flex flex-col items-center justify-center py-2.5 transition ${
-                activeTab === id ? "text-stone-900" : "text-stone-400"
-              }`}
+              className={"bottom-nav-btn" + (activeTab === id ? " active" : "")}
             >
-              <Icon className="w-6 h-6 mb-0.5" />
-              <span className="text-[11px] font-medium">{label}</span>
+              <Icon className="icon-lg" />
+              <span className="bottom-nav-label">{label}</span>
             </button>
           ))}
         </div>

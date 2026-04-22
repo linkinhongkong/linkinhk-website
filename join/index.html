@@ -8,31 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/design-system.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --bg: #f0f0f0;
-      --card: #f7f7f7;
-      --white: #ffffff;
-      --text: #333;
-      --text-light: #888;
-      --accent: #9060E0;
-      --accent-pink: #FF6EB4;
-      --accent-gradient: linear-gradient(135deg, #FF6EB4, #A259FF);
-      --radius: 20px;
-      --radius-sm: 12px;
-      --shadow: 0 4px 24px rgba(0,0,0,0.08);
-    }
-
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      -webkit-font-smoothing: antialiased;
-    }
+    /* Join page-specific styles. Tokens + shared components come from design-system.css. */
 
     .page-root {
       min-height: 100dvh;
@@ -42,50 +20,12 @@
       padding: 24px 16px 48px;
     }
 
-    .page-card {
-      width: 100%;
-      max-width: 480px;
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: relative;
-    }
-    .page-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: var(--accent-gradient);
-      z-index: 1;
-    }
+    .welcome-header { padding: 36px 24px 0; text-align: center; }
+    .logo-img { height: 22px; opacity: 0.8; margin-bottom: 24px; }
+    .welcome-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+    .welcome-subtitle { font-size: 14px; color: var(--text-light); line-height: 1.7; }
 
-    /* ── Header ── */
-    .welcome-header {
-      padding: 36px 24px 0;
-      text-align: center;
-    }
-    .logo-img {
-      height: 22px;
-      opacity: 0.8;
-      margin-bottom: 24px;
-    }
-    .welcome-title {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      line-height: 1.4;
-    }
-    .welcome-subtitle {
-      font-size: 14px;
-      color: var(--text-light);
-      line-height: 1.7;
-    }
-
-    /* ── Flow section ── */
-    .flow-section {
-      padding: 28px 24px 8px;
-    }
+    .flow-section { padding: 28px 24px 8px; }
     .flow-section-title {
       font-size: 15px;
       font-weight: 600;
@@ -94,15 +34,8 @@
       text-align: center;
       letter-spacing: 0.5px;
     }
+    .flow-container { display: flex; flex-direction: column; align-items: center; gap: 0; }
 
-    .flow-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-    }
-
-    /* Flow nodes */
     .flow-node {
       width: 100%;
       max-width: 280px;
@@ -121,7 +54,7 @@
 
     .flow-node.primary {
       background: var(--white);
-      border: 2px solid #e0e0e0;
+      border: 2px solid var(--border);
       color: var(--text);
     }
     .flow-node.highlight {
@@ -130,27 +63,21 @@
       color: var(--text);
     }
     .flow-node.success {
-      background: #e8f8ee;
+      background: var(--green-bg);
       border: 2px solid #b8e6c8;
-      color: #1a7a3a;
+      color: var(--green-text);
     }
-
-    .flow-node-icon {
-      font-size: 28px;
-      margin-bottom: 6px;
-    }
-    .flow-node-title {
-      font-weight: 700;
-      font-size: 15px;
-      margin-bottom: 4px;
-    }
-    .flow-node-desc {
+    .flow-node.side-note {
+      background: var(--yellow-bg);
+      border: 2px solid var(--yellow-border);
+      color: #92620a;
       font-size: 13px;
-      color: var(--text-light);
-      font-weight: 400;
     }
 
-    /* Flow arrows */
+    .flow-node-icon { font-size: 28px; margin-bottom: 6px; }
+    .flow-node-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    .flow-node-desc { font-size: 13px; color: var(--text-light); font-weight: 400; }
+
     .flow-arrow {
       display: flex;
       flex-direction: column;
@@ -159,12 +86,8 @@
       color: #ccc;
       animation: fadeUp 0.5s ease both;
     }
-    .flow-arrow svg {
-      width: 24px;
-      height: 32px;
-    }
+    .flow-arrow svg { width: 24px; height: 32px; }
 
-    /* Branch section */
     .flow-branch {
       width: 100%;
       display: grid;
@@ -174,10 +97,7 @@
       animation: fadeUp 0.5s ease both;
       animation-delay: 0.7s;
     }
-    .flow-branch .flow-node {
-      max-width: none;
-      animation: none;
-    }
+    .flow-branch .flow-node { max-width: none; animation: none; }
     .flow-branch-label {
       font-size: 11px;
       font-weight: 600;
@@ -187,18 +107,7 @@
       margin-bottom: 6px;
     }
 
-    .flow-node.side-note {
-      background: #fefce8;
-      border: 2px solid #eab308;
-      color: #92620a;
-      font-size: 13px;
-    }
-
-    /* ── CTA section ── */
-    .cta-section {
-      padding: 20px 24px 36px;
-      text-align: center;
-    }
+    .cta-section { padding: 20px 24px 36px; text-align: center; }
     .cta-btn {
       display: inline-flex;
       align-items: center;
@@ -220,52 +129,18 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .cta-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(144, 96, 224, 0.45);
-    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(144, 96, 224, 0.45); }
     .cta-btn:active { transform: scale(0.98); }
+    .cta-hint { font-size: 12px; color: var(--text-light); margin-top: 12px; line-height: 1.5; }
 
-    .cta-hint {
-      font-size: 12px;
-      color: var(--text-light);
-      margin-top: 12px;
-      line-height: 1.5;
-    }
+    .section-divider { height: 1px; background: var(--border-light); margin: 0 24px; }
 
-    /* ── Divider ── */
-    .section-divider {
-      height: 1px;
-      background: #e8e8e8;
-      margin: 0 24px;
-    }
+    .welcome-footer { padding: 20px 24px 28px; text-align: center; }
+    .footer-text { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+    .footer-text a { color: var(--accent); text-decoration: none; font-weight: 500; }
 
-    /* ── Footer ── */
-    .welcome-footer {
-      padding: 20px 24px 28px;
-      text-align: center;
-    }
-    .footer-text {
-      font-size: 12px;
-      color: var(--text-light);
-      line-height: 1.6;
-    }
-    .footer-text a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    /* ── Animations ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── Mobile ── */
     @media (max-width: 500px) {
       .page-root { padding: 12px 8px 40px; }
-      .page-card { border-radius: 16px; }
       .welcome-header { padding: 28px 20px 0; }
       .flow-section { padding: 24px 20px 8px; }
       .cta-section { padding: 16px 20px 28px; }
@@ -279,7 +154,7 @@
       <!-- Header -->
       <div class="welcome-header">
         <img src="/logo.png" alt="Link in HK" class="logo-img" />
-        <div class="welcome-title">搵到適合你嘅嗰個人 ❤️</div>
+        <div class="welcome-title">搵到適合你嘅噇個人 ❤️</div>
         <div class="welcome-subtitle">
           我哋會用 AI 學習你嘅喜好<br/>
           再透過配對算法搵出彼此適合嘅人選
