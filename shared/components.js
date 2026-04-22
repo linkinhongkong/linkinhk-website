@@ -297,6 +297,48 @@ function RankList({ label, options, value, onChange, helper }) {
   );
 }
 
+// Id-based rank list. Stores a CSV of option ids in the order chosen.
+// Each option: { id, label, helper? }. Helper text shown below the label.
+function PriorityRank({ label, options, value, onChange, helper }) {
+  const parseRanked = () => {
+    const stored = String(value || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const matched = stored.map((id) => options.find((o) => o.id === id)).filter(Boolean);
+    const missing = options.filter((opt) => !matched.find((m) => m.id === opt.id));
+    return [...matched, ...missing];
+  };
+  const [ranked, setRanked] = useState(parseRanked);
+  useEffect(() => { setRanked(parseRanked()); /* eslint-disable-next-line */ }, [value]);
+  const move = (idx, dir) => {
+    const next = [...ranked];
+    const target = idx + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setRanked(next);
+    onChange(next.map((o) => o.id).join(", "));
+  };
+  return (
+    <div className="field">
+      {label && <label className="field-label">{label}</label>}
+      {helper && <p className="field-hint">{helper}</p>}
+      <div className="rank-list">
+        {ranked.map((opt, idx) => (
+          <div key={opt.id} className="rank-item">
+            <span className="rank-num">{idx + 1}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="rank-label">{opt.label}</div>
+              {opt.helper && <div className="rank-sublabel">{opt.helper}</div>}
+            </div>
+            <div className="rank-arrows">
+              <button type="button" onClick={() => move(idx, -1)} disabled={idx === 0} className="rank-arrow">▲</button>
+              <button type="button" onClick={() => move(idx, 1)} disabled={idx === ranked.length - 1} className="rank-arrow">▼</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function NumberRange({ label, minValue, maxValue, onMinChange, onMaxChange,
   unit = "", minLabel = "最低", maxLabel = "最高", helper }) {
   return (
@@ -561,6 +603,9 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
     } else if (f.type === "limitedmulti") {
       inputEl = <LimitedMultiSelect label={f.label} options={f.options} value={values[f.key]}
         onChange={(v) => setVal(f.key, v)} max={f.max || 2} hint={f.hint} />;
+    } else if (f.type === "rank-id") {
+      inputEl = <PriorityRank label={f.label} options={f.options} value={values[f.key]}
+        onChange={(v) => setVal(f.key, v)} helper={f.helper} />;
     } else if (f.type === "textarea") {
       inputEl = <TextAreaField label={f.label} value={values[f.key]} onChange={(v) => setVal(f.key, v)} placeholder={f.placeholder} />;
     } else {
