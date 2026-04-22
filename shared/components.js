@@ -514,6 +514,15 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
       );
       const data = await res.json();
       if (data.success && data.profile) {
+        if (fields.some((f) => f.key === "extra-requirements")) {
+          authenticatedFetch(
+            "https://linkinhk.app.n8n.cloud/webhook/extra-requirements",
+            {
+              method: "POST",
+              body: JSON.stringify({ "extra-requirements": values["extra-requirements"] || "" }),
+            }
+          ).catch(() => {});
+        }
         if (onSaved) onSaved(data.profile);
         onClose();
       } else {
