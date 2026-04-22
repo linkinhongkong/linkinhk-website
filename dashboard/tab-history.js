@@ -1,32 +1,26 @@
 // ============================================================
-// tab-history.js — match history
-// Horizontal card list (newest first) + click-to-expand full view
+// tab-history.js — match history (list + detail view)
 // ============================================================
 
 function HistoryTab({ profile, history }) {
-  const [selected, setSelected] = React.useState(null);
+  const [selected, setSelected] = useState(null);
 
   if (selected) {
-    return (
-      <HistoryDetail
-        match={selected}
-        onBack={() => setSelected(null)}
-      />
-    );
+    return <HistoryDetail match={selected} onBack={() => setSelected(null)} />;
   }
 
   if (!history || history.length === 0) {
     return (
-      <div className="fade-in flex flex-col items-center justify-center py-20">
-        <div className="text-6xl mb-4">🕐</div>
-        <h2 className="text-xl font-semibold text-stone-700 mb-2">仲未有配對紀錄</h2>
-        <p className="text-sm text-stone-500">等下次配對結果出咗先見到你嘅紀錄 ✨</p>
+      <div className="fade-in flex flex-col items-center justify-center" style={{ padding: "80px 0" }}>
+        <div style={{ fontSize: 64, marginBottom: 16 }}>🕐</div>
+        <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>仲未有配對紀錄</h2>
+        <p style={{ fontSize: 14, color: "var(--text-light)" }}>等下次配對結果出咗先見到你嘅紀錄 ✨</p>
       </div>
     );
   }
 
   return (
-    <div className="fade-in space-y-3">
+    <div className="fade-in flex flex-col gap-md">
       {history.map((m) => (
         <HistoryCard key={m.id} match={m} onClick={() => setSelected(m)} />
       ))}
@@ -41,164 +35,75 @@ function HistoryCard({ match, onClick }) {
   const matched = String(match.status || "").toLowerCase() === "matched";
 
   return (
-    <button
-      onClick={onClick}
-      className="w-full bg-white rounded-2xl border border-stone-200 overflow-hidden flex items-stretch text-left hover:border-stone-300 transition"
-    >
-      {/* Left: square photo, 1/4 width */}
-      <div className="w-1/4 aspect-square bg-stone-100 flex-shrink-0 relative overflow-hidden">
+    <button onClick={onClick} className="history-card">
+      <div className="history-card-photo">
         {photo ? (
-          <img
-            src={photo}
-            alt={p.name || ""}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.style.display = "none"; }}
-          />
+          <img src={photo} alt={p.name || ""} onError={(e) => { e.currentTarget.style.display = "none"; }} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-stone-300 text-3xl">👤</div>
+          <div className="history-card-photo-empty">👤</div>
         )}
       </div>
-
-      {/* Right: chips + status + time, 3/4 width */}
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+      <div className="history-card-body">
         <div>
-          {/* Name */}
-          {p.name && (
-            <div className="text-base font-semibold text-stone-900 mb-1 truncate">
-              {p.name}
-            </div>
-          )}
-          {/* Info chips */}
-          <div className="flex flex-wrap gap-1.5">
+          {p.name && <div className="history-card-name">{p.name}</div>}
+          <div className="flex flex-wrap gap-sm">
             {buildChips(p).map((c, i) => (
-              <InfoChip key={i} text={c} />
+              <HistoryInfoChip key={i} text={c} />
             ))}
             <StatusChip matched={matched} />
           </div>
         </div>
-        {/* Match time */}
-        <div className="text-[11px] text-stone-400 mt-2">
-          {formatMatchTime(match.createdAt)}
-        </div>
+        <div className="history-card-time">{formatMatchTime(match.createdAt)}</div>
       </div>
     </button>
   );
 }
 
-// ---------------- Detail (full page view) ----------------
+// ---------------- Detail view ----------------
 function HistoryDetail({ match, onBack }) {
   const p = match.partnerProfile || {};
   const photos = ["my-photo-1", "my-photo-2", "my-photo-3"]
     .map((k) => p[k])
     .filter(Boolean);
-
-  const [photoIdx, setPhotoIdx] = React.useState(0);
   const matched = String(match.status || "").toLowerCase() === "matched";
 
   return (
     <div className="fade-in">
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-900 mb-3"
-      >
+      <button onClick={onBack} className="back-btn">
         <span>←</span><span>返回</span>
       </button>
 
-      {/* Photo carousel (matches Match tab style) */}
       {photos.length > 0 && (
-        <HistoryCarousel
-          photos={photos}
-          idx={photoIdx}
-          setIdx={setPhotoIdx}
-        />
+        <div style={{
+          background: "var(--chip-bg)",
+          borderRadius: "var(--radius)",
+          padding: 20,
+          marginBottom: 16,
+        }}>
+          <PhotoCarousel photos={photos} />
+        </div>
       )}
 
-      {/* Name + status + time */}
-      <div className="mt-4 mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h2 className="text-xl font-semibold text-stone-900">{p.name || ""}</h2>
+      <div style={{ marginBottom: 12 }}>
+        <div className="flex items-center gap-sm flex-wrap">
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)" }}>{p.name || ""}</h2>
           <StatusChip matched={matched} />
         </div>
-        <div className="text-xs text-stone-400 mt-1">
+        <div style={{ fontSize: 12, color: "var(--text-light)", marginTop: 4 }}>
           {formatMatchTime(match.createdAt)}
         </div>
       </div>
 
-      {/* Info chips */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
+      <div className="flex flex-wrap gap-sm mb-lg">
         {buildChips(p).map((c, i) => (
-          <InfoChip key={i} text={c} />
+          <HistoryInfoChip key={i} text={c} />
         ))}
       </div>
 
-      {/* Bio card */}
       {p["my-bio"] && (
-        <div className="bg-white rounded-2xl border border-stone-200 p-4 mb-3">
-          <div className="text-xs font-medium text-stone-400 mb-2">關於佢</div>
-          <div className="text-sm text-stone-700 whitespace-pre-line leading-relaxed">
-            {p["my-bio"]}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------- Carousel (simplified, matches Match tab pattern) ----------------
-function HistoryCarousel({ photos, idx, setIdx }) {
-  const prev = () => setIdx(Math.max(0, idx - 1));
-  const next = () => setIdx(Math.min(photos.length - 1, idx + 1));
-  const canPrev = idx > 0;
-  const canNext = idx < photos.length - 1;
-
-  return (
-    <div className="relative bg-stone-100 rounded-2xl overflow-hidden" style={{ padding: "20px" }}>
-      <div className="relative aspect-[4/5] overflow-hidden rounded-xl">
-        <div
-          className="flex h-full transition-transform duration-300"
-          style={{ transform: `translateX(-${idx * 90}%)`, width: `${photos.length * 90}%` }}
-        >
-          {photos.map((src, i) => (
-            <div
-              key={i}
-              className="h-full flex-shrink-0 px-1"
-              style={{ width: `${100 / photos.length}%` }}
-            >
-              <img src={src} alt="" className="w-full h-full object-cover rounded-xl" />
-            </div>
-          ))}
-        </div>
-
-        {canPrev && (
-          <button
-            onClick={prev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow flex items-center justify-center text-stone-700"
-          >
-            ‹
-          </button>
-        )}
-        {canNext && (
-          <button
-            onClick={next}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow flex items-center justify-center text-stone-700"
-          >
-            ›
-          </button>
-        )}
-      </div>
-
-      {/* Dots */}
-      {photos.length > 1 && (
-        <div className="flex justify-center gap-1.5 mt-3">
-          {photos.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === idx ? "w-6 bg-stone-700" : "w-1.5 bg-stone-300"
-              }`}
-            />
-          ))}
+        <div className="bio-card">
+          <div className="bio-card-label">關於佢</div>
+          <div className="bio-card-text">{p["my-bio"]}</div>
         </div>
       )}
     </div>
@@ -206,26 +111,18 @@ function HistoryCarousel({ photos, idx, setIdx }) {
 }
 
 // ---------------- Helpers ----------------
-function InfoChip({ text }) {
-  return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 text-xs">
-      {text}
-    </span>
-  );
+function HistoryInfoChip({ text }) {
+  return <span className="info-chip info-chip-sm">{text}</span>;
 }
 
 function StatusChip({ matched }) {
-  const cls = matched
-    ? "bg-gradient-to-r from-[#FF6EB4] to-[#A259FF] text-white"
-    : "bg-stone-200 text-stone-600";
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${cls}`}>
+    <span className={"status-chip " + (matched ? "matched" : "unmatched")}>
       {matched ? "配對成功" : "配對失敗"}
     </span>
   );
 }
 
-// Build chips array. Blank fields are skipped.
 function buildChips(p) {
   const chips = [];
   const age = computeAgeFromDOB(p["my-age"]);
@@ -261,7 +158,7 @@ function computeZodiacFromDOB(dob) {
     [1, 20, "♑ 摩羯座"], [2, 19, "♒ 水瓶座"], [3, 21, "♓ 雙魚座"],
     [4, 20, "♈ 白羊座"], [5, 21, "♉ 金牛座"], [6, 22, "♊ 雙子座"],
     [7, 23, "♋ 巨蟹座"], [8, 23, "♌ 獅子座"], [9, 23, "♍ 處女座"],
-    [10, 24, "♎ 天秤座"], [11, 23, "♏ 天蠍座"], [12, 22, "♐ 射手座"],
+    [10, 24, "♎ 天秤座"], [11, 23, "♏ 天蝍座"], [12, 22, "♐ 射手座"],
     [12, 31, "♑ 摩羯座"],
   ];
   for (const [m, dmax, name] of signs) {
@@ -270,12 +167,10 @@ function computeZodiacFromDOB(dob) {
   return null;
 }
 
-// Format "2026-04-07T12:34:00.000Z" or "7/4/2026 12:34pm" → "2026年4月7日"
 function formatMatchTime(raw) {
   if (!raw) return "";
   let d = new Date(raw);
   if (isNaN(d)) {
-    // fallback for DD/MM/YYYY hh:mmam/pm
     const m = String(raw).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (m) d = new Date(`${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`);
   }
