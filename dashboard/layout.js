@@ -86,7 +86,7 @@ function PhotoCarousel({ photos }) {
     <div className="carousel fade-in">
       <div className="carousel-viewport">
         {leftIdx !== null && (
-          <div className="carousel-slide peek left">
+          <div key={`l-${leftIdx}`} className="carousel-slide peek left">
             <img
               src={valid[leftIdx]}
               alt=""
@@ -95,7 +95,7 @@ function PhotoCarousel({ photos }) {
           </div>
         )}
         {rightIdx !== null && (
-          <div className="carousel-slide peek right">
+          <div key={`r-${rightIdx}`} className="carousel-slide peek right">
             <img
               src={valid[rightIdx]}
               alt=""
@@ -103,7 +103,7 @@ function PhotoCarousel({ photos }) {
             />
           </div>
         )}
-        <div className="carousel-slide center">
+        <div key={`c-${centerIdx}`} className="carousel-slide center">
           <img
             src={valid[centerIdx]}
             alt={`Photo ${centerIdx + 1}`}
