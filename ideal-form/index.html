@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Link in HK — 填寫理想型</title>
+  <meta name="description" content="一次過話畀我哋知你想搵點樣嘅人">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body style="margin:0">
+  <div id="root"></div>
+
+  <!-- Load shared option lists + ideal schema (plain JS, no JSX) -->
+  <script src="/dashboard/shared-options.js"></script>
+  <script src="/dashboard/form-options.js"></script>
+  <script src="/shared/ideal-fields.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    /* ═══════════════════════════════════════════
+       CONFIG
+       ═══════════════════════════════════════════ */
+    const WEBHOOK_URL = "https://linkinhk.app.n8n.cloud/webhook/ideal-form";
+    const LOGO_URL = "/logo.png";
+    const DASHBOARD_IDEAL_URL = "/dashboard#ideal";
+
+    // Default ranges — user can adjust
+    const AGE_MIN_DEFAULT = 22, AGE_MAX_DEFAULT = 35;
+    const HEIGHT_MIN_DEFAULT = 155, HEIGHT_MAX_DEFAULT = 185;
+    const AGE_BOUND = { min: 18, max: 60 };
+    const HEIGHT_BOUND = { min: 140, max: 200 };
+
+
+    /* ═══════════════════════════════════════════
+       STYLES (mirrors /member-form look and feel)
+       ═══════════════════════════════════════════ */
+    const STYLES = `
+      * { margin:0; padding:0; box-sizing:border-box; }
+      :root {
+        --bg: #f0f0f0; --card: #f7f7f7; --white: #ffffff;
+        --text: #333; --text-light: #888;
+        --accent: #9060E0; --accent-pink: #FF6EB4;
+        --accent-gradient: linear-gradient(135deg, #FF6EB4, #A259FF);
+        --chip-bg: #efefef;
+        --green-bg: #e8f8ee; --green-text: #1a7a3a;
+        --radius: 20px; --radius-sm: 12px;
+        --shadow: 0 4px 24px rgba(0,0,0,0.08);
+      }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+        background: var(--bg); color: var(--text);
+        min-height: 100dvh;
+        -webkit-font-smoothing: antialiased;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .form-root {
+        min-height: 100dvh;
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 24px 16px 48px;
+      }
+      .form-card {
+        width: 100%; max-width: 480px;
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        position: relative;
+      }
+      .form-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 4px; background: var(--accent-gradient); z-index: 1;
+      }
+
+      .form-header {
+        padding: 28px 24px 0;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .logo-img { height: 20px; opacity: 0.8; }
+      .step-indicator {
+        font-family: 'Outfit', sans-serif;
+        font-size: 13px; font-weight: 600;
+        color: var(--text-light); letter-spacing: 0.5px;
+      }
+
+      .progress-bar {
+        margin: 16px 24px 0;
+        height: 4px; background: var(--chip-bg);
+        border-radius: 2px; overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%; background: var(--accent-gradient);
+        border-radius: 2px;
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .step-header { padding: 24px 24px 4px; }
+      .step-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+      .step-subtitle { font-size: 14px; color: var(--text-light); }
+      .step-body { padding: 16px 24px 24px; }
+
+      .field { margin-bottom: 28px; }
+      .field-label {
+        font-size: 14px; font-weight: 600;
+        margin-bottom: 8px;
+        display: flex; align-items: center; gap: 4px;
+      }
+      .field-hint {
+        font-size: 12px; color: var(--text-light);
+        margin-bottom: 10px; line-height: 1.5;
+      }
+
+      textarea.text-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: var(--radius-sm);
+        font-size: 15px; font-family: inherit;
+        background: var(--white); color: var(--text);
+        transition: border-color 0.2s;
+        outline: none;
+        -webkit-appearance: none;
+        resize: vertical; min-height: 96px;
+      }
+      textarea.text-input:focus { border-color: var(--accent); }
+      textarea.text-input::placeholder { color: #ccc; }
+
+      /* Chips */
+      .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 16px; border-radius: 24px;
+        border: 2px solid transparent; background: var(--chip-bg);
+        font-size: 14px; font-weight: 500; color: #555;
+        cursor: pointer; transition: all 0.2s;
+        user-select: none; -webkit-tap-highlight-color: transparent;
+      }
+      .chip:active { transform: scale(0.96); }
+      .chip.active {
+        background: #f0e8fc; border-color: var(--accent);
+        color: var(--accent); font-weight: 600;
+      }
+      .chip .chip-icon { font-size: 16px; }
+      .chip:disabled, .chip.disabled { opacity: 0.45; cursor: not-allowed; }
+
+      /* Range inputs */
+      .range-inputs {
+        display: flex; align-items: center; gap: 12px;
+        margin-top: 8px;
+      }
+      .range-input-group { flex: 1; }
+      .range-input-label {
+        font-size: 11px; font-weight: 500;
+        color: var(--text-light); margin-bottom: 4px;
+      }
+      .range-input-box {
+        display: flex; align-items: center;
+        border: 2px solid #e0e0e0;
+        border-radius: var(--radius-sm);
+        background: var(--white);
+        padding: 8px 12px;
+        transition: border-color 0.2s;
+      }
+      .range-input-box:focus-within { border-color: var(--accent); }
+      .range-input {
+        border: none; outline: none;
+        font-size: 15px; font-weight: 600; font-family: inherit;
+        color: var(--text); width: 100%; background: transparent;
+        -webkit-appearance: none;
+      }
+      .range-input-unit {
+        font-size: 13px; color: var(--text-light);
+        margin-left: 4px; flex-shrink: 0;
+      }
+      .range-input-dash {
+        color: #ccc; font-size: 14px;
+        margin-top: 18px; flex-shrink: 0;
+      }
+
+      /* Rank list (priorities) */
+      .rank-list { display: flex; flex-direction: column; gap: 8px; }
+      .rank-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px;
+        border-radius: var(--radius-sm);
+        background: var(--white);
+        border: 2px solid #e8e8e8;
+        user-select: none;
+      }
+      .rank-num {
+        width: 24px; height: 24px;
+        border-radius: 50%;
+        background: var(--accent); color: white;
+        font-size: 12px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .rank-label { font-size: 14px; font-weight: 600; }
+      .rank-sublabel { font-size: 12px; color: var(--text-light); margin-top: 2px; line-height: 1.45; }
+      .rank-arrows { display: flex; flex-direction: column; gap: 2px; }
+      .rank-arrow {
+        width: 28px; height: 22px;
+        border: none; background: var(--chip-bg);
+        border-radius: 6px;
+        cursor: pointer; font-size: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: #888;
+        transition: background 0.15s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .rank-arrow:hover { background: #ddd; }
+      .rank-arrow:disabled { opacity: 0.3; cursor: default; }
+
+      /* Deal-breaker toggle */
+      .db-row {
+        margin-top: 10px;
+        padding: 10px 14px;
+        background: var(--white);
+        border-radius: var(--radius-sm);
+        border: 1px solid #eee;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px;
+      }
+      .db-info { flex: 1; min-width: 0; }
+      .db-title { font-size: 13px; font-weight: 600; color: var(--text); }
+      .db-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; line-height: 1.4; }
+      .db-toggle {
+        width: 40px; height: 22px;
+        border-radius: 11px;
+        background: #d8d8d8;
+        position: relative; cursor: pointer;
+        transition: background 0.2s;
+        flex-shrink: 0; border: none; padding: 0;
+      }
+      .db-toggle.on { background: var(--accent); }
+      .db-toggle::after {
+        content: '';
+        position: absolute; top: 2px; left: 2px;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: white;
+        transition: left 0.2s;
+      }
+      .db-toggle.on::after { left: 20px; }
+
+      /* Navigation */
+      .nav-row { padding: 8px 24px 28px; display: flex; gap: 10px; }
+      .nav-btn {
+        flex: 1; padding: 14px;
+        border-radius: var(--radius-sm);
+        font-size: 15px; font-weight: 600;
+        font-family: inherit;
+        cursor: pointer; transition: all 0.2s;
+        border: none; -webkit-tap-highlight-color: transparent;
+      }
+      .nav-btn.secondary { background: var(--chip-bg); color: #666; }
+      .nav-btn.secondary:hover { background: #e0e0e0; }
+      .nav-btn.primary {
+        background: var(--accent-gradient); color: white;
+        box-shadow: 0 4px 16px rgba(144, 96, 224, 0.3);
+      }
+      .nav-btn.primary:hover {
+        box-shadow: 0 6px 20px rgba(144, 96, 224, 0.4);
+        transform: translateY(-1px);
+      }
+      .nav-btn:disabled {
+        opacity: 0.4; cursor: not-allowed;
+        transform: none !important; box-shadow: none !important;
+      }
+
+      .field-error { font-size: 12px; color: #e53e3e; margin-top: 6px; }
+
+      /* Transitions */
+      .step-content { animation: fadeIn 0.3s ease; }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .submitting-overlay {
+        position: absolute; inset: 0;
+        background: rgba(247,247,247,0.92);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 16px; z-index: 10;
+        border-radius: var(--radius);
+      }
+      .spinner {
+        width: 36px; height: 36px;
+        border: 3px solid var(--chip-bg);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .toast {
+        position: fixed;
+        top: 20px; left: 50%;
+        transform: translateX(-50%) translateY(-100px);
+        background: #e53e3e; color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 14px; font-weight: 600;
+        font-family: inherit;
+        box-shadow: 0 4px 20px rgba(229, 62, 62, 0.35);
+        z-index: 100; opacity: 0;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none; white-space: nowrap;
+      }
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      @media (max-width: 500px) {
+        .form-root { padding: 12px 8px 40px; }
+        .form-card { border-radius: 16px; }
+        .step-body { padding: 16px 20px 20px; }
+        .nav-row { padding: 8px 20px 24px; }
+        .form-header { padding: 24px 20px 0; }
+        .progress-bar { margin: 14px 20px 0; }
+        .step-header { padding: 20px 20px 4px; }
+        .step-title { font-size: 20px; }
+      }
+    `;
+
+
+    /* ═══════════════════════════════════════════
+       HELPERS
+       ═══════════════════════════════════════════ */
+    const optionStored = (opt) => (opt.icon || "") + (opt.label || "");
+
+
+    /* ═══════════════════════════════════════════
+       FIELD COMPONENTS
+       ═══════════════════════════════════════════ */
+    function MultiChipGrid({ options, value, onToggle, max }) {
+      const selected = Array.isArray(value) ? value : [];
+      const atMax = max && selected.length >= max;
+      return (
+        <div className="chip-grid">
+          {options.map((opt) => {
+            const stored = optionStored(opt);
+            const isActive = selected.includes(stored);
+            const disabled = !isActive && atMax;
+            return (
+              <div
+                key={stored}
+                className={`chip ${isActive ? "active" : ""} ${disabled ? "disabled" : ""}`}
+                onClick={() => { if (!disabled) onToggle(stored); }}
+              >
+                {opt.icon && <span className="chip-icon">{opt.icon}</span>}
+                {opt.label}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function RangeField({ min, max, valMin, valMax, onMinChange, onMaxChange, unit }) {
+      return (
+        <div className="range-inputs">
+          <div className="range-input-group">
+            <div className="range-input-label">最低</div>
+            <div className="range-input-box">
+              <input
+                type="number"
+                inputMode="numeric"
+                className="range-input"
+                value={valMin}
+                min={min}
+                max={max}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value);
+                  if (!isNaN(n)) onMinChange(Math.max(min, Math.min(n, max)));
+                  else onMinChange("");
+                }}
+              />
+              <span className="range-input-unit">{unit}</span>
+            </div>
+          </div>
+          <div className="range-input-dash">—</div>
+          <div className="range-input-group">
+            <div className="range-input-label">最高</div>
+            <div className="range-input-box">
+              <input
+                type="number"
+                inputMode="numeric"
+                className="range-input"
+                value={valMax}
+                min={min}
+                max={max}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value);
+                  if (!isNaN(n)) onMaxChange(Math.max(min, Math.min(n, max)));
+                  else onMaxChange("");
+                }}
+              />
+              <span className="range-input-unit">{unit}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PriorityRankInput({ options, value, onChange }) {
+      // value = array of ids in order
+      const move = (idx, dir) => {
+        const next = [...value];
+        const target = idx + dir;
+        if (target < 0 || target >= next.length) return;
+        [next[idx], next[target]] = [next[target], next[idx]];
+        onChange(next);
+      };
+      return (
+        <div className="rank-list">
+          {value.map((id, idx) => {
+            const opt = options.find((o) => o.id === id);
+            if (!opt) return null;
+            return (
+              <div className="rank-item" key={id}>
+                <div className="rank-num">{idx + 1}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="rank-label">{opt.label}</div>
+                  {opt.helper && <div className="rank-sublabel">{opt.helper}</div>}
+                </div>
+                <div className="rank-arrows">
+                  <button className="rank-arrow" disabled={idx === 0} onClick={() => move(idx, -1)}>▲</button>
+                  <button className="rank-arrow" disabled={idx === value.length - 1} onClick={() => move(idx, 1)}>▼</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function DealBreakerRow({ on, onChange }) {
+      return (
+        <div className="db-row">
+          <div className="db-info">
+            <div className="db-title">設為硬性篩選條件</div>
+            <div className="db-sub">開啟後,唔符合會直接排除</div>
+          </div>
+          <button
+            type="button"
+            className={`db-toggle ${on ? "on" : ""}`}
+            onClick={onChange}
+            aria-pressed={on}
+          />
+        </div>
+      );
+    }
+
+
+    /* ═══════════════════════════════════════════
+       MAIN COMPONENT
+       ═══════════════════════════════════════════ */
+    function IdealForm() {
+      const [step, setStep] = useState(0);
+      const [submitting, setSubmitting] = useState(false);
+      const [submitError, setSubmitError] = useState("");
+      const [toast, setToast] = useState("");
+
+      // Auth gate — redirect if no token
+      useEffect(() => {
+        const token = localStorage.getItem("linkinhk_token");
+        if (!token) { window.location.href = "/login"; }
+      }, []);
+
+      const STEPS = IDEAL_FIELDS;
+
+      // Build initial form state.
+      const initialForm = useMemo(() => {
+        const f = {
+          "my-priorities": IDEAL_PRIORITY_OPTIONS.map((o) => o.id),
+          "their-age-min": AGE_MIN_DEFAULT,
+          "their-age-max": AGE_MAX_DEFAULT,
+          "their-height-min": HEIGHT_MIN_DEFAULT,
+          "their-height-max": HEIGHT_MAX_DEFAULT,
+          "extra-requirements": "",
+          "deal-breaker": [],
+        };
+        IDEAL_FIELDS.forEach((card) => {
+          card.fields.forEach((fld) => {
+            if (fld.type === "flatmulti" || fld.type === "limitedmulti") {
+              f[fld.key] = [];
+            }
+          });
+        });
+        return f;
+      }, []);
+
+      const [form, setForm] = useState(initialForm);
+      const [errors, setErrors] = useState({});
+
+      const setVal = (key, val) => {
+        setForm((prev) => ({ ...prev, [key]: val }));
+        setErrors((prev) => ({ ...prev, [key]: undefined }));
+      };
+
+      const toggleMulti = (key, val, max) => {
+        setForm((prev) => {
+          const arr = prev[key] || [];
+          if (arr.includes(val)) return { ...prev, [key]: arr.filter((v) => v !== val) };
+          if (max && arr.length >= max) return prev;
+          return { ...prev, [key]: [...arr, val] };
+        });
+      };
+
+      const toggleDealBreaker = (dbKey) => {
+        setForm((prev) => {
+          const arr = prev["deal-breaker"] || [];
+          return {
+            ...prev,
+            "deal-breaker": arr.includes(dbKey)
+              ? arr.filter((k) => k !== dbKey)
+              : [...arr, dbKey],
+          };
+        });
+      };
+
+      /* ── Validation ── */
+      const getStepErrors = () => {
+        const e = {};
+        const card = STEPS[step];
+        card.fields.forEach((fld) => {
+          if (fld.type === "range") {
+            const mn = parseInt(form[fld.minKey]);
+            const mx = parseInt(form[fld.maxKey]);
+            if (isNaN(mn) || isNaN(mx)) {
+              e[fld.minKey] = "請輸入完整範圍";
+            } else if (mn > mx) {
+              e[fld.minKey] = "最低唔可以大過最高";
+            }
+          }
+        });
+        return e;
+      };
+
+      const showToast = (msg) => {
+        setToast(msg);
+        setTimeout(() => setToast(""), 2800);
+      };
+
+      const next = () => {
+        const e = getStepErrors();
+        setErrors(e);
+        const count = Object.keys(e).length;
+        if (count > 0) {
+          showToast(`請先修正 ${count} 處 ✏️`);
+          return;
+        }
+        if (step < STEPS.length - 1) {
+          setStep((s) => s + 1);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      };
+      const prev = () => {
+        if (step > 0) {
+          setStep((s) => s - 1);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+      };
+
+      /* ── Submit ── */
+      const submit = async () => {
+        const e = getStepErrors();
+        setErrors(e);
+        if (Object.keys(e).length > 0) {
+          showToast("請先修正表單");
+          return;
+        }
+        setSubmitting(true);
+        setSubmitError("");
+
+        const token = localStorage.getItem("linkinhk_token");
+        if (!token) { window.location.href = "/login"; return; }
+
+        // Build JSON body
+        const body = {
+          "my-priorities": form["my-priorities"].join(", "),
+          "their-age-min": String(form["their-age-min"] ?? ""),
+          "their-age-max": String(form["their-age-max"] ?? ""),
+          "their-height-min": String(form["their-height-min"] ?? ""),
+          "their-height-max": String(form["their-height-max"] ?? ""),
+          "extra-requirements": form["extra-requirements"] || "",
+          "deal-breaker": form["deal-breaker"] || [],
+        };
+        IDEAL_FIELDS.forEach((card) => {
+          card.fields.forEach((fld) => {
+            if (fld.type === "flatmulti" || fld.type === "limitedmulti") {
+              body[fld.key] = (form[fld.key] || []).join(", ");
+            }
+          });
+        });
+
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 60000);
+          const res = await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+
+          if (res.status === 401) {
+            localStorage.removeItem("linkinhk_token");
+            localStorage.removeItem("linkinhk_email");
+            window.location.href = "/login";
+            return;
+          }
+
+          let data = null;
+          try { data = await res.json(); } catch (_) { /* non-JSON */ }
+
+          if (res.ok && data && data.success) {
+            window.location.href = DASHBOARD_IDEAL_URL;
+            return;
+          }
+          const errMsg = (data && (data.error || data.message)) || "提交失敗,請稍後再試";
+          setSubmitError(errMsg);
+          setSubmitting(false);
+        } catch (err) {
+          console.error("Submit error:", err);
+          setSubmitError(err.name === "AbortError" ? "提交超時,請檢查網絡後再試" : "網絡連線錯誤,請再試");
+          setSubmitting(false);
+        }
+      };
+
+
+      /* ═══════════════════════════════════════════
+         FIELD RENDERER (driven by IDEAL_FIELDS)
+         ═══════════════════════════════════════════ */
+      const renderField = (fld) => {
+        const dbOn = fld.dealBreakerKey && (form["deal-breaker"] || []).includes(fld.dealBreakerKey);
+        const showDealBreaker = fld.dealBreakerKey && !fld.noDealBreaker;
+
+        let body = null;
+        let labelEl = fld.label ? <div className="field-label">{fld.label}</div> : null;
+        let hintEl = null;
+
+        if (fld.type === "range") {
+          const isAge = fld.minKey === "their-age-min";
+          const bound = isAge ? AGE_BOUND : HEIGHT_BOUND;
+          const err = errors[fld.minKey];
+          body = (
+            <>
+              <RangeField
+                min={bound.min}
+                max={bound.max}
+                valMin={form[fld.minKey]}
+                valMax={form[fld.maxKey]}
+                onMinChange={(v) => setVal(fld.minKey, v)}
+                onMaxChange={(v) => setVal(fld.maxKey, v)}
+                unit={fld.unit}
+              />
+              {err && <div className="field-error">{err}</div>}
+            </>
+          );
+        } else if (fld.type === "rank-id") {
+          if (fld.helper) hintEl = <div className="field-hint">{fld.helper}</div>;
+          body = (
+            <PriorityRankInput
+              options={fld.options}
+              value={form[fld.key]}
+              onChange={(v) => setVal(fld.key, v)}
+            />
+          );
+        } else if (fld.type === "flatmulti") {
+          body = (
+            <MultiChipGrid
+              options={fld.options}
+              value={form[fld.key]}
+              onToggle={(stored) => toggleMulti(fld.key, stored)}
+            />
+          );
+        } else if (fld.type === "limitedmulti") {
+          if (fld.hint) hintEl = <div className="field-hint">{fld.hint}</div>;
+          body = (
+            <MultiChipGrid
+              options={fld.options}
+              value={form[fld.key]}
+              onToggle={(stored) => toggleMulti(fld.key, stored, fld.max)}
+              max={fld.max}
+            />
+          );
+        } else if (fld.type === "textarea") {
+          body = (
+            <textarea
+              className="text-input"
+              placeholder={fld.placeholder}
+              value={form[fld.key]}
+              onChange={(e) => setVal(fld.key, e.target.value)}
+            />
+          );
+        }
+
+        return (
+          <div className="field" key={fld.key || fld.minKey}>
+            {labelEl}
+            {hintEl}
+            {body}
+            {showDealBreaker && (
+              <DealBreakerRow
+                on={dbOn}
+                onChange={() => toggleDealBreaker(fld.dealBreakerKey)}
+              />
+            )}
+          </div>
+        );
+      };
+
+
+      /* ═══════════════════════════════════════════
+         RENDER
+         ═══════════════════════════════════════════ */
+      const currentCard = STEPS[step];
+
+      return (
+        <>
+          <style>{STYLES}</style>
+          <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
+          <div className="form-root">
+            <div className="form-card">
+              {submitting && (
+                <div className="submitting-overlay">
+                  <div className="spinner" />
+                  <div style={{ fontSize: 15, color: "#666", fontWeight: 600 }}>提交緊⋯⋯</div>
+                  <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>請稍等 🙏</div>
+                </div>
+              )}
+
+              <div className="form-header">
+                <img src={LOGO_URL} alt="Link in HK" className="logo-img" />
+                <div className="step-indicator">{step + 1} / {STEPS.length}</div>
+              </div>
+
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+              </div>
+
+              <div className="step-header">
+                <div className="step-title">
+                  {currentCard.icon && <span style={{ marginRight: 6 }}>{currentCard.icon}</span>}
+                  {currentCard.title}
+                </div>
+                {currentCard.subtitle && <div className="step-subtitle">{currentCard.subtitle}</div>}
+              </div>
+
+              <div className="step-body">
+                <div className="step-content" key={step}>
+                  {currentCard.fields.map(renderField)}
+                  {submitError && step === STEPS.length - 1 && (
+                    <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
+                      {submitError}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="nav-row">
+                {step > 0 && <button className="nav-btn secondary" onClick={prev} disabled={submitting}>上一頁</button>}
+                {step < STEPS.length - 1 ? (
+                  <button className="nav-btn primary" onClick={next}>繼續</button>
+                ) : (
+                  <button className="nav-btn primary" onClick={submit} disabled={submitting}>
+                    {submitting ? "提交緊⋯⋯" : "提交 🎉"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<IdealForm />);
+  </script>
+</body>
+</html>
