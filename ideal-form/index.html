@@ -585,9 +585,11 @@
 
         const token = localStorage.getItem("linkinhk_token");
         if (!token) { window.location.href = "/login"; return; }
+        const email = localStorage.getItem("linkinhk_email") || "";
 
         // Build JSON body
         const body = {
+          email,
           "my-priorities": form["my-priorities"].join(", "),
           "their-age-min": String(form["their-age-min"] ?? ""),
           "their-age-max": String(form["their-age-max"] ?? ""),
