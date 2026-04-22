@@ -173,29 +173,29 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
     <div className="fade-in" style={{ paddingBottom: 16 }}>
       <CompatibilityBanner score={currentMatch.compatibilityScore} />
 
-      <div style={{
-        borderRadius: "var(--radius)",
-        marginBottom: 16,
-        background: "var(--chip-bg)",
-        padding: "20px 0",
-      }}>
+      <div style={{ marginBottom: 16 }}>
         <PhotoCarousel photos={photos} />
       </div>
 
-      {partner.name && (
-        <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>
-          {partner.name}
-        </h2>
-      )}
-
-      <InfoChipsRow partner={partner} />
-      <BioCard bio={partner["my-bio"]} />
-
-      <ActionButtons
-        onAccept={() => handleResponse("accept")}
-        onReject={() => handleResponse("reject")}
-        disabled={submitting}
-      />
+      <Card>
+        {partner.name && (
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>
+            {partner.name}
+          </h2>
+        )}
+        <InfoChipsRow partner={partner} />
+        {partner["my-bio"] && String(partner["my-bio"]).trim() !== "" && (
+          <div style={{ marginBottom: 16 }}>
+            <div className="bio-card-label">關於佢</div>
+            <p className="bio-card-text">{partner["my-bio"]}</p>
+          </div>
+        )}
+        <ActionButtons
+          onAccept={() => handleResponse("accept")}
+          onReject={() => handleResponse("reject")}
+          disabled={submitting}
+        />
+      </Card>
 
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>

@@ -75,52 +75,64 @@ function PhotoCarousel({ photos }) {
   const count = valid.length;
   if (count === 0) return null;
 
-  const showLeft = index > 0;
-  const showRight = index < count - 1;
-  const go = (i) => { if (i >= 0 && i < count) setIndex(i); };
+  const wrap = (i) => ((i % count) + count) % count;
+  const go = (i) => setIndex(wrap(i));
+
+  const centerIdx = wrap(index);
+  const rightIdx = count >= 2 ? wrap(index + 1) : null;
+  const leftIdx = count >= 3 ? wrap(index - 1) : null;
 
   return (
     <div className="carousel fade-in">
       <div className="carousel-viewport">
-        <div
-          className="carousel-track"
-          style={{ transform: `translateX(calc(${-index * 90}% + 5%))` }}
-        >
-          {valid.map((url, i) => (
-            <div key={i} className="carousel-slide">
-              <img
-                src={url}
-                alt={`Photo ${i + 1}`}
-                onError={(e) => { e.target.style.opacity = "0.3"; }}
-              />
-            </div>
-          ))}
+        {leftIdx !== null && (
+          <div className="carousel-slide peek left">
+            <img
+              src={valid[leftIdx]}
+              alt=""
+              onError={(e) => { e.target.style.opacity = "0.3"; }}
+            />
+          </div>
+        )}
+        {rightIdx !== null && (
+          <div className="carousel-slide peek right">
+            <img
+              src={valid[rightIdx]}
+              alt=""
+              onError={(e) => { e.target.style.opacity = "0.3"; }}
+            />
+          </div>
+        )}
+        <div className="carousel-slide center">
+          <img
+            src={valid[centerIdx]}
+            alt={`Photo ${centerIdx + 1}`}
+            onError={(e) => { e.target.style.opacity = "0.3"; }}
+          />
         </div>
       </div>
-      {showLeft && (
-        <button onClick={() => go(index - 1)} className="carousel-arrow left" aria-label="上一張">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="icon-md">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      )}
-      {showRight && (
-        <button onClick={() => go(index + 1)} className="carousel-arrow right" aria-label="下一張">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="icon-md">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      )}
       {count > 1 && (
-        <div className="carousel-dots">
-          {valid.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => go(i)}
-              className={"carousel-dot" + (i === index ? " active" : "")}
-              aria-label={`跳到第 ${i + 1} 張`}
-            />
-          ))}
+        <div className="carousel-controls">
+          <button onClick={() => go(index - 1)} className="carousel-arrow" aria-label="上一張">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="icon-sm">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="carousel-dots">
+            {valid.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => go(i)}
+                className={"carousel-dot" + (i === centerIdx ? " active" : "")}
+                aria-label={`跳到第 ${i + 1} 張`}
+              />
+            ))}
+          </div>
+          <button onClick={() => go(index + 1)} className="carousel-arrow" aria-label="下一張">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="icon-sm">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
       )}
     </div>
