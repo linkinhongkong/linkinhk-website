@@ -1,8 +1,16 @@
 // ============================================================
-// form-options.js — dashboard option lists derived from shared-options.js
+// form-options.js — OPTIONS.* lists derived from shared-options.js,
+// in the "icon+label" stored-value format used by the dashboard and
+// ideal-form.
 //
 // Storage convention: options are stored in DB as "icon+label"
 // (e.g. "🏦金融／銀行") to match what the signup form writes.
+//
+// Lives in /shared/. Loaded by:
+//   - /dashboard/index.html   (after shared-options.js)
+//   - /ideal-form/index.html  (after shared-options.js, before ideal-fields.js)
+// Also used by /shared/components.js (optionToStored / optionsToCSV /
+// findOptionsFromCSV) and /shared/ideal-fields.js (references OPTIONS.*).
 //
 // Requires: shared-options.js loaded before this file.
 // ============================================================

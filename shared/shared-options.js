@@ -1,8 +1,10 @@
 // ============================================================
 // shared-options.js — Single source of truth for all option lists
 //
-// Loaded by: dashboard.html (before form-options.js)
-//            member-form.html (before its inline script)
+// Lives in /shared/ and is loaded by:
+//   - /dashboard/index.html   (before form-options.js)
+//   - /member-form/index.html (before its inline script)
+//   - /ideal-form/index.html  (before form-options.js)
 //
 // DB storage conventions (set by the signup form):
 //   Occupation:  icon + label (no space)  → "🏦金融／銀行"
