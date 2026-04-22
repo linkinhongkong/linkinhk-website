@@ -304,20 +304,13 @@ function WhoIAm({ profile, onProfileUpdated }) {
       </div>
 
       {/* Photos */}
-      <div className="dash-card" style={{ padding: 16 }}>
-        <button
-          onClick={() => setEditingPhotos(true)}
-          className="icon-btn card-edit-top"
-          aria-label="編輯相片"
-        >
-          <PencilIcon className="icon-sm" />
-        </button>
+      <Card icon="📷" title="相片" onEdit={() => setEditingPhotos(true)}>
         <div className="photo-grid-2x3">
           <PhotoCell url={photos[0]} alt="photo-1" className="span-2x2" />
           <PhotoCell url={photos[1]} alt="photo-2" />
           <PhotoCell url={photos[2]} alt="photo-3" />
         </div>
-      </div>
+      </Card>
 
       {/* Summary */}
       <div className="dash-card">

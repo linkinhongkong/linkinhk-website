@@ -2,40 +2,7 @@
 // shared/components.js — cross-page React primitives
 // Used by: dashboard, member-form
 // Requires: design-system.css for all visual styling.
-//
-// ── Canonical component API ─────────────────────────────────
-// All controlled inputs follow the same shape so the same
-// component renders identically in signup (member-form) and
-// editing (dashboard BottomSheet):
-//
-//   Required:
-//     value       current value (string | string[] | number | bool)
-//     onChange    (newValue) => void   ← bare value, NOT an Event
-//
-//   Common optional:
-//     label       field label text shown above the input
-//     helper      hint/helper text shown under the label
-//     error       error message; renders red text when truthy
-//     disabled    boolean
-//
-//   Primitive-specific:
-//     options, groups, allowOther, max, rows, unit, placeholder,
-//     min, step, hint, ...  (see each component)
-//
-// Conventions:
-//   1. onChange always receives the bare new value (never Event).
-//   2. Components are pure controlled; no parent-state reach-in.
-//   3. Visual styling comes from semantic classes in the shared
-//      CSS. Components never inline-style design tokens.
-//
-// Loading: this file expects `useState` and `useEffect` to already
-// be in scope (declared once per page). Dashboard declares them in
-// lib.js; member-form declares them in its inline <script>.
 // ============================================================
-
-// ------------------------------------------------------------
-// Feedback: LoadingScreen, ErrorScreen, Placeholder
-// ------------------------------------------------------------
 
 function LoadingScreen({ text = "載入中..." }) {
   return (
@@ -68,42 +35,23 @@ function Placeholder({ emoji, title }) {
   );
 }
 
-// ------------------------------------------------------------
-// Toggle (switch)
-// ------------------------------------------------------------
-
 function Toggle({ on, onChange, disabled = false }) {
   const handle = () => { if (!disabled && onChange) onChange(); };
   return (
-    <button
-      type="button"
-      onClick={handle}
-      disabled={disabled}
-      aria-pressed={!!on}
-      className={"toggle" + (on ? " on" : "") + (disabled ? " disabled" : "")}
-    >
+    <button type="button" onClick={handle} disabled={disabled} aria-pressed={!!on}
+      className={"toggle" + (on ? " on" : "") + (disabled ? " disabled" : "")}>
       <span className="toggle-thumb" />
     </button>
   );
 }
-
-// ------------------------------------------------------------
-// TextField / TextAreaField / NumberField / DateField
-// ------------------------------------------------------------
 
 function TextField({ label, value, onChange, disabled, placeholder, helper, error }) {
   return (
     <div className="field">
       {label && <label className="field-label">{label}</label>}
       {helper && <p className="field-hint">{helper}</p>}
-      <input
-        type="text"
-        className="text-input"
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        placeholder={placeholder}
-      />
+      <input type="text" className="text-input" value={value || ""}
+        onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder={placeholder} />
       {error && <div className="field-error">{error}</div>}
     </div>
   );
@@ -114,14 +62,8 @@ function TextAreaField({ label, value, onChange, rows = 4, placeholder, helper, 
     <div className="field">
       {label && <label className="field-label">{label}</label>}
       {helper && <p className="field-hint">{helper}</p>}
-      <textarea
-        className="text-input"
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        rows={rows}
-        placeholder={placeholder}
-        disabled={disabled}
-      />
+      <textarea className="text-input" value={value || ""}
+        onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} disabled={disabled} />
       {error && <div className="field-error">{error}</div>}
     </div>
   );
@@ -133,25 +75,12 @@ function NumberField({ label, value, onChange, min, max, unit, helper, error, di
       {label && <label className="field-label">{label}</label>}
       {helper && <p className="field-hint">{helper}</p>}
       <div style={{ position: "relative" }}>
-        <input
-          type="number"
-          className="text-input"
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          min={min}
-          max={max}
-          disabled={disabled}
-          style={unit ? { paddingRight: 40 } : undefined}
-        />
+        <input type="number" className="text-input" value={value || ""}
+          onChange={(e) => onChange(e.target.value)} min={min} max={max} disabled={disabled}
+          style={unit ? { paddingRight: 40 } : undefined} />
         {unit && (
-          <span style={{
-            position: "absolute",
-            right: 14, top: "50%",
-            transform: "translateY(-50%)",
-            fontSize: 13,
-            color: "var(--text-light)",
-            pointerEvents: "none"
-          }}>{unit}</span>
+          <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+            fontSize: 13, color: "var(--text-light)", pointerEvents: "none" }}>{unit}</span>
         )}
       </div>
       {error && <div className="field-error">{error}</div>}
@@ -160,38 +89,23 @@ function NumberField({ label, value, onChange, min, max, unit, helper, error, di
 }
 
 function DateField({ label, value, onChange, helper, error, disabled }) {
-  // Accepts ISO yyyy-mm-dd or legacy d/m/yyyy for display.
   const toInputFormat = (raw) => {
     if (!raw) return "";
     if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return String(raw).substring(0, 10);
     const m = String(raw).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) {
-      const [, d, mo, y] = m;
-      return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    }
+    if (m) { const [, d, mo, y] = m; return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`; }
     return "";
   };
   return (
     <div className="field">
       {label && <label className="field-label">{label}</label>}
       {helper && <p className="field-hint">{helper}</p>}
-      <input
-        type="date"
-        className="text-input"
-        value={toInputFormat(value)}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-      />
+      <input type="date" className="text-input" value={toInputFormat(value)}
+        onChange={(e) => onChange(e.target.value)} disabled={disabled} />
       {error && <div className="field-error">{error}</div>}
     </div>
   );
 }
-
-// ------------------------------------------------------------
-// SelectChips — single-select pill row
-// options: [{ icon?, label }]; "其他/其它" triggers a free-text input.
-// Stored value = icon + label concatenated (matches form-options.js).
-// ------------------------------------------------------------
 
 function SelectChips({ label, options, value, onChange, helper, error, allowOther }) {
   const stored = String(value || "");
@@ -199,9 +113,7 @@ function SelectChips({ label, options, value, onChange, helper, error, allowOthe
   const otherOption = options.find((opt) => opt.label === "其他" || opt.label === "其它");
   const isCustom = !presetMatch && value && otherOption;
   const [otherActive, setOtherActive] = useState(isCustom);
-
   useEffect(() => { setOtherActive(isCustom); }, [value]);
-
   const handleClick = (opt) => {
     if (opt.label === "其他" || opt.label === "其它") {
       setOtherActive(true);
@@ -211,7 +123,6 @@ function SelectChips({ label, options, value, onChange, helper, error, allowOthe
       onChange(optionToStored(opt));
     }
   };
-
   return (
     <div className="field">
       {label && <label className="field-label">{label}</label>}
@@ -221,12 +132,8 @@ function SelectChips({ label, options, value, onChange, helper, error, allowOthe
           const isOther = opt.label === "其他" || opt.label === "其它";
           const selected = isOther ? otherActive : (value === optionToStored(opt) && !otherActive);
           return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => handleClick(opt)}
-              className={"chip" + (selected ? " active" : "")}
-            >
+            <button key={i} type="button" onClick={() => handleClick(opt)}
+              className={"chip" + (selected ? " active" : "")}>
               {opt.icon && <span className="chip-icon">{opt.icon}</span>}
               {opt.label}
             </button>
@@ -234,39 +141,23 @@ function SelectChips({ label, options, value, onChange, helper, error, allowOthe
         })}
       </div>
       {otherActive && (
-        <input
-          type="text"
-          className="text-input"
-          value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="請輸入..."
-          style={{ marginTop: 12 }}
-        />
+        <input type="text" className="text-input" value={value || ""}
+          onChange={(e) => onChange(e.target.value)} placeholder="請輸入..." style={{ marginTop: 12 }} />
       )}
       {error && <div className="field-error">{error}</div>}
     </div>
   );
 }
 
-// ------------------------------------------------------------
-// MultiSelectChips — grouped multi-select (interests, activities).
-// value: CSV string (e.g. "📖閱讀, 🎮打機")
-// groups: { "群組名": [{ icon?, label }, ...], ... }
-// ------------------------------------------------------------
-
 function MultiSelectChips({ label, groups, value, onChange, helper, error,
-                           supportOther, otherValue, onOtherChange, otherLabel = "其他" }) {
-  const selectedSet = new Set(
-    String(value || "").split(",").map((s) => s.trim()).filter(Boolean)
-  );
-
+  supportOther, otherValue, onOtherChange, otherLabel = "其他" }) {
+  const selectedSet = new Set(String(value || "").split(",").map((s) => s.trim()).filter(Boolean));
   const toggle = (opt) => {
     const stored = optionToStored(opt);
     const next = new Set(selectedSet);
     if (next.has(stored)) next.delete(stored); else next.add(stored);
     onChange(Array.from(next).join(", "));
   };
-
   return (
     <div className="field">
       {label && <label className="field-label">{label}</label>}
@@ -279,12 +170,8 @@ function MultiSelectChips({ label, groups, value, onChange, helper, error,
               const stored = optionToStored(opt);
               const selected = selectedSet.has(stored);
               return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => toggle(opt)}
-                  className={"chip" + (selected ? " active" : "")}
-                >
+                <button key={i} type="button" onClick={() => toggle(opt)}
+                  className={"chip" + (selected ? " active" : "")}>
                   {opt.icon && <span className="chip-icon">{opt.icon}</span>}
                   {opt.label}
                 </button>
@@ -296,13 +183,8 @@ function MultiSelectChips({ label, groups, value, onChange, helper, error,
       {supportOther && (
         <div style={{ marginTop: 12 }}>
           <label className="field-hint" style={{ marginBottom: 4 }}>{otherLabel}</label>
-          <input
-            type="text"
-            className="text-input"
-            value={otherValue || ""}
-            onChange={(e) => onOtherChange(e.target.value)}
-            placeholder="自己加入..."
-          />
+          <input type="text" className="text-input" value={otherValue || ""}
+            onChange={(e) => onOtherChange(e.target.value)} placeholder="自己加入..." />
         </div>
       )}
       {error && <div className="field-error">{error}</div>}
@@ -310,14 +192,8 @@ function MultiSelectChips({ label, groups, value, onChange, helper, error,
   );
 }
 
-// ------------------------------------------------------------
-// FlatMultiSelect — ungrouped multi-select (unlimited).
-// ------------------------------------------------------------
-
 function FlatMultiSelect({ label, options, value, onChange, helper, error }) {
-  const selectedSet = new Set(
-    String(value || "").split(",").map((s) => s.trim()).filter(Boolean)
-  );
+  const selectedSet = new Set(String(value || "").split(",").map((s) => s.trim()).filter(Boolean));
   const toggle = (opt) => {
     const stored = optionToStored(opt);
     const next = new Set(selectedSet);
@@ -333,12 +209,8 @@ function FlatMultiSelect({ label, options, value, onChange, helper, error }) {
           const stored = optionToStored(opt);
           const selected = selectedSet.has(stored);
           return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => toggle(opt)}
-              className={"chip" + (selected ? " active" : "")}
-            >
+            <button key={i} type="button" onClick={() => toggle(opt)}
+              className={"chip" + (selected ? " active" : "")}>
               {opt.icon && <span className="chip-icon">{opt.icon}</span>}
               {opt.label}
             </button>
@@ -350,14 +222,8 @@ function FlatMultiSelect({ label, options, value, onChange, helper, error }) {
   );
 }
 
-// ------------------------------------------------------------
-// LimitedMultiSelect — multi-select with a hard max.
-// ------------------------------------------------------------
-
 function LimitedMultiSelect({ label, options, value, onChange, max = 2, hint, helper, error }) {
-  const selectedSet = new Set(
-    String(value || "").split(",").map((s) => s.trim()).filter(Boolean)
-  );
+  const selectedSet = new Set(String(value || "").split(",").map((s) => s.trim()).filter(Boolean));
   const atLimit = selectedSet.size >= max;
   const toggle = (opt) => {
     const stored = optionToStored(opt);
@@ -377,45 +243,29 @@ function LimitedMultiSelect({ label, options, value, onChange, max = 2, hint, he
           const selected = selectedSet.has(stored);
           const disabled = !selected && atLimit;
           return (
-            <button
-              key={i}
-              type="button"
-              onClick={() => toggle(opt)}
-              disabled={disabled}
-              className={"chip" + (selected ? " active" : "") + (disabled ? " disabled" : "")}
-            >
+            <button key={i} type="button" onClick={() => toggle(opt)} disabled={disabled}
+              className={"chip" + (selected ? " active" : "") + (disabled ? " disabled" : "")}>
               {opt.icon && <span className="chip-icon">{opt.icon}</span>}
               {opt.label}
             </button>
           );
         })}
       </div>
-      {atLimit && (
-        <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8 }}>最多揀 {max} 項</p>
-      )}
+      {atLimit && <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8 }}>最多揀 {max} 項</p>}
       {error && <div className="field-error">{error}</div>}
     </div>
   );
 }
 
-// ------------------------------------------------------------
-// RankList — up/down-arrow reorder (e.g. love language).
-// value: CSV string of stored option values in ranked order.
-// ------------------------------------------------------------
-
 function RankList({ label, options, value, onChange, helper }) {
   const parseRanked = () => {
     const stored = String(value || "").split(",").map((s) => s.trim()).filter(Boolean);
-    const matched = stored
-      .map((part) => options.find((opt) => optionToStored(opt) === part))
-      .filter(Boolean);
+    const matched = stored.map((part) => options.find((opt) => optionToStored(opt) === part)).filter(Boolean);
     const missing = options.filter((opt) => !matched.find((m) => m.label === opt.label));
     return [...matched, ...missing];
   };
-
   const [ranked, setRanked] = useState(parseRanked);
   useEffect(() => { setRanked(parseRanked()); }, [value]);
-
   const move = (idx, dir) => {
     const next = [...ranked];
     const target = idx + dir;
@@ -424,7 +274,6 @@ function RankList({ label, options, value, onChange, helper }) {
     setRanked(next);
     onChange(optionsToCSV(next));
   };
-
   return (
     <div className="field">
       {label && <label className="field-label">{label}</label>}
@@ -448,12 +297,8 @@ function RankList({ label, options, value, onChange, helper }) {
   );
 }
 
-// ------------------------------------------------------------
-// NumberRange — min/max pair (e.g. age or height range).
-// ------------------------------------------------------------
-
 function NumberRange({ label, minValue, maxValue, onMinChange, onMaxChange,
-                      unit = "", minLabel = "最低", maxLabel = "最高", helper }) {
+  unit = "", minLabel = "最低", maxLabel = "最高", helper }) {
   return (
     <div className="field">
       {label && <label className="field-label">{label}</label>}
@@ -462,12 +307,8 @@ function NumberRange({ label, minValue, maxValue, onMinChange, onMaxChange,
         <div className="range-input-group">
           <div className="range-input-label">{minLabel}</div>
           <div className="range-input-box">
-            <input
-              type="number"
-              className="range-input"
-              value={minValue || ""}
-              onChange={(e) => onMinChange(e.target.value)}
-            />
+            <input type="number" className="range-input" value={minValue || ""}
+              onChange={(e) => onMinChange(e.target.value)} />
             {unit && <span className="range-input-unit">{unit}</span>}
           </div>
         </div>
@@ -475,12 +316,8 @@ function NumberRange({ label, minValue, maxValue, onMinChange, onMaxChange,
         <div className="range-input-group">
           <div className="range-input-label">{maxLabel}</div>
           <div className="range-input-box">
-            <input
-              type="number"
-              className="range-input"
-              value={maxValue || ""}
-              onChange={(e) => onMaxChange(e.target.value)}
-            />
+            <input type="number" className="range-input" value={maxValue || ""}
+              onChange={(e) => onMaxChange(e.target.value)} />
             {unit && <span className="range-input-unit">{unit}</span>}
           </div>
         </div>
@@ -488,10 +325,6 @@ function NumberRange({ label, minValue, maxValue, onMinChange, onMaxChange,
     </div>
   );
 }
-
-// ------------------------------------------------------------
-// DealBreakerToggle — option-item style row (used in WantBottomSheet).
-// ------------------------------------------------------------
 
 function DealBreakerToggle({ on, onChange }) {
   return (
@@ -507,9 +340,9 @@ function DealBreakerToggle({ on, onChange }) {
 
 // ------------------------------------------------------------
 // BottomSheet — generic edit modal (dashboard profile edits).
-// Declarative `fields` array drives which input component to render.
+// Now also loads/saves f.otherKey values for multiselect fields
+// that support a free-text "Other" input (e.g. my-activities-others).
 // ------------------------------------------------------------
-
 function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const [values, setValues] = useState({});
   const [saving, setSaving] = useState(false);
@@ -518,7 +351,10 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   useEffect(() => {
     if (open) {
       const initial = {};
-      fields.forEach((f) => { initial[f.key] = profile[f.key] || ""; });
+      fields.forEach((f) => {
+        initial[f.key] = profile[f.key] || "";
+        if (f.otherKey) initial[f.otherKey] = profile[f.otherKey] || "";
+      });
       setValues(initial);
       setError(null);
       setSaving(false);
@@ -530,14 +366,17 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   }, [open]);
 
   if (!open) return null;
-
   const setVal = (key, v) => setValues((prev) => ({ ...prev, [key]: v }));
 
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     const updates = {};
-    fields.forEach((f) => { if (!f.readOnly) updates[f.key] = values[f.key] || ""; });
+    fields.forEach((f) => {
+      if (f.readOnly) return;
+      updates[f.key] = values[f.key] || "";
+      if (f.otherKey) updates[f.otherKey] = values[f.otherKey] || "";
+    });
     try {
       const res = await authenticatedFetch(
         "https://linkinhk.app.n8n.cloud/webhook/update-profile",
@@ -586,17 +425,9 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         return <RankList key={f.key} label={f.label} options={f.options} value={val} onChange={onCh} />;
       case "multiselect":
         return (
-          <MultiSelectChips
-            key={f.key}
-            label={f.label}
-            groups={f.groups}
-            value={val}
-            onChange={onCh}
-            supportOther={f.supportOther}
-            otherValue={values[f.otherKey]}
-            onOtherChange={(v) => setVal(f.otherKey, v)}
-            otherLabel={f.otherLabel}
-          />
+          <MultiSelectChips key={f.key} label={f.label} groups={f.groups} value={val} onChange={onCh}
+            supportOther={f.supportOther} otherValue={values[f.otherKey]}
+            onOtherChange={(v) => setVal(f.otherKey, v)} otherLabel={f.otherLabel} />
         );
       default:
         return <TextField key={f.key} label={f.label} value={val} onChange={onCh} placeholder={f.placeholder} />;
@@ -627,11 +458,6 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   );
 }
 
-// ------------------------------------------------------------
-// WantBottomSheet — BottomSheet variant that also manages per-field
-// deal-breaker toggles, a NumberRange field type, and LimitedMultiSelect.
-// ------------------------------------------------------------
-
 function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const [values, setValues] = useState({});
   const [dealBreakers, setDealBreakers] = useState([]);
@@ -651,8 +477,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
       });
       setValues(initial);
       const raw = profile["deal-breaker"];
-      const arr = Array.isArray(raw)
-        ? [...raw]
+      const arr = Array.isArray(raw) ? [...raw]
         : String(raw || "").split(",").map((s) => s.trim()).filter(Boolean);
       setDealBreakers(arr);
       setError(null);
@@ -665,7 +490,6 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   }, [open]);
 
   if (!open) return null;
-
   const setVal = (k, v) => setValues((prev) => ({ ...prev, [k]: v }));
   const toggleDB = (k) =>
     setDealBreakers((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
@@ -710,21 +534,16 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
     let inputEl;
     if (f.type === "range") {
       inputEl = (
-        <NumberRange
-          label={f.label}
-          minValue={values[f.minKey]}
-          maxValue={values[f.maxKey]}
-          onMinChange={(v) => setVal(f.minKey, v)}
-          onMaxChange={(v) => setVal(f.maxKey, v)}
-          unit={f.unit}
-        />
+        <NumberRange label={f.label} minValue={values[f.minKey]} maxValue={values[f.maxKey]}
+          onMinChange={(v) => setVal(f.minKey, v)} onMaxChange={(v) => setVal(f.maxKey, v)} unit={f.unit} />
       );
     } else if (f.type === "select") {
       inputEl = <SelectChips label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} />;
     } else if (f.type === "flatmulti") {
       inputEl = <FlatMultiSelect label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} />;
     } else if (f.type === "limitedmulti") {
-      inputEl = <LimitedMultiSelect label={f.label} options={f.options} value={values[f.key]} onChange={(v) => setVal(f.key, v)} max={f.max || 2} hint={f.hint} />;
+      inputEl = <LimitedMultiSelect label={f.label} options={f.options} value={values[f.key]}
+        onChange={(v) => setVal(f.key, v)} max={f.max || 2} hint={f.hint} />;
     } else if (f.type === "textarea") {
       inputEl = <TextAreaField label={f.label} value={values[f.key]} onChange={(v) => setVal(f.key, v)} placeholder={f.placeholder} />;
     } else {
