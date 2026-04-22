@@ -497,32 +497,40 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
-    const updates = {};
-    fields.forEach((f) => {
-      if (f.type === "range") {
-        updates[f.minKey] = values[f.minKey] || "";
-        updates[f.maxKey] = values[f.maxKey] || "";
-      } else {
-        updates[f.key] = values[f.key] || "";
-      }
-    });
-    updates["deal-breaker"] = dealBreakers;
+    const isExtraOnly = fields.length === 1 && fields[0].key === "extra-requirements";
     try {
+      if (isExtraOnly) {
+        const extraValue = values["extra-requirements"] || "";
+        const res = await authenticatedFetch(
+          "https://linkinhk.app.n8n.cloud/webhook/extra-requirements",
+          { method: "POST", body: JSON.stringify({ "extra-requirements": extraValue }) }
+        );
+        const data = await res.json();
+        if (data.success) {
+          if (onSaved) onSaved(data.profile || { ...profile, "extra-requirements": extraValue });
+          onClose();
+        } else {
+          setError(data.error || "保存失敗,請再試");
+          setSaving(false);
+        }
+        return;
+      }
+      const updates = {};
+      fields.forEach((f) => {
+        if (f.type === "range") {
+          updates[f.minKey] = values[f.minKey] || "";
+          updates[f.maxKey] = values[f.maxKey] || "";
+        } else {
+          updates[f.key] = values[f.key] || "";
+        }
+      });
+      updates["deal-breaker"] = dealBreakers;
       const res = await authenticatedFetch(
         "https://linkinhk.app.n8n.cloud/webhook/update-profile",
         { method: "POST", body: JSON.stringify({ updates }) }
       );
       const data = await res.json();
       if (data.success && data.profile) {
-        if (fields.some((f) => f.key === "extra-requirements")) {
-          authenticatedFetch(
-            "https://linkinhk.app.n8n.cloud/webhook/extra-requirements",
-            {
-              method: "POST",
-              body: JSON.stringify({ "extra-requirements": values["extra-requirements"] || "" }),
-            }
-          ).catch(() => {});
-        }
         if (onSaved) onSaved(data.profile);
         onClose();
       } else {
