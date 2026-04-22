@@ -8,35 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/design-system.css">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --bg: #f0f0f0;
-      --card: #f7f7f7;
-      --white: #ffffff;
-      --text: #333;
-      --text-light: #888;
-      --accent: #9060E0;
-      --accent-pink: #FF6EB4;
-      --accent-gradient: linear-gradient(135deg, #FF6EB4, #A259FF);
-      --green-bg: #e8f8ee;
-      --green-text: #1a7a3a;
-      --yellow-bg: #fefce8;
-      --yellow-border: #eab308;
-      --radius: 20px;
-      --radius-sm: 12px;
-      --shadow: 0 4px 24px rgba(0,0,0,0.08);
-    }
-
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      -webkit-font-smoothing: antialiased;
-    }
+    /* Thank-you page-specific styles. Tokens + shared components come from design-system.css. */
 
     .page-root {
       min-height: 100dvh;
@@ -46,54 +20,13 @@
       padding: 24px 16px 48px;
     }
 
-    .page-card {
-      width: 100%;
-      max-width: 480px;
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: relative;
-    }
-    .page-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-      background: var(--accent-gradient);
-      z-index: 1;
-    }
-
-    /* ── Success section ── */
     .success-section {
       padding: 48px 24px 20px;
       text-align: center;
       animation: fadeUp 0.5s ease both;
     }
-    .success-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: var(--green-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      margin: 0 auto 24px;
-      animation: popIn 0.4s ease both 0.2s;
-    }
-    .success-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .success-subtitle {
-      font-size: 14px;
-      color: var(--text-light);
-      line-height: 1.7;
-    }
+    .success-icon { animation: popIn 0.4s ease both 0.2s; }
 
-    /* ── Next step card ── */
     .next-step-section {
       padding: 0 24px 28px;
       animation: fadeUp 0.5s ease both 0.3s;
@@ -102,7 +35,7 @@
       background: var(--white);
       border-radius: var(--radius-sm);
       padding: 24px;
-      border: 2px solid #e8e8e8;
+      border: 2px solid var(--border-light);
     }
     .next-step-badge {
       display: inline-flex;
@@ -118,17 +51,8 @@
       border-radius: 6px;
       margin-bottom: 12px;
     }
-    .next-step-title {
-      font-size: 17px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .next-step-desc {
-      font-size: 14px;
-      color: #666;
-      line-height: 1.7;
-      margin-bottom: 20px;
-    }
+    .next-step-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .next-step-desc { font-size: 14px; color: var(--text-hint); line-height: 1.7; margin-bottom: 20px; }
 
     .cta-btn {
       display: inline-flex;
@@ -144,16 +68,13 @@
       font-weight: 700;
       font-size: 15px;
       font-family: inherit;
-      box-shadow: 0 4px 16px rgba(144, 96, 224, 0.3);
+      box-shadow: var(--shadow-accent);
       transition: all 0.2s;
       border: none;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .cta-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(144, 96, 224, 0.4);
-    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-accent-hover); }
     .cta-btn:active { transform: scale(0.98); }
 
     .cta-secondary {
@@ -164,8 +85,8 @@
       width: 100%;
       padding: 14px 24px;
       border-radius: var(--radius-sm);
-      background: #efefef;
-      color: #666;
+      background: var(--chip-bg);
+      color: var(--text-hint);
       text-decoration: none;
       font-weight: 600;
       font-size: 14px;
@@ -176,9 +97,8 @@
       margin-top: 10px;
       -webkit-tap-highlight-color: transparent;
     }
-    .cta-secondary:hover { background: #e0e0e0; }
+    .cta-secondary:hover { background: var(--border); }
 
-    /* ── Callout ── */
     .callout {
       margin: 0 24px 24px;
       background: var(--yellow-bg);
@@ -187,42 +107,21 @@
       border-radius: 0 8px 8px 0;
       font-size: 13px;
       line-height: 1.6;
-      color: #666;
+      color: var(--text-hint);
       animation: fadeUp 0.5s ease both 0.5s;
     }
     .callout strong { color: #92620a; }
 
-    /* ── Footer ── */
     .thankyou-footer {
       padding: 16px 24px 28px;
       text-align: center;
       animation: fadeUp 0.5s ease both 0.6s;
     }
-    .footer-text {
-      font-size: 12px;
-      color: var(--text-light);
-      line-height: 1.6;
-    }
-    .footer-text a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
+    .footer-text { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+    .footer-text a { color: var(--accent); text-decoration: none; font-weight: 500; }
 
-    /* ── Animations ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.6); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    /* ── Mobile ── */
     @media (max-width: 500px) {
       .page-root { padding: 12px 8px 40px; }
-      .page-card { border-radius: 16px; }
       .success-section { padding: 40px 20px 16px; }
       .next-step-section { padding: 0 20px 24px; }
       .callout { margin: 0 20px 20px; }
