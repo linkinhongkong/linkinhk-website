@@ -1,5 +1,5 @@
 // ============================================================
-// tab-events.js — upcoming events
+// tab-events.js — upcoming events (placeholder)
 // ============================================================
 
 function EventsTab({ profile }) {

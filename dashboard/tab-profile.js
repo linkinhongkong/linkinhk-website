@@ -3,31 +3,23 @@
 // ============================================================
 
 function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) {
-  // deal-breaker can be a Multiple Select (array) or comma-separated string
-  var rawDealBreaker = profile["deal-breaker"];
-  var dealBreakers = Array.isArray(rawDealBreaker)
+  const rawDealBreaker = profile["deal-breaker"];
+  const dealBreakers = Array.isArray(rawDealBreaker)
     ? rawDealBreaker
-    : String(rawDealBreaker || "").split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+    : String(rawDealBreaker || "").split(",").map((s) => s.trim()).filter(Boolean);
 
   return (
     <div className="fade-in">
-      {/* Sub-tabs — update hash so URL stays in sync */}
-      <div className="bg-white rounded-xl border border-stone-200 p-1 flex mb-4">
+      <div className="subtab-switcher">
         <button
-          onClick={function() { window.location.hash = "profile"; }}
-          className={"flex-1 py-2 text-sm font-medium rounded-lg transition " +
-            (subTab === "me"
-              ? "bg-stone-900 text-white"
-              : "text-stone-500 hover:text-stone-900")}
+          onClick={() => { window.location.hash = "profile"; }}
+          className={"subtab-btn" + (subTab === "me" ? " active" : "")}
         >
           關於我
         </button>
         <button
-          onClick={function() { window.location.hash = "ideal"; }}
-          className={"flex-1 py-2 text-sm font-medium rounded-lg transition " +
-            (subTab === "want"
-              ? "bg-stone-900 text-white"
-              : "text-stone-500 hover:text-stone-900")}
+          onClick={() => { window.location.hash = "ideal"; }}
+          className={"subtab-btn" + (subTab === "want" ? " active" : "")}
         >
           理想型
         </button>
@@ -35,15 +27,11 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) 
 
       {subTab === "me"
         ? <WhoIAm profile={profile} onProfileUpdated={onProfileUpdated} />
-        : <WhatIWant profile={profile} dealBreakers={dealBreakers} />
+        : <WhatIWant profile={profile} dealBreakers={dealBreakers} onProfileUpdated={onProfileUpdated} />
       }
 
-      {/* Logout button */}
-      <button
-        onClick={onLogout}
-        className="w-full mt-6 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
-      >
-        <LogoutIcon className="w-4 h-4" />
+      <button onClick={onLogout} className="logout-btn">
+        <LogoutIcon className="icon-sm" />
         登出
       </button>
     </div>
