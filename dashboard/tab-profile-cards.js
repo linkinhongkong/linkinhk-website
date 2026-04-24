@@ -88,10 +88,11 @@ function ProfileChip({ label }) {
 }
 
 function PhotoCell({ url, alt, className }) {
+  const src = normalizeUserPhotoUrl(url);
   return (
     <div className={"photo-cell " + (className || "")}>
-      {url ? (
-        <img src={url} alt={alt} />
+      {src ? (
+        <img src={src} alt={alt} onError={(e) => { e.currentTarget.style.opacity = "0.3"; }} />
       ) : (
         <div className="photo-cell-empty">無相片</div>
       )}
@@ -216,7 +217,7 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
         <div className="sheet-body">
           <div className="photo-grid" style={{ marginBottom: 16 }}>
             {[0, 1, 2].map((idx) => {
-              const src = previews[idx] || photos[idx];
+              const src = normalizeUserPhotoUrl(previews[idx] || photos[idx]);
               return (
                 <label key={idx} className={"photo-slot" + (src ? " filled" : "")}>
                   {src ? (

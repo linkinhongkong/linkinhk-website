@@ -44,7 +44,7 @@ function HistoryTab({ profile, history }) {
 // ---------------- Card (list view) ----------------
 function HistoryCard({ match, onClick }) {
   const p = match.partnerProfile || {};
-  const photo = p["my-photo-1"] || "";
+  const photo = normalizeUserPhotoUrl(p["my-photo-1"]);
   const matched = String(match.status || "").toLowerCase() === "matched";
 
   return (

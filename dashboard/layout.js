@@ -71,7 +71,9 @@ function RangeDisplay({ min, max, unit }) {
 // ---------------- PhotoCarousel (Match + History tabs) ----------------
 function PhotoCarousel({ photos }) {
   const [index, setIndex] = useState(0);
-  const valid = photos.filter((p) => p && String(p).trim() !== "");
+  const valid = (photos || [])
+    .map((p) => normalizeUserPhotoUrl(p))
+    .filter((p) => p && String(p).trim() !== "");
   const count = valid.length;
   if (count === 0) return null;
 

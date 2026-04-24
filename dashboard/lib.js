@@ -37,6 +37,35 @@ function calculateCompleteness(profile) {
   return { filled, total, missing, percent };
 }
 
+// ---------------- User photo URL normalization ----------------
+// Photos in the profile may come from multiple upstream sources (Tally
+// uploads, Google Drive share links, Google user-content links). Most
+// render directly via <img>, but Google Drive's `drive.google.com/uc`
+// form is blocked for hotlinking and must be rewritten to the
+// `lh3.googleusercontent.com/d/<id>` form to display.
+function extractDriveFileId(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase();
+    if (host !== "drive.google.com" && host !== "docs.google.com") return null;
+    const idParam = u.searchParams.get("id");
+    if (idParam) return idParam;
+    const m = u.pathname.match(/\/(?:file\/)?d\/([^/?#]+)/);
+    if (m) return m[1];
+  } catch (_) { /* not a parseable URL */ }
+  return null;
+}
+
+function normalizeUserPhotoUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  const s = url.trim();
+  if (!s) return "";
+  if (s.startsWith("data:") || s.startsWith("blob:")) return s;
+  const driveId = extractDriveFileId(s);
+  if (driveId) return `https://lh3.googleusercontent.com/d/${driveId}`;
+  return s;
+}
+
 // ---------------- Auth helpers ----------------
 function getToken() {
   return localStorage.getItem("linkinhk_token");
