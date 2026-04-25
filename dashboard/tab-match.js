@@ -290,7 +290,7 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
 
   const partner = currentMatch.partnerProfile;
   const photos = [partner["my-photo-1"], partner["my-photo-2"], partner["my-photo-3"]];
-  const deadline = currentMatch["deadline-at"] || currentMatch.deadlineAt;
+  const deadline = currentMatch.deadlineAt;
 
   return (
     <div className="fade-in" style={{ paddingBottom: 16 }}>
