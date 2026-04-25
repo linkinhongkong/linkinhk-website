@@ -112,6 +112,59 @@
     }
     .callout strong { color: #92620a; }
 
+    .payment-section {
+      display: flex;
+      gap: 12px;
+      padding: 0 24px 24px;
+      animation: fadeUp 0.5s ease both 0.55s;
+    }
+    .payment-card {
+      flex: 1;
+      min-width: 0;
+      background: var(--white);
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+    }
+    .payment-header {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .payment-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: var(--chip-bg);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .payment-number:hover { background: var(--border); }
+    .payment-number.copied { background: var(--accent-soft); color: var(--accent); }
+    .payment-number .copy-icon { width: 16px; height: 16px; flex-shrink: 0; }
+    .payment-helper {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 380px) {
+      .payment-section { flex-direction: column; }
+    }
+
     .thankyou-footer {
       padding: 16px 24px 28px;
       text-align: center;
@@ -125,6 +178,7 @@
       .success-section { padding: 40px 20px 16px; }
       .next-step-section { padding: 0 20px 24px; }
       .callout { margin: 0 20px 20px; }
+      .payment-section { padding: 0 20px 20px; }
     }
   </style>
 </head>
@@ -166,6 +220,32 @@
         <strong>💡 提醒：</strong>完成付款記得IG DM我哋，我哋先可以將你加入配對 🙏
       </div>
 
+      <!-- Payment methods -->
+      <div class="payment-section">
+        <div class="payment-card">
+          <div class="payment-header">Payme</div>
+          <button type="button" class="payment-number" data-copy="91878330" aria-label="複製 Payme 號碼 91878330">
+            <span class="payment-number-text">91878330</span>
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <div class="payment-helper">LEUNG Y** T***</div>
+        </div>
+        <div class="payment-card">
+          <div class="payment-header">FPS</div>
+          <button type="button" class="payment-number" data-copy="91878330" aria-label="複製 FPS 號碼 91878330">
+            <span class="payment-number-text">91878330</span>
+            <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <div class="payment-helper">LEUNG Y** T***</div>
+        </div>
+      </div>
+
       <!-- Footer -->
       <div class="thankyou-footer">
         <div class="footer-text">
@@ -176,5 +256,41 @@
 
     </div>
   </div>
+  <script>
+    document.querySelectorAll('.payment-number').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var text = btn.dataset.copy || '';
+        var label = btn.querySelector('.payment-number-text');
+        var original = label.textContent;
+
+        var done = function () {
+          label.textContent = '已複製 ✓';
+          btn.classList.add('copied');
+          setTimeout(function () {
+            label.textContent = original;
+            btn.classList.remove('copied');
+          }, 1500);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(done).catch(fallback);
+        } else {
+          fallback();
+        }
+
+        function fallback() {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'absolute';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); done(); } catch (e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    });
+  </script>
 </body>
 </html>
