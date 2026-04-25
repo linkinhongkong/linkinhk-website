@@ -75,6 +75,123 @@ function CompatibilityBanner({ score }) {
   );
 }
 
+// ---------------- Countdown card ----------------
+function formatCountdown(ms) {
+  if (ms <= 0) return "00:00:00";
+  const totalSec = Math.floor(ms / 1000);
+  const h = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+  const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+  const s = String(totalSec % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function CountdownCard({ deadline }) {
+  const target = deadline ? new Date(deadline).getTime() : null;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [target]);
+
+  if (!target || isNaN(target)) return null;
+
+  const remaining = target - now;
+  const expired = remaining <= 0;
+
+  return (
+    <div className={"countdown-card" + (expired ? " expired" : "")}>
+      <div className="countdown-card-label">⏰ 倒數限時回覆</div>
+      <div className="countdown-card-time">{formatCountdown(remaining)}</div>
+      <div className="countdown-card-hint">
+        {expired ? "已過期" : "把握機會,過時不候"}
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Membership gate ----------------
+function MembershipGate() {
+  const [copied, setCopied] = useState(false);
+  const phone = "991878330";
+
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(phone);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = phone;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="membership-gate">
+      <div className="membership-gate-header">
+        <div className="membership-gate-emoji">💌</div>
+        <div className="membership-gate-title">仲未係會員</div>
+        <div className="membership-gate-sub">
+          完成以下兩個簡單步驟,即可開始收到每週配對 ✨
+        </div>
+      </div>
+
+      <div className="membership-step">
+        <div className="membership-step-title">
+          <span className="membership-step-num">1</span>
+          用 PayMe / FPS 入會
+        </div>
+        <div className="membership-step-body">
+          <p>請透過 PayMe 或 FPS 轉數至以下號碼:</p>
+          <div className="membership-pay-row">
+            <span className="membership-pay-number">{phone}</span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className={"membership-copy-btn" + (copied ? " copied" : "")}
+            >
+              {copied ? "已複製 ✓" : "複製"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="membership-step">
+        <div className="membership-step-title">
+          <span className="membership-step-num">2</span>
+          IG DM 我哋確認
+        </div>
+        <div className="membership-step-body">
+          <p>
+            完成付款後,請於 Instagram DM 我哋:
+            {" "}
+            <a
+              href="https://instagram.com/linkinhk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="membership-ig"
+            >
+              @linkinhk
+            </a>
+          </p>
+          <p>我哋會盡快幫你開通會員 💚</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------------- Bio card ----------------
 function BioCard({ bio }) {
   if (!bio || String(bio).trim() === "") return null;
@@ -157,6 +274,11 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
     }
   };
 
+  const membership = String((profile && profile.membership) || "").toLowerCase();
+  if (membership !== "activated") {
+    return <MembershipGate />;
+  }
+
   if (responded || !currentMatch || !currentMatch.partnerProfile) {
     return (
       <>
@@ -168,10 +290,13 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
 
   const partner = currentMatch.partnerProfile;
   const photos = [partner["my-photo-1"], partner["my-photo-2"], partner["my-photo-3"]];
+  const deadline = currentMatch["deadline-at"] || currentMatch.deadlineAt;
 
   return (
     <div className="fade-in" style={{ paddingBottom: 16 }}>
       <CompatibilityBanner score={currentMatch.compatibilityScore} />
+
+      {deadline && <CountdownCard deadline={deadline} />}
 
       <div style={{ marginBottom: 16 }}>
         <PhotoCarousel photos={photos} />

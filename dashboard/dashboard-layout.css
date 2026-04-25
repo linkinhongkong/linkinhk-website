@@ -496,3 +496,130 @@
   margin-bottom: 24px;
 }
 .match-actions .btn-pill { flex: 1; padding: 14px 20px; }
+
+/* ── Countdown card (urgency, Match tab) ── */
+.countdown-card {
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  color: white;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+  animation: fadeIn 0.3s ease;
+}
+.countdown-card-label {
+  font-size: 12px;
+  opacity: 0.95;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+.countdown-card-time {
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.countdown-card-hint {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 6px;
+}
+.countdown-card.expired { background: linear-gradient(135deg, #6b7280, #4b5563); box-shadow: none; }
+
+/* ── Membership gate (Match tab) ── */
+.membership-gate { animation: fadeIn 0.3s ease; }
+.membership-gate-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.membership-gate-emoji { font-size: 48px; margin-bottom: 12px; }
+.membership-gate-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.membership-gate-sub {
+  font-size: 14px;
+  color: var(--text-light);
+  max-width: 320px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+.membership-step {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+}
+.membership-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.membership-step-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+.membership-step-body {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.membership-step-body p { margin: 0 0 10px; }
+.membership-step-body p:last-child { margin-bottom: 0; }
+.membership-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--chip-bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.membership-pay-number {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.membership-copy-btn {
+  border: none;
+  background: var(--accent-gradient);
+  color: white;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.membership-copy-btn:hover { transform: translateY(-1px); }
+.membership-copy-btn.copied { background: #22c55e; }
+.membership-ig {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
