@@ -315,6 +315,10 @@
   background: var(--border);
   color: var(--text-hint);
 }
+.status-chip.waiting {
+  background: var(--chip-bg);
+  color: var(--text);
+}
 
 /* ── History card (list) ── */
 .history-card {

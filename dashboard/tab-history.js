@@ -15,7 +15,7 @@ function HistoryTab({ profile, history }) {
   });
 
   if (selected) {
-    return <HistoryDetail match={selected} onBack={() => setSelected(null)} />;
+    return <HistoryDetail match={selected} profile={profile} onBack={() => setSelected(null)} />;
   }
 
   if (uniqueHistory.length === 0) {
@@ -34,6 +34,7 @@ function HistoryTab({ profile, history }) {
         <HistoryCard
           key={`${(m.partnerProfile && m.partnerProfile.email) || "?"}-${m.createdAt || i}`}
           match={m}
+          profile={profile}
           onClick={() => setSelected(m)}
         />
       ))}
@@ -42,10 +43,10 @@ function HistoryTab({ profile, history }) {
 }
 
 // ---------------- Card (list view) ----------------
-function HistoryCard({ match, onClick }) {
+function HistoryCard({ match, profile, onClick }) {
   const p = match.partnerProfile || {};
   const photo = p["my-photo-1"] || "";
-  const matched = String(match.status || "").toLowerCase() === "matched";
+  const status = getMatchStatus(match, profile && profile.email);
 
   return (
     <button onClick={onClick} className="history-card">
@@ -60,7 +61,7 @@ function HistoryCard({ match, onClick }) {
         <div>
           <div className="history-card-header">
             {p.name && <div className="history-card-name">{p.name}</div>}
-            <StatusChip matched={matched} />
+            <StatusChip status={status} />
           </div>
           <div className="flex flex-wrap gap-sm">
             {buildChips(p).map((c, i) => (
@@ -75,12 +76,12 @@ function HistoryCard({ match, onClick }) {
 }
 
 // ---------------- Detail view ----------------
-function HistoryDetail({ match, onBack }) {
+function HistoryDetail({ match, profile, onBack }) {
   const p = match.partnerProfile || {};
   const photos = ["my-photo-1", "my-photo-2", "my-photo-3"]
     .map((k) => p[k])
     .filter(Boolean);
-  const matched = String(match.status || "").toLowerCase() === "matched";
+  const status = getMatchStatus(match, profile && profile.email);
 
   return (
     <div className="fade-in">
@@ -100,7 +101,7 @@ function HistoryDetail({ match, onBack }) {
             {p.name && (
               <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)" }}>{p.name}</h2>
             )}
-            <StatusChip matched={matched} />
+            <StatusChip status={status} />
           </div>
           <div style={{ fontSize: 12, color: "var(--text-light)", marginTop: 4 }}>
             {formatMatchTime(match.createdAt)}
@@ -129,12 +130,37 @@ function HistoryInfoChip({ text }) {
   return <span className="info-chip info-chip-sm">{text}</span>;
 }
 
-function StatusChip({ matched }) {
-  return (
-    <span className={"status-chip " + (matched ? "matched" : "unmatched")}>
-      {matched ? "配對成功" : "配對失敗"}
-    </span>
-  );
+function StatusChip({ status }) {
+  if (!status) return null;
+  return <span className={"status-chip " + status.variant}>{status.text}</span>;
+}
+
+// Keys are `${yourStatus}|${partnerStatus}`. Keep all 9 entries even when text
+// duplicates — each cell is independently editable.
+const MATCH_STATUS_TABLE = {
+  "accept|accept":   { text: "配對成功",     variant: "matched"   },
+  "accept|reject":   { text: "配對失敗",     variant: "unmatched" },
+  "accept|pending":  { text: "等待對方回覆", variant: "waiting"   },
+  "reject|accept":   { text: "你已拒絕",     variant: "unmatched" },
+  "reject|reject":   { text: "你已拒絕",     variant: "unmatched" },
+  "reject|pending":  { text: "你已拒絕",     variant: "unmatched" },
+  "pending|accept":  { text: "等待你的回覆", variant: "waiting"   },
+  "pending|reject":  { text: "等待你的回覆", variant: "waiting"   },
+  "pending|pending": { text: "等待你的回覆", variant: "waiting"   },
+};
+
+function normalizeStatus(s) {
+  const v = String(s || "").toLowerCase();
+  return v === "accept" || v === "reject" ? v : "pending";
+}
+
+function getMatchStatus(match, myEmail) {
+  if (!match) return null;
+  const me = String(myEmail || "").toLowerCase();
+  const isA = String(match["email-a"] || "").toLowerCase() === me;
+  const yours    = normalizeStatus(isA ? match["a-status"] : match["b-status"]);
+  const partners = normalizeStatus(isA ? match["b-status"] : match["a-status"]);
+  return MATCH_STATUS_TABLE[`${yours}|${partners}`];
 }
 
 function buildChips(p) {
