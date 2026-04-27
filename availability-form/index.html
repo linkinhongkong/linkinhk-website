@@ -15,6 +15,10 @@
   <style>
     /* Page-specific: availability grid only. All other styling comes from /shared/design-system.css */
 
+    /* Use `clip` instead of `hidden` so the page (not form-card) is the
+       scroll container for the sticky header row on step 2. */
+    .form-card { overflow: clip; }
+
     .avail-intro {
       background: var(--yellow-bg);
       border-left: 4px solid var(--yellow-border);
@@ -42,11 +46,26 @@
       text-align: center;
     }
     .avail-head-cell {
-      font-size: 18px;
-      color: var(--text-light);
-      padding-bottom: 6px;
+      flex-direction: column;
+      gap: 1px;
+      padding: 6px 2px 8px;
+      min-height: 52px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text-muted);
       border-bottom: 1px solid var(--border-light);
-      min-height: 36px;
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .avail-head-cell .head-time {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-light);
+      font-family: var(--font-accent);
+      letter-spacing: 0.2px;
     }
     .avail-head-cell.avail-head-corner { border-bottom-color: transparent; }
 
@@ -114,7 +133,8 @@
         gap: 3px;
       }
       .avail-date-cell { font-size: 11px; }
-      .avail-head-cell { font-size: 16px; }
+      .avail-head-cell { font-size: 12px; }
+      .avail-head-cell .head-time { font-size: 9px; }
     }
   </style>
 </head>
@@ -132,14 +152,20 @@
     const DAY_OFFSET_END = 21;
 
     const TIME_SLOTS = [
-      { key: "morning",   icon: "🌅", label: "早上（9:00 – 12:00）" },
-      { key: "afternoon", icon: "🌞", label: "下午（12:00 – 15:00）" },
-      { key: "evening",   icon: "🌆", label: "傍晚（15:00 – 19:00）" },
-      { key: "night",     icon: "🌙", label: "晚上（19:00 – 23:00）" },
+      { key: "morning",   icon: "🌅", name: "早上", time: "9:00–12:00",  label: "早上（9:00 – 12:00）" },
+      { key: "afternoon", icon: "🌞", name: "下午", time: "12:00–15:00", label: "下午（12:00 – 15:00）" },
+      { key: "evening",   icon: "🌆", name: "傍晚", time: "15:00–19:00", label: "傍晚（15:00 – 19:00）" },
+      { key: "night",     icon: "🌙", name: "晚上", time: "19:00–23:00", label: "晚上（19:00 – 23:00）" },
     ];
     const SLOT_OPTIONS = TIME_SLOTS.map(s => ({ icon: s.icon, label: s.label }));
     const optionStored = (opt) => (opt.icon || "") + (opt.label || "");
     const SLOT_STORED = TIME_SLOTS.map(s => ({ key: s.key, stored: s.icon + s.label }));
+
+    const MEET_AREA_OPTIONS = [
+      { label: "九龍" },
+      { label: "香港島" },
+      { label: "新界" },
+    ];
 
     const DOW_TC = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -207,7 +233,10 @@
         <div className="avail-table" role="grid" aria-label="每日時段選擇">
           <div className="avail-head-cell avail-head-corner" aria-hidden="true"></div>
           {TIME_SLOTS.map(s => (
-            <div key={s.key} className="avail-head-cell" title={s.label}>{s.icon}</div>
+            <div key={s.key} className="avail-head-cell" title={s.label}>
+              <span>{s.name}</span>
+              <span className="head-time">{s.time}</span>
+            </div>
           ))}
           {dates.map(d => (
             <React.Fragment key={d.iso}>
@@ -260,6 +289,8 @@
       const [submitError, setSubmitError] = useState("");
       const [toast, setToast] = useState("");
 
+      const [meetArea, setMeetArea] = useState([]);    // array of stored strings (e.g. "九龍")
+      const [areaError, setAreaError] = useState("");
       const [weekday, setWeekday] = useState([]);      // array of stored strings
       const [weekend, setWeekend] = useState([]);
       const [slots, setSlots] = useState({});          // { [iso]: { morning: bool, ... } }
@@ -282,6 +313,20 @@
       };
 
       const goStep2 = () => {
+        if (meetArea.length < 1) {
+          setAreaError("請選擇至少一個地區");
+          setToast("仲有 1 題未填 ✏️");
+          setTimeout(() => setToast(""), 2200);
+          setTimeout(() => {
+            const firstErr = document.querySelector(".field-error");
+            if (firstErr) {
+              const field = firstErr.closest(".field") || firstErr;
+              field.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }, 80);
+          return;
+        }
+        setAreaError("");
         // Seed page 2 on first entry; on re-entry keep user edits untouched.
         if (!prefillApplied) {
           setSlots(buildPrefill());
@@ -296,6 +341,12 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
 
+      const toggleMeetArea = (stored) =>
+        setMeetArea(a => {
+          const next = a.includes(stored) ? a.filter(x => x !== stored) : [...a, stored];
+          if (next.length >= 1) setAreaError("");
+          return next;
+        });
       const toggleWeekday = (stored) =>
         setWeekday(a => a.includes(stored) ? a.filter(x => x !== stored) : [...a, stored]);
       const toggleWeekend = (stored) =>
@@ -337,6 +388,7 @@
           match_email: params.match,
           pair_key: [params.user, params.match].map(e => e.toLowerCase()).sort().join("|"),
           sent_date: formatISODate(sentDate),
+          meet_areas: meetArea,
           weekday_availability: weekday,
           weekend_availability: weekend,
           selected_slots: selected,
@@ -440,6 +492,12 @@
                   </div>
                   <div className="step-body">
                     <div className="step-content">
+                      <div className="field">
+                        <div className="field-label">想喺邊區見面？（可多選,最少 1 項）</div>
+                        <MultiChipGrid options={MEET_AREA_OPTIONS} value={meetArea} onToggle={toggleMeetArea} />
+                        {areaError && <div className="field-error">{areaError}</div>}
+                      </div>
+
                       <div className="field">
                         <div className="field-label">你平日通常邊啲時段有空？（可多選）</div>
                         <MultiChipGrid options={SLOT_OPTIONS} value={weekday} onToggle={toggleWeekday} />
