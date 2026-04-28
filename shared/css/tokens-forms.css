@@ -20,6 +20,7 @@
 
   /* Accents */
   --accent: #9060E0;
+  --accent-dark: #5B2EAA; /* WCAG AA on --accent-soft (~7:1) */
   --accent-pink: #FF6EB4;
   --accent-gradient: linear-gradient(135deg, #FF6EB4, #A259FF);
   --accent-soft: #f0e8fc;

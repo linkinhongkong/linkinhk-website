@@ -211,6 +211,23 @@
 .carousel-slide.peek.left { left: 0; transform: translate(0, -50%); }
 .carousel-slide.peek.right { right: 0; transform: translate(0, -50%); }
 
+.carousel-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--chip-bg);
+  border-radius: var(--radius);
+  color: var(--text-light);
+  text-align: center;
+  padding: 16px;
+}
+.carousel-empty-icon { font-size: 40px; opacity: 0.6; }
+.carousel-empty-text { font-size: 14px; }
+
 .carousel-controls {
   display: flex;
   align-items: center;
@@ -248,18 +265,31 @@
 }
 .carousel-dot.active { background: var(--accent); }
 
-/* ── Compatibility banner (Match tab) ── */
-.compat-banner {
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 16px;
-  background: var(--accent-gradient);
-  color: white;
-  text-align: center;
-  animation: fadeIn 0.3s ease;
+/* ── Match name + score chip row (Match tab) ── */
+.match-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
-.compat-banner-sub { font-size: 12px; opacity: 0.9; margin-bottom: 4px; }
-.compat-banner-score { font-size: 24px; font-weight: 700; }
+.match-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.match-score-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--green-bg);
+  color: var(--green-text);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Match tab info chips ── */
 .info-chip {
@@ -499,33 +529,25 @@
 
 /* ── Countdown card (urgency, Match tab) ── */
 .countdown-card {
-  border-radius: var(--radius);
-  padding: 16px;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #fb923c, #f97316);
-  color: white;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   text-align: center;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+  font-size: 14px;
+  font-weight: 500;
   animation: fadeIn 0.3s ease;
 }
-.countdown-card-label {
-  font-size: 12px;
-  opacity: 0.95;
-  margin-bottom: 6px;
-  letter-spacing: 0.02em;
-}
 .countdown-card-time {
-  font-size: 26px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
-.countdown-card-hint {
-  font-size: 12px;
-  opacity: 0.9;
-  margin-top: 6px;
+.countdown-card.expired {
+  background: var(--chip-bg);
+  color: var(--text-muted);
 }
-.countdown-card.expired { background: linear-gradient(135deg, #6b7280, #4b5563); box-shadow: none; }
 
 /* ── Membership gate (Match tab) ── */
 .membership-gate { animation: fadeIn 0.3s ease; }
