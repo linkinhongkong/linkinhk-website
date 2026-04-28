@@ -65,16 +65,6 @@ function InfoChipsRow({ partner }) {
   return <div className="flex flex-wrap gap-sm mb-lg">{chips}</div>;
 }
 
-// ---------------- Compatibility banner ----------------
-function CompatibilityBanner({ score }) {
-  return (
-    <div className="compat-banner">
-      <div className="compat-banner-sub">你哋互相選擇對方為理想型 ✨</div>
-      <div className="compat-banner-score">匹配度 {score}%</div>
-    </div>
-  );
-}
-
 // ---------------- Countdown card ----------------
 function formatCountdown(ms) {
   if (ms <= 0) return "00:00:00";
@@ -102,11 +92,9 @@ function CountdownCard({ deadline }) {
 
   return (
     <div className={"countdown-card" + (expired ? " expired" : "")}>
-      <div className="countdown-card-label">⏰ 倒數限時回覆</div>
-      <div className="countdown-card-time">{formatCountdown(remaining)}</div>
-      <div className="countdown-card-hint">
-        {expired ? "已過期" : "把握機會,過時不候"}
-      </div>
+      {expired
+        ? "已過期"
+        : <>請在24小時內回覆: <span className="countdown-card-time">{formatCountdown(remaining)}</span></>}
     </div>
   );
 }
@@ -279,7 +267,8 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
     return <MembershipGate />;
   }
 
-  if (responded || !currentMatch || !currentMatch.partnerProfile) {
+  const myStatus = String((currentMatch && currentMatch.myStatus) || "").toLowerCase();
+  if (responded || !currentMatch || !currentMatch.partnerProfile || myStatus !== "pending") {
     return (
       <>
         <NoMatchState />
@@ -294,19 +283,24 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
 
   return (
     <div className="fade-in" style={{ paddingBottom: 16 }}>
-      <CompatibilityBanner score={currentMatch.compatibilityScore} />
-
       {deadline && <CountdownCard deadline={deadline} />}
 
       <div style={{ marginBottom: 16 }}>
-        <PhotoCarousel photos={photos} />
+        <PhotoCarousel photos={photos} emptyText="對方沒有上傳圖片" />
       </div>
 
       <Card>
-        {partner.name && (
-          <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 12 }}>
-            {partner.name}
-          </h2>
+        {(partner.name || currentMatch.compatibilityScore != null) && (
+          <div className="match-name-row">
+            {partner.name && (
+              <h2 className="match-name">{partner.name}</h2>
+            )}
+            {currentMatch.compatibilityScore != null && (
+              <span className="match-score-chip">
+                匹配度 {currentMatch.compatibilityScore}%
+              </span>
+            )}
+          </div>
         )}
         <InfoChipsRow partner={partner} />
         {partner["my-bio"] && String(partner["my-bio"]).trim() !== "" && (

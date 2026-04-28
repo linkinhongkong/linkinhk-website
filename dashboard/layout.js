@@ -69,11 +69,22 @@ function RangeDisplay({ min, max, unit }) {
 }
 
 // ---------------- PhotoCarousel (Match + History tabs) ----------------
-function PhotoCarousel({ photos }) {
+function PhotoCarousel({ photos, emptyText }) {
   const [index, setIndex] = useState(0);
   const valid = photos.filter((p) => p && String(p).trim() !== "");
   const count = valid.length;
-  if (count === 0) return null;
+  if (count === 0) {
+    return (
+      <div className="carousel fade-in">
+        <div className="carousel-viewport">
+          <div className="carousel-empty">
+            <div className="carousel-empty-icon" aria-hidden="true">📷</div>
+            <div className="carousel-empty-text">{emptyText || "未有圖片"}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const wrap = (i) => ((i % count) + count) % count;
   const go = (i) => setIndex(wrap(i));
