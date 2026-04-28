@@ -267,7 +267,8 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
     return <MembershipGate />;
   }
 
-  if (responded || !currentMatch || !currentMatch.partnerProfile) {
+  const myStatus = String((currentMatch && currentMatch.myStatus) || "").toLowerCase();
+  if (responded || !currentMatch || !currentMatch.partnerProfile || myStatus !== "pending") {
     return (
       <>
         <NoMatchState />
