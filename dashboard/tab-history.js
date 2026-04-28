@@ -134,23 +134,30 @@ function StatusChip({ status }) {
   return <span className={"status-chip " + status.variant}>{status.text}</span>;
 }
 
-// Keys are `${myStatus}|${partnerStatus}`. Keep all 9 entries even when text
+// Keys are `${myStatus}|${partnerStatus}`. Keep all 16 entries even when text
 // duplicates — each cell is independently editable.
 const MATCH_STATUS_TABLE = {
   "accept|accept":   { text: "配對成功",     variant: "matched"   },
   "accept|reject":   { text: "配對失敗",     variant: "unmatched" },
   "accept|pending":  { text: "等待對方回覆", variant: "waiting"   },
+  "accept|expire":   { text: "配對失敗",     variant: "unmatched" },
   "reject|accept":   { text: "你已拒絕",     variant: "unmatched" },
   "reject|reject":   { text: "你已拒絕",     variant: "unmatched" },
   "reject|pending":  { text: "你已拒絕",     variant: "unmatched" },
+  "reject|expire":   { text: "你已拒絕",     variant: "unmatched" },
   "pending|accept":  { text: "等待你的回覆", variant: "waiting"   },
   "pending|reject":  { text: "等待你的回覆", variant: "waiting"   },
   "pending|pending": { text: "等待你的回覆", variant: "waiting"   },
+  "pending|expire":  { text: "等待你的回覆", variant: "waiting"   },
+  "expire|accept":   { text: "配對失效",     variant: "unmatched" },
+  "expire|reject":   { text: "配對失效",     variant: "unmatched" },
+  "expire|pending":  { text: "配對失效",     variant: "unmatched" },
+  "expire|expire":   { text: "配對失效",     variant: "unmatched" },
 };
 
 function normalizeStatus(s) {
   const v = String(s || "").toLowerCase();
-  return v === "accept" || v === "reject" ? v : "pending";
+  return v === "accept" || v === "reject" || v === "expire" ? v : "pending";
 }
 
 function getMatchStatus(match) {
