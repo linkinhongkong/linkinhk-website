@@ -291,12 +291,21 @@
 
     function AvailabilityForm() {
       // Parse URL params: ?user=<email>&match=<email>&sent=<YYYY-MM-DD>
+      // Treat literal "undefined"/"null" as missing — these come from broken
+      // email links where a template literal stringified a JS undefined/null.
+      const cleanParam = (v) => {
+        const s = (v || "").trim();
+        if (!s) return "";
+        const lower = s.toLowerCase();
+        if (lower === "undefined" || lower === "null") return "";
+        return s;
+      };
       const params = useMemo(() => {
         const p = new URLSearchParams(window.location.search);
         return {
-          user: (p.get("user") || "").trim(),
-          match: (p.get("match") || "").trim(),
-          sent: p.get("sent") || formatISODate(new Date()),
+          user: cleanParam(p.get("user")),
+          match: cleanParam(p.get("match")),
+          sent: cleanParam(p.get("sent")) || formatISODate(new Date()),
         };
       }, []);
 
