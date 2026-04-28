@@ -15,12 +15,18 @@ function EventsTab({ profile, events }) {
     );
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const sorted = [...list].sort((a, b) => {
     const da = parseEventDate(a.date);
     const db = parseEventDate(b.date);
     if (!da && !db) return 0;
     if (!da) return 1;
     if (!db) return -1;
+    const aPast = da < today;
+    const bPast = db < today;
+    if (aPast !== bPast) return aPast ? 1 : -1;
+    if (aPast) return db - da;
     return da - db;
   });
 
