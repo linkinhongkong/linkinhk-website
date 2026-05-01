@@ -5,10 +5,11 @@
 const { useState, useEffect } = React;
 
 // ---------------- API endpoints ----------------
+// N8N_BASE is set by /shared/config.js based on hostname (prod vs uat).
 const API = {
-  GET_PROFILE: "https://linkinhk.app.n8n.cloud/webhook/get-profile",
-  BOOTSTRAP: "https://linkinhk.app.n8n.cloud/webhook/get-dashboard-bootstrap",
-  RESPOND_TO_MATCH: "https://linkinhk.app.n8n.cloud/webhook/respond-to-match",
+  GET_PROFILE: `${window.N8N_BASE}/get-profile`,
+  BOOTSTRAP: `${window.N8N_BASE}/get-dashboard-bootstrap`,
+  RESPOND_TO_MATCH: `${window.N8N_BASE}/respond-to-match`,
 };
 
 // ---------------- Tab definitions ----------------
