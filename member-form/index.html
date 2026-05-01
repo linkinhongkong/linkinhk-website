@@ -16,7 +16,7 @@
   <div id="root"></div>
   <script src="/shared/shared-options.js"></script>
   <script type="text/babel">
-    const { useState, useRef, useCallback } = React;
+    const { useState, useRef, useCallback, useEffect } = React;
 
 
 /* ═══════════════════════════════════════════
@@ -1046,6 +1046,10 @@ function LinkInSignup() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  useEffect(() => {
+    scrollToTop();
+  }, [step]);
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2800);
@@ -1068,13 +1072,11 @@ function LinkInSignup() {
     }
     if (step < STEPS.length - 1) {
       setStep(s => s + 1);
-      scrollToTop();
     }
   };
   const prev = () => {
     if (step > 0) {
       setStep(s => s - 1);
-      scrollToTop();
     }
   };
 
