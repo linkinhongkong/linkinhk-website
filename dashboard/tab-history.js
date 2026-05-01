@@ -7,6 +7,8 @@ function HistoryTab({ profile, history }) {
 
   const seen = new Set();
   const uniqueHistory = (history || []).filter((m) => {
+    const partnerName = (m.partnerProfile && m.partnerProfile.name) || "";
+    if (!partnerName.trim()) return false;
     const partnerEmail = (m.partnerProfile && m.partnerProfile.email) || "";
     const key = `${partnerEmail}|${m.createdAt || ""}`;
     if (seen.has(key)) return false;
