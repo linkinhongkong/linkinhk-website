@@ -230,12 +230,14 @@ function NoMatchState() {
 // ---------------- Main Match tab ----------------
 function MatchTab({ profile, currentMatch, onMatchResponded }) {
   const [toast, setToast] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
 
   const handleResponse = async (response) => {
     if (submitting || !currentMatch) return;
     setSubmitting(true);
+    setActionError(null);
     try {
       const res = await authenticatedFetch(API.RESPOND_TO_MATCH, {
         method: "POST",
@@ -251,12 +253,12 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
         setResponded(true);
         if (onMatchResponded) onMatchResponded();
       } else {
-        setToast(data.error || "出錯,請再試");
+        setActionError(data.error || "出錯,請再試");
         setSubmitting(false);
       }
     } catch (err) {
       if (err.message !== "Unauthorized" && err.message !== "No token") {
-        setToast("網絡連線錯誤");
+        setActionError("網絡連線錯誤");
       }
       setSubmitting(false);
     }
@@ -307,6 +309,12 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
           <div style={{ marginBottom: 16 }}>
             <div className="bio-card-label">關於佢</div>
             <p className="bio-card-text">{partner["my-bio"]}</p>
+          </div>
+        )}
+        {actionError && (
+          <div className="sheet-error">
+            {actionError}
+            <ErrorReportLink />
           </div>
         )}
         <ActionButtons

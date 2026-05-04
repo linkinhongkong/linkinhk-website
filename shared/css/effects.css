@@ -259,6 +259,28 @@
   color: #b91c1c;
 }
 
+/* ── Error report link ──
+   Subtle inline link rendered next to errors the user can't fix themselves.
+   Points to the Link in HK Instagram DM so the member can send a screenshot. */
+.error-report-link {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+.error-report-link a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.error-report-link a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* When rendered on a dark surface (e.g. match toast) */
+.error-report-link.on-dark { color: rgba(255,255,255,0.75); }
+.error-report-link.on-dark a { color: #d8b4fe; }
+
 /* ── Icon sizes ── */
 .icon-sm { width: 16px; height: 16px; }
 .icon-md { width: 20px; height: 20px; }
