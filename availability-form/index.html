@@ -167,6 +167,18 @@
     const WEBHOOK_URL = window.webhookUrl("availability");
     const LOGO_URL = "/logo.png";
 
+    function ErrorReportLink() {
+      return (
+        <div className="error-report-link">
+          問題持續?描述一下情況同附上截圖,{" "}
+          <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
+            傳到我哋 IG DM →
+          </a>
+          <br />我哋會盡快回覆 💜
+        </div>
+      );
+    }
+
     // Day offsets from sent date: +7 ... +21 inclusive (15 dates).
     const DAY_OFFSET_START = 7;
     const DAY_OFFSET_END = 21;
@@ -563,6 +575,7 @@
                       {submitError && (
                         <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
                           {submitError}
+                          <ErrorReportLink />
                         </div>
                       )}
                     </div>
