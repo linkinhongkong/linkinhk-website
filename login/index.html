@@ -58,6 +58,8 @@
       font-size: 13px;
       color: #b91c1c;
     }
+    .error-box .error-report-link { color: #b91c1c; }
+    .error-box .error-report-link a { color: var(--accent); }
 
     .login-meta {
       margin-top: 4px;
@@ -135,6 +137,18 @@
     const REQUEST_OTP_URL = window.webhookUrl("request-otp");
     const VERIFY_OTP_URL = window.webhookUrl("verify-otp");
 
+    function ErrorReportLink() {
+      return (
+        <div className="error-report-link">
+          問題持續?描述一下情況同附上截圖,{" "}
+          <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
+            傳到我哋 IG DM →
+          </a>
+          <br />我哋會盡快回覆 💜
+        </div>
+      );
+    }
+
     function LoginPage() {
       // screens: "checking" | "email" | "code" | "loggedIn"
       const [screen, setScreen] = useState("checking");
@@ -145,6 +159,9 @@
       // status: "idle" | "loading" | "error"
       const [status, setStatus] = useState("idle");
       const [errorMsg, setErrorMsg] = useState("");
+      // errorReportable: true when the error is server/network-side (user can't
+      // fix it themselves) — shows the IG DM report link. False for validation.
+      const [errorReportable, setErrorReportable] = useState(false);
 
       const [loggedInEmail, setLoggedInEmail] = useState("");
 
@@ -156,12 +173,21 @@
         }
       }, [screen]);
 
+      // Same-origin redirect target from ?redirect=... — must start with a
+      // single "/" to prevent open-redirect to external hosts.
+      const getRedirectTarget = () => {
+        const raw = new URLSearchParams(window.location.search).get("redirect");
+        if (!raw) return "/dashboard";
+        if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+        return "/dashboard";
+      };
+
       // Optimistic redirect on page load: if a token exists, trust it and
       // go to dashboard. Dashboard bootstrap will bounce back here if invalid.
       useEffect(() => {
         const savedToken = localStorage.getItem("linkinhk_token");
         if (savedToken) {
-          window.location.href = "/dashboard";
+          window.location.href = getRedirectTarget();
           return;
         }
         setScreen("email");
@@ -170,6 +196,7 @@
       const handleEmailSubmit = async () => {
         if (!email.trim()) {
           setErrorMsg("請輸入電郵地址");
+          setErrorReportable(false);
           setStatus("error");
           return;
         }
@@ -177,12 +204,14 @@
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.trim())) {
           setErrorMsg("電郵格式不正確");
+          setErrorReportable(false);
           setStatus("error");
           return;
         }
 
         setStatus("loading");
         setErrorMsg("");
+        setErrorReportable(false);
 
         try {
           const res = await fetch(REQUEST_OTP_URL, {
@@ -195,6 +224,7 @@
 
           if (res.status === 429) {
             setErrorMsg(data.error || "請稍候再試");
+            setErrorReportable(false);
             setStatus("error");
             return;
           }
@@ -204,10 +234,12 @@
             setScreen("code");
           } else {
             setErrorMsg(data.error || "發生錯誤,請稍後再試");
+            setErrorReportable(true);
             setStatus("error");
           }
         } catch (err) {
           setErrorMsg("網絡連線錯誤,請稍後再試");
+          setErrorReportable(true);
           setStatus("error");
         }
       };
@@ -215,12 +247,14 @@
       const handleCodeSubmit = async () => {
         if (code.length !== 6) {
           setErrorMsg("請輸入 6 位數字驗證碼");
+          setErrorReportable(false);
           setStatus("error");
           return;
         }
 
         setStatus("loading");
         setErrorMsg("");
+        setErrorReportable(false);
 
         try {
           const res = await fetch(VERIFY_OTP_URL, {
@@ -237,16 +271,21 @@
           if (data.success && data.token) {
             localStorage.setItem("linkinhk_token", data.token);
             localStorage.setItem("linkinhk_email", data.email);
-            window.location.href = "/dashboard";
+            window.location.href = getRedirectTarget();
             return;
           } else {
+            // Wrong-code from user is NOT reportable; other server-side
+            // failures (e.g. expired session, server bug) are.
+            const isWrongCode = data.error && /驗證碼|錯誤|過期|invalid|expired/i.test(data.error);
             setErrorMsg(data.error || "驗證失敗,請再試");
+            setErrorReportable(!isWrongCode);
             setStatus("error");
             setCode("");
             setTimeout(() => codeInputRef.current?.focus(), 100);
           }
         } catch (err) {
           setErrorMsg("網絡連線錯誤,請稍後再試");
+          setErrorReportable(true);
           setStatus("error");
         }
       };
@@ -254,6 +293,7 @@
       const handleResend = async () => {
         setStatus("loading");
         setErrorMsg("");
+        setErrorReportable(false);
         setCode("");
 
         try {
@@ -267,6 +307,7 @@
 
           if (res.status === 429) {
             setErrorMsg(data.error || "請稍候再試");
+            setErrorReportable(false);
             setStatus("error");
             return;
           }
@@ -275,6 +316,7 @@
           setErrorMsg("");
         } catch (err) {
           setErrorMsg("網絡連線錯誤");
+          setErrorReportable(true);
           setStatus("error");
         }
       };
@@ -356,7 +398,10 @@
                     </div>
 
                     {status === "error" && (
-                      <div className="error-box fade-in">{errorMsg}</div>
+                      <div className="error-box fade-in">
+                        {errorMsg}
+                        {errorReportable && <ErrorReportLink />}
+                      </div>
                     )}
                   </div>
 
@@ -409,7 +454,10 @@
                     </div>
 
                     {status === "error" && (
-                      <div className="error-box fade-in">{errorMsg}</div>
+                      <div className="error-box fade-in">
+                        {errorMsg}
+                        {errorReportable && <ErrorReportLink />}
+                      </div>
                     )}
 
                     <div className="login-meta">

@@ -50,7 +50,8 @@ function clearAuth() {
 }
 
 function redirectToLogin() {
-  window.location.href = "/login";
+  const target = window.location.pathname + window.location.search + window.location.hash;
+  window.location.href = "/login?redirect=" + encodeURIComponent(target);
 }
 
 // ---------------- API helper ----------------

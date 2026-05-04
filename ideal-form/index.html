@@ -31,6 +31,18 @@
     const LOGO_URL = "/logo.png";
     const DASHBOARD_IDEAL_URL = "/dashboard#ideal";
 
+    function ErrorReportLink() {
+      return (
+        <div className="error-report-link">
+          問題持續?描述一下情況同附上截圖,{" "}
+          <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
+            傳到我哋 IG DM →
+          </a>
+          <br />我哋會盡快回覆 💜
+        </div>
+      );
+    }
+
     // Default ranges — user can adjust
     const AGE_MIN_DEFAULT = 22, AGE_MAX_DEFAULT = 35;
     const HEIGHT_MIN_DEFAULT = 155, HEIGHT_MAX_DEFAULT = 185;
@@ -278,6 +290,16 @@
 
       .field-error { font-size: 12px; color: #e53e3e; margin-top: 6px; }
 
+      .error-report-link {
+        margin-top: 8px; font-size: 12px; color: #999; line-height: 1.6;
+      }
+      .error-report-link a {
+        color: #9060e0; font-weight: 600; text-decoration: none;
+      }
+      .error-report-link a:hover {
+        text-decoration: underline; text-underline-offset: 2px;
+      }
+
       /* Transitions */
       .step-content { animation: fadeIn 0.3s ease; }
       @keyframes fadeIn {
@@ -368,6 +390,18 @@
     }
 
     function RangeField({ min, max, valMin, valMax, onMinChange, onMaxChange, unit }) {
+      const handleChange = (onChange) => (e) => {
+        const raw = e.target.value;
+        if (raw === "") { onChange(""); return; }
+        const n = parseInt(raw, 10);
+        if (!isNaN(n)) onChange(n);
+      };
+      const handleBlur = (val, onChange) => () => {
+        if (val === "" || val === null || val === undefined) return;
+        const n = parseInt(val, 10);
+        if (isNaN(n)) { onChange(""); return; }
+        onChange(Math.max(min, Math.min(n, max)));
+      };
       return (
         <div className="range-inputs">
           <div className="range-input-group">
@@ -380,11 +414,8 @@
                 value={valMin}
                 min={min}
                 max={max}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value);
-                  if (!isNaN(n)) onMinChange(Math.max(min, Math.min(n, max)));
-                  else onMinChange("");
-                }}
+                onChange={handleChange(onMinChange)}
+                onBlur={handleBlur(valMin, onMinChange)}
               />
               <span className="range-input-unit">{unit}</span>
             </div>
@@ -400,11 +431,8 @@
                 value={valMax}
                 min={min}
                 max={max}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value);
-                  if (!isNaN(n)) onMaxChange(Math.max(min, Math.min(n, max)));
-                  else onMaxChange("");
-                }}
+                onChange={handleChange(onMaxChange)}
+                onBlur={handleBlur(valMax, onMaxChange)}
               />
               <span className="range-input-unit">{unit}</span>
             </div>
@@ -597,7 +625,7 @@
           "their-height-min": String(form["their-height-min"] ?? ""),
           "their-height-max": String(form["their-height-max"] ?? ""),
           "extra-requirements": form["extra-requirements"] || "",
-          "deal-breaker": form["deal-breaker"] || [],
+          "deal-breaker": (form["deal-breaker"] || []).join(", "),
         };
         IDEAL_FIELDS.forEach((card) => {
           card.fields.forEach((fld) => {
@@ -771,6 +799,7 @@
                   {submitError && step === STEPS.length - 1 && (
                     <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
                       {submitError}
+                      <ErrorReportLink />
                     </div>
                   )}
                 </div>

@@ -21,6 +21,25 @@ function ErrorScreen({ message }) {
       <button onClick={() => window.location.reload()} className="btn-pill primary">
         重新載入
       </button>
+      <div style={{ marginTop: 20, textAlign: "center" }}>
+        <ErrorReportLink />
+      </div>
+    </div>
+  );
+}
+
+// Inline link rendered next to errors the member can't fix themselves
+// (server failures, network issues, unexpected API errors). Hidden for
+// validation errors (empty fields, bad format), which the user can fix.
+function ErrorReportLink({ variant }) {
+  const cls = "error-report-link" + (variant === "on-dark" ? " on-dark" : "");
+  return (
+    <div className={cls}>
+      問題持續?描述一下情況同附上截圖,{" "}
+      <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
+        傳到我哋 IG DM →
+      </a>
+      <br />我哋會盡快回覆 💜
     </div>
   );
 }
@@ -488,7 +507,12 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         </div>
         <div className="sheet-body">
           {fields.map(renderField)}
-          {error && <div className="sheet-error">{error}</div>}
+          {error && (
+            <div className="sheet-error">
+              {error}
+              <ErrorReportLink />
+            </div>
+          )}
         </div>
         <div className="sheet-footer">
           <button onClick={handleSave} disabled={saving} className="nav-btn primary" style={{ width: "100%" }}>
@@ -631,7 +655,12 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         </div>
         <div className="sheet-body">
           {fields.map(renderField)}
-          {error && <div className="sheet-error">{error}</div>}
+          {error && (
+            <div className="sheet-error">
+              {error}
+              <ErrorReportLink />
+            </div>
+          )}
         </div>
         <div className="sheet-footer">
           <button onClick={handleSave} disabled={saving} className="nav-btn primary" style={{ width: "100%" }}>
