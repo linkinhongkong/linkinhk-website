@@ -127,25 +127,30 @@ var SHARED_INTERESTS = {
 };
 
 var SHARED_ACTIVITIES = {
-  "☕️ 輕鬆chill型": [
-    { id: "coffee_chat", label: "飲咖啡／輕鬆傾下計", icon: "☕️" },
-    { id: "dessert_cafe", label: "食甜品／cafe hopping", icon: "🍰" },
-    { id: "dinner", label: "食晚飯", icon: "🍽️" },
-    { id: "walk_seaside", label: "散步／海邊chill下", icon: "🌇" },
+  "☕️ 輕鬆見面型": [
+    { id: "coffee_shop", label: "咖啡店", icon: "☕️" },
+    { id: "dessert_shop", label: "甜品店", icon: "🍰" },
+    { id: "lunch", label: "午餐", icon: "🥗" },
+    { id: "dinner", label: "晚餐", icon: "🍽️" },
   ],
-  "🎨 有互動但唔尷尬": [
-    { id: "handcraft", label: "一齊做手作（陶瓷／畫畫）", icon: "🎨" },
-    { id: "board_game", label: "玩board game／輕鬆小遊戲", icon: "🎲" },
-    { id: "market_exhibit", label: "行市集／睇展覽", icon: "🛍️" },
+  "🎨 輕互動型": [
+    { id: "handcraft", label: "手作體驗（陶藝／畫畫）", icon: "🎨" },
+    { id: "baking", label: "烘焙體驗", icon: "🧁" },
+    { id: "diy_workshop", label: "DIY工作坊（香水／蠟燭）", icon: "🧵" },
   ],
-  "🎯 活動型（快啲破冰）": [
-    { id: "archery_sport", label: "射箭／小運動", icon: "🏹" },
-    { id: "roller_indoor", label: "Roller／室內活動", icon: "🛼" },
-    { id: "vr_game", label: "VR／遊戲體驗", icon: "🎮" },
+  "🎯 活動型": [
+    { id: "archery", label: "射箭", icon: "🏹" },
+    { id: "pickleball", label: "匹克球", icon: "🏓" },
+    { id: "roller_skating", label: "滾軸溜冰", icon: "🛼" },
+    { id: "vr_experience", label: "虛擬實境體驗", icon: "🎮" },
+    { id: "indoor_golf", label: "室內高爾夫", icon: "⛳️" },
+    { id: "indoor_climbing", label: "室內攀石", icon: "🧗" },
   ],
-  "🍷 深入交流型": [
-    { id: "drink_chat", label: "飲酒傾計", icon: "🍷" },
-    { id: "deep_talk", label: "有主題嘅深度對話（人生／感情）", icon: "🌌" },
+  "🍸 體驗型": [
+    { id: "cocktail_making", label: "雞尾酒調製體驗", icon: "🍹" },
+    { id: "cooking_class", label: "烹飪課程", icon: "🍳" },
+    { id: "tea_ceremony", label: "茶藝體驗", icon: "🍵" },
+    { id: "craft_beer", label: "精釀啤酒品嚐", icon: "🍺" },
   ],
 };
 
