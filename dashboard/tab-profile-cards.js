@@ -2,8 +2,8 @@
 // tab-profile-cards.js — WhoIAm profile cards + edit sheets
 // ============================================================
 
-const UPDATE_BIO_URL = "https://linkinhk.app.n8n.cloud/webhook/update-bio";
-const UPDATE_PHOTO_URL = "https://linkinhk.app.n8n.cloud/webhook/update-photo";
+const UPDATE_BIO_URL = window.webhookUrl("update-bio");
+const UPDATE_PHOTO_URL = window.webhookUrl("update-photo");
 
 function authPostCustom(url, body, isFormData) {
   const token = getToken() || "";

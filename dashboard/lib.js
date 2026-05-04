@@ -5,10 +5,12 @@
 const { useState, useEffect } = React;
 
 // ---------------- API endpoints ----------------
+// webhookUrl() is provided by /shared/config.js; it adds the "uat-" path
+// prefix automatically when running on a UAT hostname.
 const API = {
-  GET_PROFILE: "https://linkinhk.app.n8n.cloud/webhook/get-profile",
-  BOOTSTRAP: "https://linkinhk.app.n8n.cloud/webhook/get-dashboard-bootstrap",
-  RESPOND_TO_MATCH: "https://linkinhk.app.n8n.cloud/webhook/respond-to-match",
+  GET_PROFILE: window.webhookUrl("get-profile"),
+  BOOTSTRAP: window.webhookUrl("get-dashboard-bootstrap"),
+  RESPOND_TO_MATCH: window.webhookUrl("respond-to-match"),
 };
 
 // ---------------- Tab definitions ----------------

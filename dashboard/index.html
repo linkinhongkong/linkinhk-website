@@ -20,7 +20,8 @@
 <body>
   <div id="root"></div>
 
-  <!-- Order matters: lib → shared-options → form-options → shared components → dashboard layout → tabs → app -->
+  <!-- Order matters: config (sets window.webhookUrl) → lib → shared-options → form-options → shared components → dashboard layout → tabs → app -->
+  <script src="/shared/config.js"></script>
   <script type="text/babel" src="/dashboard/lib.js"></script>
   <script src="/shared/shared-options.js"></script>
   <script type="text/babel" src="/shared/form-options.js"></script>

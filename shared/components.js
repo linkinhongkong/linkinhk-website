@@ -421,7 +421,7 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
     });
     try {
       const res = await authenticatedFetch(
-        "https://linkinhk.app.n8n.cloud/webhook/update-profile",
+        window.webhookUrl("update-profile"),
         { method: "POST", body: JSON.stringify({ updates }) }
       );
       const data = await res.json();
@@ -544,7 +544,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
       if (isExtraOnly) {
         const extraValue = values["extra-requirements"] || "";
         const res = await authenticatedFetch(
-          "https://linkinhk.app.n8n.cloud/webhook/extra-requirements",
+          window.webhookUrl("extra-requirements"),
           { method: "POST", body: JSON.stringify({ "extra-requirements": extraValue }) }
         );
         const data = await res.json();
@@ -568,7 +568,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
       });
       updates["deal-breaker"] = dealBreakers;
       const res = await authenticatedFetch(
-        "https://linkinhk.app.n8n.cloud/webhook/update-profile",
+        window.webhookUrl("update-profile"),
         { method: "POST", body: JSON.stringify({ updates }) }
       );
       const data = await res.json();

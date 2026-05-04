@@ -14,6 +14,7 @@
 </head>
 <body style="margin:0">
   <div id="root"></div>
+  <script src="/shared/config.js"></script>
   <script src="/shared/shared-options.js"></script>
   <script type="text/babel">
     const { useState, useRef, useCallback, useEffect } = React;
@@ -22,7 +23,7 @@
 /* ═══════════════════════════════════════════
    CONFIG — Update these before deploying
    ═══════════════════════════════════════════ */
-const WEBHOOK_URL = "https://linkinhk.app.n8n.cloud/webhook/member-form"; // ← Replace with your actual n8n webhook URL
+const WEBHOOK_URL = window.webhookUrl("member-form");
 const LOGO_URL = "/logo.png";
 
 /* ═══════════════════════════════════════════
