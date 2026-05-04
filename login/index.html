@@ -173,12 +173,21 @@
         }
       }, [screen]);
 
+      // Same-origin redirect target from ?redirect=... — must start with a
+      // single "/" to prevent open-redirect to external hosts.
+      const getRedirectTarget = () => {
+        const raw = new URLSearchParams(window.location.search).get("redirect");
+        if (!raw) return "/dashboard";
+        if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+        return "/dashboard";
+      };
+
       // Optimistic redirect on page load: if a token exists, trust it and
       // go to dashboard. Dashboard bootstrap will bounce back here if invalid.
       useEffect(() => {
         const savedToken = localStorage.getItem("linkinhk_token");
         if (savedToken) {
-          window.location.href = "/dashboard";
+          window.location.href = getRedirectTarget();
           return;
         }
         setScreen("email");
@@ -262,7 +271,7 @@
           if (data.success && data.token) {
             localStorage.setItem("linkinhk_token", data.token);
             localStorage.setItem("linkinhk_email", data.email);
-            window.location.href = "/dashboard";
+            window.location.href = getRedirectTarget();
             return;
           } else {
             // Wrong-code from user is NOT reportable; other server-side
