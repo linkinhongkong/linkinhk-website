@@ -625,7 +625,7 @@
           "their-height-min": String(form["their-height-min"] ?? ""),
           "their-height-max": String(form["their-height-max"] ?? ""),
           "extra-requirements": form["extra-requirements"] || "",
-          "deal-breaker": form["deal-breaker"] || [],
+          "deal-breaker": (form["deal-breaker"] || []).join(", "),
         };
         IDEAL_FIELDS.forEach((card) => {
           card.fields.forEach((fld) => {
