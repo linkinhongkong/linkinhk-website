@@ -16,6 +16,7 @@
   <div id="root"></div>
   <script src="/shared/config.js"></script>
   <script src="/shared/shared-options.js"></script>
+  <script src="/shared/image-utils.js"></script>
   <script type="text/babel">
     const { useState, useRef, useCallback, useEffect } = React;
 
@@ -920,6 +921,8 @@ function LinkInSignup() {
   const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef(null);
   const cardRef = useRef(null);
+  // Keyed by original File so submit() can resolve compressed blobs without depending on stale closure state.
+  const photoCompressions = useRef(new Map());
 
   const [form, setForm] = useState({
     // Page 1 — basics: name, sex, orientation, occupation, uni, DOB, height
@@ -998,10 +1001,10 @@ function LinkInSignup() {
     }
     const toAdd = files.slice(0, remaining);
 
-    // size check
+    // OOM guard for low-end phones; compression handles normal sizing.
     for (const f of toAdd) {
-      if (f.size > 10 * 1024 * 1024) {
-        alert(`檔案「${f.name}」太大，請上傳 10MB 以下嘅圖片 🙏`);
+      if (f.size > 50 * 1024 * 1024) {
+        alert(`檔案「${f.name}」太大，請上傳 50MB 以下嘅圖片 🙏`);
         return;
       }
     }
@@ -1012,6 +1015,11 @@ function LinkInSignup() {
       reader.onload = (ev) => resolve(ev.target.result);
       reader.readAsDataURL(file);
     }));
+
+    // Run compression in parallel with steps 6–8 so the user never sees a spinner.
+    toAdd.forEach((file) => {
+      photoCompressions.current.set(file, window.compressImage(file));
+    });
 
     Promise.all(readPromises).then(previews => {
       setForm(prev => ({
@@ -1027,11 +1035,15 @@ function LinkInSignup() {
   };
 
   const removePhoto = (idx) => {
-    setForm(prev => ({
-      ...prev,
-      photos: prev.photos.filter((_, i) => i !== idx),
-      photoPreviews: prev.photoPreviews.filter((_, i) => i !== idx),
-    }));
+    setForm(prev => {
+      const removed = prev.photos[idx];
+      if (removed) photoCompressions.current.delete(removed);
+      return {
+        ...prev,
+        photos: prev.photos.filter((_, i) => i !== idx),
+        photoPreviews: prev.photoPreviews.filter((_, i) => i !== idx),
+      };
+    });
   };
 
   /* ── Validation ── */
@@ -1193,8 +1205,13 @@ function LinkInSignup() {
 
       const payload = new FormData();
 
+      // Wait for any compressions still in flight; usually a no-op by this step.
+      const finalPhotos = await Promise.all(
+        form.photos.map(p => photoCompressions.current.get(p) || Promise.resolve(p))
+      );
+
       // Photos: my-photo-1, my-photo-2, my-photo-3
-      form.photos.forEach((p, i) => {
+      finalPhotos.forEach((p, i) => {
         payload.append(`my-photo-${i + 1}`, p, p.name);
       });
 
@@ -1756,7 +1773,7 @@ function LinkInSignup() {
           </div>
 
           <div className="photo-count-hint">
-            {form.photos.length} / {MAX} 張 · JPG / PNG，最大 10MB
+            {form.photos.length} / {MAX} 張 · JPG / PNG，會自動優化
           </div>
 
           <input
