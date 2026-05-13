@@ -245,9 +245,9 @@
     ];
 
     const ACTIVITIES = [
-      { id: "coffee",   icon: "☕", label: "Coffee Workshop", sub: "觀唐" },
-      { id: "golf",     icon: "⛳", label: "Indoor Golf",     sub: "銅鑼灣" },
-      { id: "cocktail", icon: "🍸", label: "Cocktail Workshop", sub: "中環" },
+      { id: "coffee",   icon: "☕", label: "咖啡工作坊", sub: "觀唐" },
+      { id: "golf",     icon: "⛳", label: "室內高爾夫", sub: "銅鑼灣" },
+      { id: "cocktail", icon: "🍸", label: "調酒工作坊", sub: "中環" },
     ];
 
     const DOW_TC = ["日", "一", "二", "三", "四", "五", "六"];
@@ -411,20 +411,6 @@
       };
 
       const goStep2 = () => {
-        if (meetArea.length < 1) {
-          setAreaError("請選擇至少一個地區");
-          setToast("仲有 1 題未填 ✏️");
-          setTimeout(() => setToast(""), 2200);
-          setTimeout(() => {
-            const firstErr = document.querySelector(".field-error");
-            if (firstErr) {
-              const field = firstErr.closest(".field") || firstErr;
-              field.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }, 80);
-          return;
-        }
-        setAreaError("");
         // Seed page 2 on first entry; on re-entry keep user edits untouched.
         if (!prefillApplied) {
           setSlots(buildPrefill());
@@ -591,12 +577,6 @@
                   </div>
                   <div className="step-body">
                     <div className="step-content">
-                      <div className="field">
-                        <div className="field-label">想喺邊區見面？（可多選,最少 1 項）</div>
-                        <MultiChipGrid options={MEET_AREA_OPTIONS} value={meetArea} onToggle={toggleMeetArea} />
-                        {areaError && <div className="field-error">{areaError}</div>}
-                      </div>
-
                       <div className="field">
                         <div className="field-label">你平日通常邊啲時段有空？（可多選）</div>
                         <MultiChipGrid options={SLOT_OPTIONS} value={weekday} onToggle={toggleWeekday} />
