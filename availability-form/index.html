@@ -143,6 +143,51 @@
     }
     .avail-reset-btn:hover { background: var(--accent-soft); }
 
+    /* ── Activity ranking (matches member-form love language) ── */
+    .field-hint { font-size: 12px; color: var(--text-light); margin-bottom: 8px; line-height: 1.5; }
+    .rank-list { display: flex; flex-direction: column; gap: 8px; }
+    .rank-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--white);
+      border: 2px solid #e8e8e8;
+      user-select: none;
+    }
+    .rank-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .rank-label { font-size: 14px; font-weight: 500; }
+    .rank-sublabel { font-size: 12px; color: var(--text-light); }
+    .rank-arrows { display: flex; flex-direction: column; gap: 2px; }
+    .rank-arrow {
+      width: 28px; height: 22px;
+      border: none;
+      background: var(--chip-bg);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .rank-arrow:hover { background: #ddd; }
+    .rank-arrow:disabled { opacity: 0.3; cursor: default; }
+
     /* Tight mobile: shrink date label column + gaps so the grid never overflows */
     @media (max-width: 380px) {
       .avail-thead,
@@ -197,6 +242,12 @@
       { label: "九龍" },
       { label: "香港島" },
       { label: "新界" },
+    ];
+
+    const ACTIVITIES = [
+      { id: "coffee",   icon: "☕", label: "Coffee Workshop", sub: "觀唐" },
+      { id: "golf",     icon: "⛳", label: "Indoor Golf",     sub: "銅鑼灣" },
+      { id: "cocktail", icon: "🍸", label: "Cocktail Workshop", sub: "中環" },
     ];
 
     const DOW_TC = ["日", "一", "二", "三", "四", "五", "六"];
@@ -331,6 +382,17 @@
       const [weekend, setWeekend] = useState([]);
       const [slots, setSlots] = useState({});          // { [iso]: { morning: bool, ... } }
       const [prefillApplied, setPrefillApplied] = useState(false);
+      const [activityRank, setActivityRank] = useState(ACTIVITIES.map(a => a.id));
+
+      const moveActivity = (idx, dir) => {
+        setActivityRank(prev => {
+          const arr = [...prev];
+          const newIdx = idx + dir;
+          if (newIdx < 0 || newIdx >= arr.length) return prev;
+          [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+          return arr;
+        });
+      };
 
       const slotKeysFromStored = (storedArr) =>
         SLOT_STORED.filter(s => storedArr.includes(s.stored)).map(s => s.key);
@@ -427,6 +489,7 @@
           meet_areas: meetArea,
           weekday_availability: weekday,
           weekend_availability: weekend,
+          activity_rank: activityRank,
           selected_slots: selected,
           total_slots: selected.length,
         };
@@ -542,6 +605,29 @@
                       <div className="field">
                         <div className="field-label">你週末通常邊啲時段有空？（可多選）</div>
                         <MultiChipGrid options={SLOT_OPTIONS} value={weekend} onToggle={toggleWeekend} />
+                      </div>
+
+                      <div className="field">
+                        <div className="field-label">請排序你最想參加嘅活動</div>
+                        <div className="field-hint">用箭頭調整順序（最想參加嘅排最上面）</div>
+                        <div className="rank-list">
+                          {activityRank.map((id, idx) => {
+                            const act = ACTIVITIES.find(a => a.id === id);
+                            return (
+                              <div className="rank-item" key={id}>
+                                <div className="rank-num">{idx + 1}</div>
+                                <div style={{ flex: 1 }}>
+                                  <div className="rank-label">{act.icon} {act.label}</div>
+                                  <div className="rank-sublabel">{act.sub}</div>
+                                </div>
+                                <div className="rank-arrows">
+                                  <button type="button" className="rank-arrow" disabled={idx === 0} onClick={() => moveActivity(idx, -1)}>▲</button>
+                                  <button type="button" className="rank-arrow" disabled={idx === activityRank.length - 1} onClick={() => moveActivity(idx, 1)}>▼</button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
