@@ -469,10 +469,10 @@
   //   { success, summary: { requested, updated, notFound, ambiguous, alreadyActivated },
   //     updated: [], notFound: [], ambiguous: [], alreadyActivated: [] }
   function handleMemberSuccess(data, submitted) {
-    var updated = asArray(data.updated);
-    var notFound = asArray(data.notFound);
-    var ambiguous = asArray(data.ambiguous);
-    var already = asArray(data.alreadyActivated);
+    var updated = asArray(data.updated).map(toHandle);
+    var notFound = asArray(data.notFound).map(toHandle);
+    var ambiguous = asArray(data.ambiguous).map(toHandle);
+    var already = asArray(data.alreadyActivated).map(toHandle);
 
     renderMemberResults({ updated: updated, notFound: notFound, ambiguous: ambiguous, alreadyActivated: already });
 
@@ -532,6 +532,16 @@
   }
 
   function asArray(v) { return Array.isArray(v) ? v : []; }
+
+  // n8n may return either a plain string ("alice") or an object
+  // ({ instagram: "alice", recordId: "..." }) per array slot.
+  function toHandle(item) {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") {
+      return item.instagram || item.username || item.handle || "";
+    }
+    return "";
+  }
 
   // ============================================================
   // Helpers
