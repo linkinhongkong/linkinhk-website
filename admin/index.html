@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>管理員 · Link in HK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/design-system.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <script src="/shared/config.js"></script>
+</head>
+<body class="marketing-body">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="/" class="site-logo" aria-label="Link in HK 首頁">
+        <img src="/logo.png" alt="Link in HK" />
+      </a>
+      <nav class="site-nav">
+        <span id="admin-user-label" class="admin-user-label" hidden></span>
+        <button id="admin-logout-btn" class="admin-logout-btn" hidden type="button">登出</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ Login view ============ -->
+  <section id="admin-login-view" class="admin-login-wrap">
+    <div class="admin-login-card">
+      <div class="admin-login-emoji">🔒</div>
+      <h1 class="admin-login-title">管理員登入</h1>
+      <p class="admin-login-subtitle">內部使用 · 請輸入帳號密碼</p>
+      <form id="admin-login-form" novalidate>
+        <div class="field">
+          <label class="field-label" for="admin-username">Username</label>
+          <input class="text-input" id="admin-username" name="username" type="text" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label class="field-label" for="admin-password">Password</label>
+          <input class="text-input" id="admin-password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <div id="admin-login-error" class="admin-login-error" hidden></div>
+        <button type="submit" id="admin-login-submit" class="btn-primary admin-full-btn">登入</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ Dashboard view ============ -->
+  <main id="admin-dashboard-view" class="admin-dashboard" hidden>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" type="button" data-tab="blog">📝 新增 Blog</button>
+      <button class="admin-tab" type="button" data-tab="member">👥 新增會員</button>
+    </div>
+
+    <!-- ── Blog tab ── -->
+    <section id="admin-tab-blog" class="admin-panel">
+
+      <div class="admin-panel-head">
+        <h2 class="admin-panel-title">新增 Blog 文章</h2>
+        <p class="admin-panel-sub">填好之後按「發布」，約 1 分鐘後喺 <a href="/blog/" target="_blank" rel="noopener">/blog</a> 出現。</p>
+      </div>
+
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="blog-title">標題 <span class="req">*</span></label>
+          <input class="text-input" id="blog-title" type="text" placeholder="例如：第一次 Date 點樣先唔尷尬？" />
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="blog-subtitle">副標題</label>
+          <input class="text-input" id="blog-subtitle" type="text" placeholder="一句 tagline" />
+        </div>
+
+        <div class="admin-row">
+          <div class="field admin-flex-1">
+            <label class="field-label" for="blog-slug">Slug (URL) <span class="req">*</span></label>
+            <div class="admin-slug-row">
+              <input class="text-input" id="blog-slug" type="text" placeholder="auto-generated" />
+              <button type="button" id="blog-slug-regen" class="admin-icon-btn" title="重新由標題產生">🔄</button>
+            </div>
+            <div class="field-hint">URL 會係 /blog/post.html?slug=<span id="blog-slug-preview">your-slug</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="blog-date">發布日期</label>
+            <input class="text-input" id="blog-date" type="date" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="blog-tags">標籤</label>
+          <input class="text-input" id="blog-tags" type="text" placeholder="拍拖技巧, 第一次見面" />
+          <div class="field-hint">用逗號分隔。一篇文可以多個標籤。</div>
+          <div id="blog-tags-preview" class="admin-chip-preview"></div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="blog-excerpt">摘要</label>
+          <textarea class="text-input" id="blog-excerpt" rows="3" placeholder="2-3 句話，會喺 /blog 列表卡片顯示"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="field-label">內容區塊 <span class="req">*</span></label>
+          <div class="admin-body-toolbar">
+            <button type="button" class="admin-add-btn" data-add="p">+ 段落</button>
+            <button type="button" class="admin-add-btn" data-add="h2">+ 標題 H2</button>
+            <button type="button" class="admin-add-btn" data-add="h3">+ 小標題 H3</button>
+            <button type="button" class="admin-add-btn" data-add="list">+ 列表</button>
+            <button type="button" class="admin-add-btn" data-add="quote">+ 引言</button>
+          </div>
+          <div id="admin-body-blocks" class="admin-body-blocks">
+            <div class="admin-body-empty">仲未有內容區塊，按上面按鈕新增。</div>
+          </div>
+        </div>
+
+        <div class="admin-actions-row">
+          <button type="button" id="admin-preview-btn" class="btn-secondary">預覽</button>
+          <button type="button" id="admin-publish-btn" class="btn-primary">發布</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Member tab ── -->
+    <section id="admin-tab-member" class="admin-panel" hidden>
+
+      <div class="admin-panel-head">
+        <h2 class="admin-panel-title">新增會員</h2>
+        <p class="admin-panel-sub">輸入 Instagram username，按「提交」會 trigger n8n 嘅 follow-up flow。</p>
+      </div>
+
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="member-input">Instagram username</label>
+          <div class="field-hint">用逗號 (,) 分隔。可以加 @ 也可以唔加。</div>
+          <textarea class="text-input" id="member-input" rows="3" placeholder="alice, @bob, carol"></textarea>
+        </div>
+
+        <div id="member-preview" class="admin-chip-preview"></div>
+
+        <div class="admin-actions-row">
+          <button type="button" id="admin-submit-members-btn" class="btn-primary">提交</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ Preview modal ============ -->
+  <div id="admin-preview-modal" class="admin-modal" hidden>
+    <div class="admin-modal-backdrop"></div>
+    <div class="admin-modal-panel">
+      <div class="admin-modal-head">
+        <span class="admin-modal-title">預覽</span>
+        <button type="button" class="admin-modal-close" aria-label="關閉">✕</button>
+      </div>
+      <div class="admin-modal-body article"></div>
+    </div>
+  </div>
+
+  <!-- ============ Toast ============ -->
+  <div id="admin-toast" class="admin-toast" hidden></div>
+
+  <script src="/admin/admin.js"></script>
+</body>
+</html>
