@@ -36,6 +36,7 @@
   padding: 32px 16px;
   background: linear-gradient(180deg, #fff7fb 0%, #f5edff 100%);
 }
+.admin-login-wrap[hidden] { display: none; }
 .admin-login-card {
   width: 100%;
   max-width: 380px;
@@ -302,6 +303,57 @@
   border-top: 1px solid var(--border-light);
   margin-top: 8px;
 }
+
+/* ── Member submission results card ── */
+.admin-results {
+  margin-top: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-results[hidden] { display: none; }
+.admin-results-headline {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.admin-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-results-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-results-section-title .count {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  opacity: 0.7;
+}
+.admin-results-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-results-chip {
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--chip-bg);
+  color: var(--text);
+}
+.admin-results-section.ok .admin-results-section-title { color: #2e7d32; }
+.admin-results-section.ok .admin-results-chip { background: #e6f4ea; color: #2e7d32; }
+.admin-results-section.warn .admin-results-section-title { color: #b26a00; }
+.admin-results-section.warn .admin-results-chip { background: #fff3e0; color: #b26a00; }
+.admin-results-section.err .admin-results-section-title { color: var(--red); }
+.admin-results-section.err .admin-results-chip { background: var(--red-bg); color: var(--red); }
 
 /* ── Preview modal ── */
 .admin-modal {

@@ -36,6 +36,7 @@
   // Member form
   var memberInput = $("member-input");
   var memberPreview = $("member-preview");
+  var memberResults = $("member-results");
   var submitMembersBtn = $("admin-submit-members-btn");
 
   // ── State ──
@@ -452,19 +453,85 @@
         return parseJsonSafe(r);
       })
       .then(function (data) {
-        if (data && data.success !== false) {
-          toast("已新增 " + handles.length + " 位會員 ✅");
-          memberInput.value = "";
-          renderMemberPreview();
-        } else {
+        if (!data || data.success === false) {
           toast((data && data.error) || "提交失敗", true);
+          return;
         }
+        handleMemberSuccess(data, handles);
       })
       .catch(function (e) {
         if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
       })
       .then(function () { unsetBusy(submitMembersBtn, "提交"); });
   }
+
+  // Response from n8n looks like:
+  //   { success, summary: { requested, updated, notFound, ambiguous, alreadyActivated },
+  //     updated: [], notFound: [], ambiguous: [], alreadyActivated: [] }
+  function handleMemberSuccess(data, submitted) {
+    var updated = asArray(data.updated);
+    var notFound = asArray(data.notFound);
+    var ambiguous = asArray(data.ambiguous);
+    var already = asArray(data.alreadyActivated);
+
+    renderMemberResults({ updated: updated, notFound: notFound, ambiguous: ambiguous, alreadyActivated: already });
+
+    var problems = notFound.length + ambiguous.length;
+    if (problems === 0 && updated.length > 0) {
+      toast("已新增 " + updated.length + " 位會員 ✅");
+    } else if (updated.length > 0 || already.length > 0) {
+      toast("處理咗 " + submitted.length + " 個 — " + (updated.length + already.length) + " 成功，" + problems + " 有問題", problems > 0);
+    } else {
+      toast(problems + " 個 username 處理唔到", true);
+    }
+
+    // Keep only the failed handles in the textarea so the user can fix + resubmit.
+    // Successes (updated + alreadyActivated) get cleared.
+    var keep = notFound.concat(ambiguous);
+    memberInput.value = keep.join(", ");
+    renderMemberPreview();
+  }
+
+  function renderMemberResults(r) {
+    memberResults.innerHTML = "";
+
+    var total = r.updated.length + r.alreadyActivated.length + r.notFound.length + r.ambiguous.length;
+    if (total === 0) {
+      memberResults.hidden = true;
+      return;
+    }
+    memberResults.hidden = false;
+
+    var headline = document.createElement("div");
+    headline.className = "admin-results-headline";
+    headline.textContent = "處理結果";
+    memberResults.appendChild(headline);
+
+    var sections = [
+      { key: "updated", title: "✅ 已新增", items: r.updated, cls: "ok" },
+      { key: "alreadyActivated", title: "⏭ 已經啟用", items: r.alreadyActivated, cls: "warn" },
+      { key: "notFound", title: "❌ 搵唔到", items: r.notFound, cls: "err" },
+      { key: "ambiguous", title: "⚠️ 多個 match", items: r.ambiguous, cls: "warn" }
+    ];
+
+    sections.forEach(function (s) {
+      if (!s.items || s.items.length === 0) return;
+      var section = document.createElement("div");
+      section.className = "admin-results-section " + s.cls;
+      section.innerHTML =
+        '<div class="admin-results-section-title">' +
+          escapeHtml(s.title) + ' <span class="count">(' + s.items.length + ')</span>' +
+        '</div>' +
+        '<div class="admin-results-chips">' +
+          s.items.map(function (h) {
+            return '<span class="admin-results-chip">@' + escapeHtml(h) + '</span>';
+          }).join("") +
+        '</div>';
+      memberResults.appendChild(section);
+    });
+  }
+
+  function asArray(v) { return Array.isArray(v) ? v : []; }
 
   // ============================================================
   // Helpers
