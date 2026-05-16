@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog · Link in HK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/design-system.css">
+  <script src="/shared/config.js"></script>
+</head>
+<body class="marketing-body">
+
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a href="/" class="site-logo" aria-label="Link in HK 首頁">
+        <img src="/logo.png" alt="Link in HK" />
+      </a>
+      <nav class="site-nav">
+        <a href="/blog/" class="site-nav-link">Blog</a>
+        <a href="/login/" class="site-nav-cta">會員登入</a>
+      </nav>
+    </div>
+  </header>
+
+  <article class="article" id="article-root">
+    <a href="/blog/" class="article-back">← 返回 Blog</a>
+    <div id="article-content" class="article-error">載入緊…</div>
+  </article>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <div>© Link in HK · 香港最有溫度嘅 AI 配對服務</div>
+      <div class="site-footer-links">
+        <a href="/">首頁</a>
+        <a href="/blog/">Blog</a>
+        <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener">IG @linkinhk</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var content = document.getElementById('article-content');
+      var slug = new URLSearchParams(window.location.search).get('slug');
+
+      if (!slug) { renderError('搵唔到呢篇文章 🙏'); return; }
+
+      fetch('/blog/posts/' + encodeURIComponent(slug) + '.json', { cache: 'no-cache' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('not found');
+          return r.json();
+        })
+        .then(render)
+        .catch(function () { renderError('搵唔到呢篇文章 🙏'); });
+
+      function render(post) {
+        document.title = (post.title || 'Blog') + ' · Link in HK';
+        var tagsHtml = (post.tags || [])
+          .map(function (t) { return '<span class="blog-card-tag">' + escapeHtml(t) + '</span>'; })
+          .join('');
+        var bodyHtml = (post.body || []).map(renderBlock).join('');
+        content.classList.remove('article-error');
+        content.innerHTML =
+          '<header class="article-header">' +
+            '<div class="article-meta">' +
+              '<span>' + formatDate(post.date) + '</span>' +
+            '</div>' +
+            '<h1 class="article-title">' + escapeHtml(post.title || '') + '</h1>' +
+            (post.subtitle ? '<p class="article-subtitle">' + escapeHtml(post.subtitle) + '</p>' : '') +
+            (tagsHtml ? '<div class="article-tags">' + tagsHtml + '</div>' : '') +
+          '</header>' +
+          '<div class="article-body">' + bodyHtml + '</div>' +
+          '<div class="article-footer">' +
+            '<div class="article-footer-title">想搵到屬於你嘅另一半？</div>' +
+            '<p class="article-footer-text">Link in HK 用 AI 每星期幫你揀啱嘅人，再為你度身訂造第一次 date。</p>' +
+            '<a href="/member-form/" class="btn-primary">開始登記 ✨</a>' +
+          '</div>';
+      }
+
+      function renderBlock(block) {
+        if (!block || !block.type) return '';
+        switch (block.type) {
+          case 'p': return '<p>' + escapeHtml(block.text || '') + '</p>';
+          case 'h2': return '<h2>' + escapeHtml(block.text || '') + '</h2>';
+          case 'h3': return '<h3>' + escapeHtml(block.text || '') + '</h3>';
+          case 'quote':
+          case 'blockquote':
+            return '<blockquote>' + escapeHtml(block.text || '') + '</blockquote>';
+          case 'list':
+          case 'ul':
+            return '<ul>' + (block.items || []).map(function (i) { return '<li>' + escapeHtml(i) + '</li>'; }).join('') + '</ul>';
+          case 'ol':
+            return '<ol>' + (block.items || []).map(function (i) { return '<li>' + escapeHtml(i) + '</li>'; }).join('') + '</ol>';
+          default: return '';
+        }
+      }
+
+      function renderError(msg) {
+        content.classList.add('article-error');
+        content.innerHTML = '<div style="font-size:18px; margin-bottom:16px;">' + escapeHtml(msg) + '</div>' +
+          '<a href="/blog/" class="btn-secondary">← 返回 Blog</a>';
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function formatDate(s) {
+        if (!s) return '';
+        var d = new Date(s);
+        if (isNaN(d.getTime())) return escapeHtml(s);
+        return d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+      }
+    })();
+  </script>
+</body>
+</html>
