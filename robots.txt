@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /member-form/
+Disallow: /login/
+Disallow: /availability-form/
+Disallow: /thank-you/
+Disallow: /archive/
+
+Sitemap: https://www.linkinhk.com/sitemap.xml

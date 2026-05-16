@@ -102,7 +102,7 @@
         visible.forEach(function (post) {
           var card = document.createElement('a');
           card.className = 'blog-card';
-          card.href = '/blog/post.html?slug=' + encodeURIComponent(post.slug);
+          card.href = post.url || ('/blog/post.html?slug=' + encodeURIComponent(post.slug));
           var tagsHtml = (post.tags || [])
             .map(function (t) { return '<span class="blog-card-tag">' + escapeHtml(t) + '</span>'; })
             .join('');
