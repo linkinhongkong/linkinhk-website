@@ -37,6 +37,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://uat.linkinhk.com/blog/test-html/</loc>
+    <lastmod>2026-05-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://uat.linkinhk.com/blog/post.html?slug=welcome</loc>
     <lastmod>2026-05-15</lastmod>
     <changefreq>monthly</changefreq>
