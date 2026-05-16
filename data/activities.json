@@ -4,8 +4,23 @@
     "hint": "用箭頭調整順序（最想參加嘅排最上面）"
   },
   "items": [
-    { "id": "coffee",   "icon": "☕", "label": "咖啡工作坊", "sub": "觀唐" },
-    { "id": "golf",     "icon": "⛳", "label": "室內高爾夫", "sub": "銅鑼灣" },
-    { "id": "cocktail", "icon": "🍸", "label": "調酒工作坊", "sub": "中環" }
+    {
+      "id": "coffee",
+      "icon": "☕",
+      "label": "test",
+      "sub": "test"
+    },
+    {
+      "id": "golf",
+      "icon": "⛳",
+      "label": "室內高爾夫",
+      "sub": "銅鑼灣"
+    },
+    {
+      "id": "cocktail",
+      "icon": "🍸",
+      "label": "調酒工作坊",
+      "sub": "中環"
+    }
   ]
 }
