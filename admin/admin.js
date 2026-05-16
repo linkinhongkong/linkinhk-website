@@ -37,6 +37,16 @@
   var postsList = $("admin-posts-list");
   var postsRefreshBtn = $("admin-posts-refresh");
 
+  // Activities editor
+  var activitiesLoading = $("activities-loading");
+  var activitiesEditor = $("activities-editor");
+  var activitiesQuestionLabel = $("activities-question-label");
+  var activitiesQuestionHint = $("activities-question-hint");
+  var activitiesListEl = $("activities-list");
+  var activitiesAddBtn = $("activities-add-btn");
+  var activitiesSaveBtn = $("activities-save-btn");
+  var activitiesReloadBtn = $("activities-reload-btn");
+
   // Member form
   var memberInput = $("member-input");
   var memberPreview = $("member-preview");
@@ -46,6 +56,7 @@
   // ── State ──
   var bodyBlocks = []; // [{type:'p'|'h2'|'h3'|'quote', text:string} | {type:'list', items:string[]}]
   var slugManuallyEdited = false;
+  var activitiesData = { question: { label: "", hint: "" }, items: [] };
 
   // ============================================================
   // Init
@@ -89,6 +100,11 @@
     previewBtn.addEventListener("click", openPreview);
     publishBtn.addEventListener("click", publishPost);
     postsRefreshBtn.addEventListener("click", function () { loadPostsList(); });
+
+    // Activities tab
+    activitiesAddBtn.addEventListener("click", onActivityAdd);
+    activitiesSaveBtn.addEventListener("click", onActivitiesSave);
+    activitiesReloadBtn.addEventListener("click", loadActivities);
     previewModal.querySelector(".admin-modal-close").addEventListener("click", closePreview);
     previewModal.querySelector(".admin-modal-backdrop").addEventListener("click", closePreview);
     document.addEventListener("keydown", function (e) {
@@ -119,6 +135,7 @@
     userLabel.hidden = false;
     logoutBtn.hidden = false;
     loadPostsList();
+    loadActivities();
   }
   function switchTab(name) {
     Array.prototype.forEach.call(document.querySelectorAll(".admin-tab"), function (b) {
@@ -514,6 +531,216 @@
         btn.textContent = "🗑 刪除";
         itemEl.classList.remove("pending");
       });
+  }
+
+  // ============================================================
+  // Activities editor
+  // ============================================================
+  var ACTIVITY_DEFAULTS = {
+    question: {
+      label: "請排序你最想參加嘅活動",
+      hint: "用箭頭調整順序（最想參加嘅排最上面）"
+    },
+    items: []
+  };
+
+  function loadActivities() {
+    activitiesLoading.hidden = false;
+    activitiesLoading.textContent = "載入中…";
+    activitiesEditor.hidden = true;
+    fetch("/data/activities.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) {
+          if (r.status === 404) return ACTIVITY_DEFAULTS;
+          throw new Error("load failed");
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        activitiesData = normalizeActivitiesData(data);
+        renderActivitiesEditor();
+        activitiesLoading.hidden = true;
+        activitiesEditor.hidden = false;
+      })
+      .catch(function () {
+        activitiesLoading.hidden = false;
+        activitiesLoading.textContent = "載入失敗,請重試。";
+        activitiesEditor.hidden = true;
+      });
+  }
+
+  function normalizeActivitiesData(d) {
+    var safe = d && typeof d === "object" ? d : {};
+    var q = safe.question && typeof safe.question === "object" ? safe.question : {};
+    return {
+      question: {
+        label: typeof q.label === "string" ? q.label : ACTIVITY_DEFAULTS.question.label,
+        hint: typeof q.hint === "string" ? q.hint : ACTIVITY_DEFAULTS.question.hint
+      },
+      items: (Array.isArray(safe.items) ? safe.items : []).map(function (it) {
+        return {
+          id: it && it.id ? String(it.id) : genActivityId(),
+          icon: it && typeof it.icon === "string" ? it.icon : "",
+          label: it && typeof it.label === "string" ? it.label : "",
+          sub: it && typeof it.sub === "string" ? it.sub : ""
+        };
+      })
+    };
+  }
+
+  function genActivityId() {
+    return "act-" + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+  }
+
+  function renderActivitiesEditor() {
+    activitiesQuestionLabel.value = activitiesData.question.label || "";
+    activitiesQuestionHint.value = activitiesData.question.hint || "";
+    activitiesListEl.innerHTML = "";
+    activitiesData.items.forEach(function (item, idx) {
+      activitiesListEl.appendChild(buildActivityRow(item, idx));
+    });
+  }
+
+  function buildActivityRow(item, idx) {
+    var row = document.createElement("div");
+    row.className = "activity-row";
+    row.dataset.id = item.id;
+
+    var iconInput = document.createElement("input");
+    iconInput.className = "text-input activity-row-icon";
+    iconInput.type = "text";
+    iconInput.value = item.icon || "";
+    iconInput.placeholder = "☕";
+    iconInput.maxLength = 4;
+    iconInput.addEventListener("input", function () { item.icon = iconInput.value; });
+
+    var labelInput = document.createElement("input");
+    labelInput.className = "text-input";
+    labelInput.type = "text";
+    labelInput.value = item.label || "";
+    labelInput.placeholder = "活動名稱";
+    labelInput.addEventListener("input", function () { item.label = labelInput.value; });
+
+    var subInput = document.createElement("input");
+    subInput.className = "text-input activity-row-sub";
+    subInput.type = "text";
+    subInput.value = item.sub || "";
+    subInput.placeholder = "地點 / 說明";
+    subInput.addEventListener("input", function () { item.sub = subInput.value; });
+
+    var arrows = document.createElement("div");
+    arrows.className = "activity-row-arrows";
+    var up = document.createElement("button");
+    up.type = "button";
+    up.className = "activity-row-arrow";
+    up.textContent = "▲";
+    up.disabled = idx === 0;
+    up.addEventListener("click", function () { moveActivity(idx, -1); });
+    var down = document.createElement("button");
+    down.type = "button";
+    down.className = "activity-row-arrow";
+    down.textContent = "▼";
+    down.disabled = idx === activitiesData.items.length - 1;
+    down.addEventListener("click", function () { moveActivity(idx, 1); });
+    arrows.appendChild(up);
+    arrows.appendChild(down);
+
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "activity-row-delete";
+    del.textContent = "🗑";
+    del.title = "刪除";
+    del.addEventListener("click", function () { onActivityDelete(idx); });
+
+    row.appendChild(iconInput);
+    row.appendChild(labelInput);
+    row.appendChild(subInput);
+    row.appendChild(arrows);
+    row.appendChild(del);
+    return row;
+  }
+
+  function moveActivity(idx, dir) {
+    var arr = activitiesData.items;
+    var newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= arr.length) return;
+    var tmp = arr[idx];
+    arr[idx] = arr[newIdx];
+    arr[newIdx] = tmp;
+    renderActivitiesEditor();
+  }
+
+  function onActivityAdd() {
+    activitiesData.items.push({ id: genActivityId(), icon: "", label: "", sub: "" });
+    renderActivitiesEditor();
+    var rows = activitiesListEl.querySelectorAll(".activity-row");
+    var last = rows[rows.length - 1];
+    if (last) {
+      var firstInput = last.querySelector("input");
+      if (firstInput) firstInput.focus();
+    }
+  }
+
+  function onActivityDelete(idx) {
+    var item = activitiesData.items[idx];
+    var name = (item && (item.label || item.icon)) || "呢個活動";
+    if (!window.confirm("確定要刪除「" + name + "」?")) return;
+    activitiesData.items.splice(idx, 1);
+    renderActivitiesEditor();
+  }
+
+  function onActivitiesSave() {
+    var question = {
+      label: (activitiesQuestionLabel.value || "").trim(),
+      hint: (activitiesQuestionHint.value || "").trim()
+    };
+    if (!question.label) return toast("請輸入問題標題", true);
+
+    var cleaned = activitiesData.items.map(function (it) {
+      return {
+        id: it.id || genActivityId(),
+        icon: (it.icon || "").trim(),
+        label: (it.label || "").trim(),
+        sub: (it.sub || "").trim()
+      };
+    });
+    if (cleaned.length === 0) return toast("至少要有一個活動", true);
+    for (var i = 0; i < cleaned.length; i++) {
+      if (!cleaned[i].label) return toast("第 " + (i + 1) + " 個活動未有標題", true);
+      if (!cleaned[i].icon) return toast("第 " + (i + 1) + " 個活動未有 emoji", true);
+    }
+
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+
+    var payload = { adminToken: token, data: { question: question, items: cleaned } };
+
+    setBusy(activitiesSaveBtn, "儲存中…");
+    fetch(window.webhookUrl("update-activities"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r).then(function (data) {
+          if (!r.ok || (data && data.success === false)) {
+            throw new Error((data && data.error) || "save failed");
+          }
+          return data;
+        });
+      })
+      .then(function () {
+        activitiesData.question = question;
+        activitiesData.items = cleaned;
+        renderActivitiesEditor();
+        toast("已送出,約 1 分鐘後生效 ✅");
+      })
+      .catch(function (e) {
+        if (e && e.message === "auth") return;
+        toast("儲存失敗,請稍後再試", true);
+      })
+      .then(function () { unsetBusy(activitiesSaveBtn, "儲存"); });
   }
 
   // ============================================================

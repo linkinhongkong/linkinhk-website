@@ -429,6 +429,82 @@
   cursor: not-allowed;
 }
 
+/* ── Activities editor ── */
+.admin-add-btn-block {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  padding: 10px;
+}
+.admin-add-btn-block:hover { border-color: var(--accent); background: var(--accent-hover-bg); }
+
+.activities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+.activity-row .text-input { padding: 8px 12px; font-size: 13px; }
+.activity-row-icon { text-align: center; font-size: 18px; }
+.activity-row-arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.activity-row-arrow {
+  width: 28px; height: 22px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-family: inherit;
+}
+.activity-row-arrow:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.activity-row-arrow:disabled { opacity: 0.3; cursor: default; }
+.activity-row-delete {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.activity-row-delete:hover {
+  border-color: var(--red);
+  background: var(--red-bg);
+  color: var(--red);
+}
+@media (max-width: 560px) {
+  .activity-row {
+    grid-template-columns: 48px 1fr auto auto;
+    gap: 8px;
+  }
+  .activity-row .activity-row-sub {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ── Preview modal ── */
 .admin-modal {
   position: fixed;

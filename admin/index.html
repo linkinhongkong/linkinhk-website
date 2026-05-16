@@ -53,6 +53,7 @@
     <div class="admin-tabs">
       <button class="admin-tab active" type="button" data-tab="blog">📝 新增 Blog</button>
       <button class="admin-tab" type="button" data-tab="member">👥 新增會員</button>
+      <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
     </div>
 
     <!-- ── Blog tab ── -->
@@ -157,6 +158,43 @@
         </div>
 
         <div id="member-results" class="admin-results" hidden></div>
+      </div>
+    </section>
+
+    <!-- ── Activities tab ── -->
+    <section id="admin-tab-activities" class="admin-panel" hidden>
+
+      <div class="admin-panel-head">
+        <h2 class="admin-panel-title">🎯 活動管理</h2>
+        <p class="admin-panel-sub">編輯 availability form 入面嘅活動排序問題。約 1 分鐘後生效。</p>
+      </div>
+
+      <div class="admin-form">
+        <div id="activities-loading" class="admin-posts-state">載入中…</div>
+
+        <div id="activities-editor" hidden>
+          <div class="field">
+            <label class="field-label" for="activities-question-label">問題標題</label>
+            <input class="text-input" id="activities-question-label" type="text" placeholder="請排序你最想參加嘅活動" />
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="activities-question-hint">問題說明 (helper text)</label>
+            <input class="text-input" id="activities-question-hint" type="text" placeholder="用箭頭調整順序（最想參加嘅排最上面）" />
+          </div>
+
+          <div class="field">
+            <label class="field-label">活動清單 <span class="req">*</span></label>
+            <div class="field-hint">由上至下就係用戶睇到嘅預設排序。每個活動需要至少一個 emoji 同標題。</div>
+            <div id="activities-list" class="activities-list"></div>
+            <button type="button" id="activities-add-btn" class="admin-add-btn admin-add-btn-block">+ 新增活動</button>
+          </div>
+
+          <div class="admin-actions-row">
+            <button type="button" id="activities-reload-btn" class="btn-secondary">取消變更</button>
+            <button type="button" id="activities-save-btn" class="btn-primary">儲存</button>
+          </div>
+        </div>
       </div>
     </section>
 

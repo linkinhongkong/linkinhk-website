@@ -244,11 +244,15 @@
       { label: "新界" },
     ];
 
-    const ACTIVITIES = [
+    const ACTIVITIES_FALLBACK = [
       { id: "coffee",   icon: "☕", label: "咖啡工作坊", sub: "觀唐" },
       { id: "golf",     icon: "⛳", label: "室內高爾夫", sub: "銅鑼灣" },
       { id: "cocktail", icon: "🍸", label: "調酒工作坊", sub: "中環" },
     ];
+    const ACTIVITY_QUESTION_FALLBACK = {
+      label: "請排序你最想參加嘅活動",
+      hint: "用箭頭調整順序（最想參加嘅排最上面）",
+    };
 
     const DOW_TC = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -382,7 +386,29 @@
       const [weekend, setWeekend] = useState([]);
       const [slots, setSlots] = useState({});          // { [iso]: { morning: bool, ... } }
       const [prefillApplied, setPrefillApplied] = useState(false);
-      const [activityRank, setActivityRank] = useState(ACTIVITIES.map(a => a.id));
+
+      const [activities, setActivities] = useState(ACTIVITIES_FALLBACK);
+      const [activityQuestion, setActivityQuestion] = useState(ACTIVITY_QUESTION_FALLBACK);
+      const [activityRank, setActivityRank] = useState(ACTIVITIES_FALLBACK.map(a => a.id));
+
+      useEffect(() => {
+        fetch("/data/activities.json?t=" + Date.now(), { cache: "no-store" })
+          .then(r => r.ok ? r.json() : null)
+          .then(cfg => {
+            if (!cfg || !Array.isArray(cfg.items) || cfg.items.length === 0) return;
+            const valid = cfg.items.filter(a => a && a.id && a.label);
+            if (valid.length === 0) return;
+            setActivities(valid);
+            setActivityRank(valid.map(a => a.id));
+            if (cfg.question && (cfg.question.label || cfg.question.hint)) {
+              setActivityQuestion({
+                label: cfg.question.label || ACTIVITY_QUESTION_FALLBACK.label,
+                hint: cfg.question.hint || ACTIVITY_QUESTION_FALLBACK.hint,
+              });
+            }
+          })
+          .catch(() => { /* fallback values already set */ });
+      }, []);
 
       const moveActivity = (idx, dir) => {
         setActivityRank(prev => {
@@ -588,17 +614,18 @@
                       </div>
 
                       <div className="field">
-                        <div className="field-label">請排序你最想參加嘅活動</div>
-                        <div className="field-hint">用箭頭調整順序（最想參加嘅排最上面）</div>
+                        <div className="field-label">{activityQuestion.label}</div>
+                        <div className="field-hint">{activityQuestion.hint}</div>
                         <div className="rank-list">
                           {activityRank.map((id, idx) => {
-                            const act = ACTIVITIES.find(a => a.id === id);
+                            const act = activities.find(a => a.id === id);
+                            if (!act) return null;
                             return (
                               <div className="rank-item" key={id}>
                                 <div className="rank-num">{idx + 1}</div>
                                 <div style={{ flex: 1 }}>
                                   <div className="rank-label">{act.icon} {act.label}</div>
-                                  <div className="rank-sublabel">{act.sub}</div>
+                                  {act.sub && <div className="rank-sublabel">{act.sub}</div>}
                                 </div>
                                 <div className="rank-arrows">
                                   <button type="button" className="rank-arrow" disabled={idx === 0} onClick={() => moveActivity(idx, -1)}>▲</button>
