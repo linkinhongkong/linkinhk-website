@@ -355,6 +355,80 @@
 .admin-results-section.err .admin-results-section-title { color: var(--red); }
 .admin-results-section.err .admin-results-chip { background: var(--red-bg); color: var(--red); }
 
+/* ── Manage posts list ── */
+.admin-divider {
+  border: 0;
+  border-top: 1px solid var(--border-light);
+  margin: 36px 0 24px;
+}
+.admin-posts-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin-posts-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  overflow: hidden;
+}
+.admin-posts-state {
+  padding: 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.admin-post-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+.admin-post-item:last-child { border-bottom: 0; }
+.admin-post-item.pending { opacity: 0.5; }
+.admin-post-main { flex: 1; min-width: 0; }
+.admin-post-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-post-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-accent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-post-delete {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.admin-post-delete:hover:not(:disabled) {
+  border-color: var(--red);
+  background: var(--red-bg);
+  color: var(--red);
+}
+.admin-post-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Preview modal ── */
 .admin-modal {
   position: fixed;
