@@ -120,6 +120,19 @@
           <button type="button" id="admin-publish-btn" class="btn-primary">發布</button>
         </div>
       </div>
+
+      <hr class="admin-divider">
+
+      <div class="admin-panel-head admin-posts-head">
+        <div>
+          <h2 class="admin-panel-title">管理已發布文章</h2>
+          <p class="admin-panel-sub">按 🗑 可以刪除，約 1 分鐘後生效。</p>
+        </div>
+        <button type="button" id="admin-posts-refresh" class="admin-icon-btn" title="重新載入">🔄</button>
+      </div>
+      <div id="admin-posts-list" class="admin-posts-list" aria-live="polite">
+        <div class="admin-posts-state">載入中…</div>
+      </div>
     </section>
 
     <!-- ── Member tab ── -->

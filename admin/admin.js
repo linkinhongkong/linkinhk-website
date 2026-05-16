@@ -33,6 +33,10 @@
   var previewBtn = $("admin-preview-btn");
   var previewModal = $("admin-preview-modal");
 
+  // Manage posts list
+  var postsList = $("admin-posts-list");
+  var postsRefreshBtn = $("admin-posts-refresh");
+
   // Member form
   var memberInput = $("member-input");
   var memberPreview = $("member-preview");
@@ -84,6 +88,7 @@
 
     previewBtn.addEventListener("click", openPreview);
     publishBtn.addEventListener("click", publishPost);
+    postsRefreshBtn.addEventListener("click", function () { loadPostsList(); });
     previewModal.querySelector(".admin-modal-close").addEventListener("click", closePreview);
     previewModal.querySelector(".admin-modal-backdrop").addEventListener("click", closePreview);
     document.addEventListener("keydown", function (e) {
@@ -113,6 +118,7 @@
     userLabel.textContent = u;
     userLabel.hidden = false;
     logoutBtn.hidden = false;
+    loadPostsList();
   }
   function switchTab(name) {
     Array.prototype.forEach.call(document.querySelectorAll(".admin-tab"), function (b) {
@@ -393,6 +399,7 @@
         if (data && data.success !== false) {
           toast("已送出，約 1 分鐘後生效 ✅");
           resetBlogForm();
+          setTimeout(loadPostsList, 70 * 1000);
         } else {
           toast((data && data.error) || "發布失敗", true);
         }
@@ -414,6 +421,99 @@
     slugManuallyEdited = false;
     renderBlocks();
     renderTagsPreview();
+  }
+
+  // ============================================================
+  // Manage existing posts
+  // ============================================================
+  function loadPostsList() {
+    postsList.innerHTML = '<div class="admin-posts-state">載入中…</div>';
+    fetch("/blog/posts.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (posts) { renderPostsList(Array.isArray(posts) ? posts : []); })
+      .catch(function () {
+        postsList.innerHTML = '<div class="admin-posts-state">載入失敗,請重試。</div>';
+      });
+  }
+
+  function renderPostsList(posts) {
+    if (!posts.length) {
+      postsList.innerHTML = '<div class="admin-posts-state">未有已發布文章。</div>';
+      return;
+    }
+    postsList.innerHTML = "";
+    posts.forEach(function (post) {
+      var slug = post.slug || "";
+      if (!slug) return;
+      var item = document.createElement("div");
+      item.className = "admin-post-item";
+      item.dataset.slug = slug;
+
+      var main = document.createElement("div");
+      main.className = "admin-post-main";
+      var title = document.createElement("div");
+      title.className = "admin-post-title";
+      title.textContent = post.title || slug;
+      var meta = document.createElement("div");
+      meta.className = "admin-post-meta";
+      meta.innerHTML =
+        '<span>' + escapeHtml(formatDate(post.date) || "—") + '</span>' +
+        '<span>/' + escapeHtml(slug) + '</span>';
+      main.appendChild(title);
+      main.appendChild(meta);
+
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "admin-post-delete";
+      btn.textContent = "🗑 刪除";
+      btn.addEventListener("click", function () { onDeletePost(item, post); });
+
+      item.appendChild(main);
+      item.appendChild(btn);
+      postsList.appendChild(item);
+    });
+  }
+
+  function onDeletePost(itemEl, post) {
+    var title = post.title || post.slug;
+    if (!window.confirm("確定要刪除「" + title + "」?\n大約 1 分鐘後會喺 /blog 消失。")) return;
+
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+
+    var btn = itemEl.querySelector(".admin-post-delete");
+    btn.disabled = true;
+    btn.textContent = "刪除中…";
+    itemEl.classList.add("pending");
+
+    fetch(window.webhookUrl("delete-blog-post"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token, slug: post.slug })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r).then(function (data) {
+          if (!r.ok || (data && data.success === false)) {
+            throw new Error((data && data.error) || "delete failed");
+          }
+          return data;
+        });
+      })
+      .then(function () {
+        toast("已送出,約 1 分鐘後生效 ✅");
+        itemEl.parentNode && itemEl.parentNode.removeChild(itemEl);
+        if (!postsList.querySelector(".admin-post-item")) {
+          postsList.innerHTML = '<div class="admin-posts-state">未有已發布文章。</div>';
+        }
+      })
+      .catch(function (e) {
+        if (e && e.message === "auth") return;
+        toast("刪除失敗,請稍後再試", true);
+        btn.disabled = false;
+        btn.textContent = "🗑 刪除";
+        itemEl.classList.remove("pending");
+      });
   }
 
   // ============================================================
