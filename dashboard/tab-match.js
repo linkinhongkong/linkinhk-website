@@ -102,7 +102,7 @@ function CountdownCard({ deadline }) {
 // ---------------- Membership gate ----------------
 function MembershipGate() {
   const [copied, setCopied] = useState(false);
-  const phone = "991878330";
+  const phone = "91878330";
 
   const handleCopy = async () => {
     try {
