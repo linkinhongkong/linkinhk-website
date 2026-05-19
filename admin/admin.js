@@ -909,6 +909,11 @@
         return parseJsonSafe(r);
       })
       .then(function (data) {
+        // n8n's "Respond to Webhook" node often wraps the payload in a
+        // 1-element array. Unwrap so { success, results } parsing works.
+        if (Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === "object") {
+          data = data[0];
+        }
         if (!data || data.success === false) {
           toast((data && data.error) || "搜尋失敗", true);
           return;
