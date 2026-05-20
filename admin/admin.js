@@ -53,10 +53,17 @@
   var memberResults = $("member-results");
   var submitMembersBtn = $("admin-submit-members-btn");
 
+  // Lookup tab
+  var lookupInput = $("lookup-input");
+  var lookupPreview = $("lookup-preview");
+  var lookupResults = $("lookup-results");
+  var lookupSearchBtn = $("admin-search-members-btn");
+
   // ── State ──
   var bodyBlocks = []; // [{type:'p'|'h2'|'h3'|'quote', text:string} | {type:'list', items:string[]}]
   var slugManuallyEdited = false;
   var activitiesData = { question: { label: "", hint: "" }, items: [] };
+  var lookupState = { activeHandle: null, results: [] };
 
   // ============================================================
   // Init
@@ -114,6 +121,10 @@
     // Member form
     memberInput.addEventListener("input", renderMemberPreview);
     submitMembersBtn.addEventListener("click", submitMembers);
+
+    // Lookup tab
+    lookupInput.addEventListener("input", renderLookupPreview);
+    lookupSearchBtn.addEventListener("click", searchMembers);
 
     renderBlocks();
   }
@@ -868,6 +879,480 @@
       return item.instagram || item.username || item.handle || "";
     }
     return "";
+  }
+
+  // ============================================================
+  // Lookup tab
+  // ============================================================
+  function renderLookupPreview() {
+    var handles = parseHandles(lookupInput.value);
+    lookupPreview.innerHTML = handles
+      .map(function (h) { return '<span class="admin-chip">@' + escapeHtml(h) + "</span>"; })
+      .join("");
+  }
+
+  function searchMembers() {
+    var handles = parseHandles(lookupInput.value);
+    if (handles.length === 0) return toast("請輸入至少一個 Instagram username", true);
+
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+
+    setBusy(lookupSearchBtn, "搜尋中…");
+    fetch(window.webhookUrl("lookup-member"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token, instagramUsernames: handles })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r);
+      })
+      .then(function (data) {
+        // n8n's "Respond to Webhook" node often wraps the payload in a
+        // 1-element array. Unwrap so { success, results } parsing works.
+        if (Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === "object") {
+          data = data[0];
+        }
+        if (!data || data.success === false) {
+          toast((data && data.error) || "搜尋失敗", true);
+          return;
+        }
+        var results = normalizeLookupResults(data, handles);
+        var firstFound = results.find(function (r) { return r.found; });
+        lookupState.results = results;
+        lookupState.activeHandle = (firstFound || results[0] || {}).instagram || null;
+        renderLookupResults();
+
+        var foundCount = results.filter(function (r) { return r.found; }).length;
+        var missing = results.length - foundCount;
+        if (foundCount > 0 && missing === 0) {
+          toast("搵到 " + foundCount + " 位會員 ✅");
+        } else if (foundCount > 0) {
+          toast("搵到 " + foundCount + " 位 · " + missing + " 位搵唔到", true);
+        } else {
+          toast("全部 " + results.length + " 個 username 都搵唔到", true);
+        }
+      })
+      .catch(function (e) {
+        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
+      })
+      .then(function () { unsetBusy(lookupSearchBtn, "🔍 搜尋"); });
+  }
+
+  // n8n response may vary: results array, or { results: { handle: {...} } },
+  // or top-level keys. Normalize to a stable [{ instagram, found, profile?, matchHistory? }]
+  // keyed by the handles the admin actually submitted (so order matches input
+  // and missing replies show as not-found).
+  function normalizeLookupResults(data, submitted) {
+    var byHandle = {};
+    var rawList = [];
+    if (Array.isArray(data.results)) rawList = data.results;
+    else if (data.results && typeof data.results === "object") {
+      rawList = Object.keys(data.results).map(function (k) {
+        var v = data.results[k] || {};
+        return { instagram: v.instagram || k, found: v.found, profile: v.profile, matchHistory: v.matchHistory };
+      });
+    } else if (Array.isArray(data)) {
+      rawList = data;
+    }
+    rawList.forEach(function (item) {
+      if (!item || typeof item !== "object") return;
+      var handle = String(item.instagram || (item.profile && item.profile.instagram) || "").replace(/^@/, "").trim();
+      if (!handle) return;
+      var found = item.found;
+      if (typeof found !== "boolean") found = !!item.profile;
+      byHandle[handle.toLowerCase()] = {
+        instagram: handle,
+        found: found,
+        profile: item.profile || null,
+        matchHistory: Array.isArray(item.matchHistory) ? item.matchHistory : []
+      };
+    });
+    return submitted.map(function (h) {
+      var hit = byHandle[h.toLowerCase()];
+      if (hit) return hit;
+      return { instagram: h, found: false, profile: null, matchHistory: [] };
+    });
+  }
+
+  function renderLookupResults() {
+    lookupResults.innerHTML = "";
+    if (!lookupState.results.length) {
+      lookupResults.hidden = true;
+      return;
+    }
+    lookupResults.hidden = false;
+
+    var tabsEl = document.createElement("div");
+    tabsEl.className = "lookup-tabs";
+    lookupState.results.forEach(function (item) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      var classes = ["lookup-tab"];
+      if (!item.found) classes.push("notfound");
+      if (item.instagram === lookupState.activeHandle) classes.push("active");
+      btn.className = classes.join(" ");
+      btn.innerHTML = "@" + escapeHtml(item.instagram) +
+        ' <span class="lookup-tab-mark">' + (item.found ? "✓" : "✗") + "</span>";
+      btn.addEventListener("click", function () {
+        lookupState.activeHandle = item.instagram;
+        renderLookupResults();
+      });
+      tabsEl.appendChild(btn);
+    });
+    lookupResults.appendChild(tabsEl);
+
+    var active = lookupState.results.find(function (r) { return r.instagram === lookupState.activeHandle; })
+      || lookupState.results[0];
+    var panel = document.createElement("div");
+    panel.className = "lookup-panel";
+    if (active.found && active.profile) {
+      renderProfileCard(panel, active.profile, active.matchHistory || []);
+    } else {
+      renderNotFound(panel, active.instagram);
+    }
+    lookupResults.appendChild(panel);
+  }
+
+  function renderNotFound(panel, handle) {
+    var wrap = document.createElement("div");
+    wrap.className = "lookup-notfound";
+    wrap.innerHTML =
+      '<div class="lookup-notfound-emoji">😕</div>' +
+      '<div class="lookup-notfound-title">搵唔到 @' + escapeHtml(handle) + "</div>" +
+      '<div class="lookup-notfound-sub">請確認 username 有冇打錯，或者佢未係會員。</div>';
+    panel.appendChild(wrap);
+  }
+
+  function renderProfileCard(panel, profile, history) {
+    // Photos
+    var photos = ["my-photo-1", "my-photo-2", "my-photo-3"]
+      .map(function (k) { return profile[k]; })
+      .filter(Boolean);
+    if (photos.length) {
+      var photoRow = document.createElement("div");
+      photoRow.className = "lookup-profile-photos";
+      photos.forEach(function (src) {
+        var img = document.createElement("img");
+        img.src = src;
+        img.alt = profile.name || "";
+        img.loading = "lazy";
+        img.addEventListener("click", function () { openPhotoModal(src); });
+        img.addEventListener("error", function () { img.style.display = "none"; });
+        photoRow.appendChild(img);
+      });
+      panel.appendChild(photoRow);
+    }
+
+    // Header
+    var header = document.createElement("div");
+    header.className = "lookup-profile-header";
+    if (profile.name) {
+      var name = document.createElement("div");
+      name.className = "lookup-profile-name";
+      name.textContent = profile.name;
+      header.appendChild(name);
+    }
+    var handle = profile.instagram || "";
+    if (handle) {
+      var chip = document.createElement("span");
+      chip.className = "lookup-profile-handle";
+      chip.textContent = "@" + String(handle).replace(/^@/, "");
+      header.appendChild(chip);
+    }
+    panel.appendChild(header);
+
+    // Info chips
+    var chips = buildProfileChips(profile);
+    if (chips.length) {
+      var chipRow = document.createElement("div");
+      chipRow.className = "lookup-info-chips";
+      chips.forEach(function (c) {
+        var el = document.createElement("span");
+        el.className = "lookup-info-chip";
+        el.textContent = c;
+        chipRow.appendChild(el);
+      });
+      panel.appendChild(chipRow);
+    }
+
+    // Bio
+    if (profile["my-bio"]) {
+      var bio = document.createElement("div");
+      bio.className = "lookup-bio";
+      bio.innerHTML =
+        '<div class="lookup-bio-label">關於佢</div>' +
+        '<div class="lookup-bio-text">' + escapeHtml(profile["my-bio"]) + "</div>";
+      panel.appendChild(bio);
+    }
+
+    // Field grid (full details)
+    var fields = buildProfileFields(profile);
+    if (fields.length) {
+      var sectTitle = document.createElement("div");
+      sectTitle.className = "lookup-section-title";
+      sectTitle.textContent = "📋 完整資料";
+      panel.appendChild(sectTitle);
+
+      var grid = document.createElement("div");
+      grid.className = "lookup-field-grid";
+      fields.forEach(function (f) {
+        var cell = document.createElement("div");
+        cell.className = "lookup-field";
+        var lbl = document.createElement("div");
+        lbl.className = "lookup-field-label";
+        lbl.textContent = f.label;
+        var val = document.createElement("div");
+        val.className = "lookup-field-value";
+        if (f.html) val.innerHTML = f.html; else val.textContent = f.value;
+        cell.appendChild(lbl);
+        cell.appendChild(val);
+        grid.appendChild(cell);
+      });
+      panel.appendChild(grid);
+    }
+
+    // Match history
+    var historyTitle = document.createElement("div");
+    historyTitle.className = "lookup-section-title";
+    historyTitle.innerHTML = "💞 配對紀錄 <span class=\"count\">(" + history.length + ")</span>";
+    panel.appendChild(historyTitle);
+
+    if (!history.length) {
+      var empty = document.createElement("div");
+      empty.className = "lookup-history-empty";
+      empty.textContent = "暫無配對紀錄";
+      panel.appendChild(empty);
+    } else {
+      var list = document.createElement("div");
+      list.className = "lookup-history-list";
+      history.forEach(function (m) { list.appendChild(buildHistoryRow(m)); });
+      panel.appendChild(list);
+    }
+  }
+
+  function buildHistoryRow(match) {
+    var p = (match && match.partnerProfile) || {};
+    var photo = p["my-photo-1"] || "";
+    var status = getMatchStatus(match);
+    var expanded = false;
+
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "lookup-history-row";
+
+    var photoBox = document.createElement("div");
+    photoBox.className = "lookup-history-photo";
+    if (photo) {
+      var img = document.createElement("img");
+      img.src = photo;
+      img.alt = p.name || "";
+      img.loading = "lazy";
+      img.addEventListener("error", function () { img.remove(); photoBox.textContent = "👤"; });
+      photoBox.appendChild(img);
+    } else {
+      photoBox.textContent = "👤";
+    }
+    row.appendChild(photoBox);
+
+    var body = document.createElement("div");
+    body.className = "lookup-history-body";
+
+    var header = document.createElement("div");
+    header.className = "lookup-history-header";
+    if (p.name) {
+      var name = document.createElement("span");
+      name.className = "lookup-history-name";
+      name.textContent = p.name;
+      header.appendChild(name);
+    }
+    if (p.instagram) {
+      var handle = document.createElement("span");
+      handle.className = "lookup-info-chip";
+      handle.textContent = "@" + String(p.instagram).replace(/^@/, "");
+      header.appendChild(handle);
+    }
+    if (status) {
+      var s = document.createElement("span");
+      s.className = "lookup-status-chip " + status.variant;
+      s.textContent = status.text;
+      header.appendChild(s);
+    }
+    body.appendChild(header);
+
+    var chips = buildProfileChips(p);
+    if (chips.length) {
+      var chipRow = document.createElement("div");
+      chipRow.className = "lookup-history-chips";
+      chips.forEach(function (c) {
+        var el = document.createElement("span");
+        el.className = "lookup-info-chip";
+        el.textContent = c;
+        chipRow.appendChild(el);
+      });
+      body.appendChild(chipRow);
+    }
+
+    var time = formatMatchTime(match && match.createdAt);
+    if (time) {
+      var t = document.createElement("div");
+      t.className = "lookup-history-time";
+      t.textContent = time;
+      body.appendChild(t);
+    }
+
+    var bioEl = null;
+    if (p["my-bio"]) {
+      bioEl = document.createElement("div");
+      bioEl.className = "lookup-history-bio";
+      bioEl.textContent = p["my-bio"];
+      bioEl.hidden = true;
+      body.appendChild(bioEl);
+    }
+
+    row.appendChild(body);
+
+    row.addEventListener("click", function () {
+      if (!bioEl) return;
+      expanded = !expanded;
+      bioEl.hidden = !expanded;
+    });
+
+    return row;
+  }
+
+  // Port from /dashboard/tab-history.js — match status grid.
+  var MATCH_STATUS_TABLE = {
+    "accept|accept":   { text: "配對成功",     variant: "matched"   },
+    "accept|reject":   { text: "配對失敗",     variant: "unmatched" },
+    "accept|pending":  { text: "等待對方回覆", variant: "waiting"   },
+    "accept|expire":   { text: "配對失敗",     variant: "unmatched" },
+    "reject|accept":   { text: "你已拒絕",     variant: "unmatched" },
+    "reject|reject":   { text: "你已拒絕",     variant: "unmatched" },
+    "reject|pending":  { text: "你已拒絕",     variant: "unmatched" },
+    "reject|expire":   { text: "你已拒絕",     variant: "unmatched" },
+    "pending|accept":  { text: "等待你的回覆", variant: "waiting"   },
+    "pending|reject":  { text: "等待你的回覆", variant: "waiting"   },
+    "pending|pending": { text: "等待你的回覆", variant: "waiting"   },
+    "pending|expire":  { text: "等待你的回覆", variant: "waiting"   },
+    "expire|accept":   { text: "配對失效",     variant: "unmatched" },
+    "expire|reject":   { text: "配對失效",     variant: "unmatched" },
+    "expire|pending":  { text: "配對失效",     variant: "unmatched" },
+    "expire|expire":   { text: "配對失效",     variant: "unmatched" }
+  };
+
+  function normalizeStatus(s) {
+    var v = String(s || "").toLowerCase();
+    return v === "accept" || v === "reject" || v === "expire" ? v : "pending";
+  }
+  function getMatchStatus(match) {
+    if (!match) return null;
+    var mine = normalizeStatus(match.myStatus);
+    var partner = normalizeStatus(match.partnerStatus);
+    return MATCH_STATUS_TABLE[mine + "|" + partner] || null;
+  }
+
+  function buildProfileChips(p) {
+    if (!p) return [];
+    var chips = [];
+    var age = computeAgeFromDOB(p["my-age"]);
+    if (age) chips.push("🎂 " + age + "歲");
+    if (p["my-height"]) chips.push("📏 " + p["my-height"] + "cm");
+    if (p.sex) chips.push(p.sex === "M" ? "♂ 男" : p.sex === "F" ? "♀ 女" : p.sex);
+    if (p["my-occupation"]) chips.push("💼 " + p["my-occupation"]);
+    if (p["my-uni"]) chips.push("🎓 " + p["my-uni"]);
+    var zodiac = computeZodiacFromDOB(p["my-age"]);
+    if (zodiac) chips.push(zodiac);
+    if (p["my-MBTI"]) chips.push(p["my-MBTI"]);
+    if (p["my-religion"]) chips.push(p["my-religion"]);
+    return chips;
+  }
+
+  // Returns [{label, value} | {label, html}] for the detail grid. Empty fields
+  // are skipped so mobile cards stay compact.
+  function buildProfileFields(p) {
+    if (!p) return [];
+    var fields = [];
+    function push(label, value) {
+      if (value == null) return;
+      if (Array.isArray(value)) {
+        var joined = value.filter(Boolean).join("、");
+        if (joined) fields.push({ label: label, value: joined });
+        return;
+      }
+      var s = String(value).trim();
+      if (s) fields.push({ label: label, value: s });
+    }
+    push("Email", p.email);
+    if (p.phone) {
+      fields.push({ label: "電話", html: '<a href="tel:' + escapeHtml(String(p.phone)) + '">' + escapeHtml(String(p.phone)) + "</a>" });
+    }
+    push("性別", p.sex === "M" ? "男" : p.sex === "F" ? "女" : p.sex);
+    push("性取向", p["sexual-orientation"]);
+    push("出生日期", p["my-age"]);
+    push("身高", p["my-height"] ? p["my-height"] + " cm" : "");
+    push("職業", p["my-occupation"]);
+    push("大學", p["my-uni"]);
+    push("MBTI", p["my-MBTI"]);
+    push("愛之語", p["my-love-language"]);
+    push("飲酒習慣", p["my-drinking-habbit"]);
+    push("吸煙習慣", p["my-smoking-habbit"]);
+    push("宗教", p["my-religion"]);
+    push("生育意願", p["my-kids-expectation"]);
+    push("興趣", p["my-hobby"]);
+    push("活動", p["my-activities"]);
+    push("其他活動", p["my-activities-others"]);
+    return fields;
+  }
+
+  function computeAgeFromDOB(dob) {
+    if (!dob) return null;
+    var d = new Date(dob);
+    if (isNaN(d.getTime())) return null;
+    var now = new Date();
+    var age = now.getFullYear() - d.getFullYear();
+    var m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age > 0 && age < 120 ? age : null;
+  }
+
+  function computeZodiacFromDOB(dob) {
+    if (!dob) return null;
+    var d = new Date(dob);
+    if (isNaN(d.getTime())) return null;
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+    var signs = [
+      [1, 20, "♑ 摩羯座"], [2, 19, "♒ 水瓶座"], [3, 21, "♓ 雙魚座"],
+      [4, 20, "♈ 白羊座"], [5, 21, "♉ 金牛座"], [6, 22, "♊ 雙子座"],
+      [7, 23, "♋ 巨蟹座"], [8, 23, "♌ 獅子座"], [9, 23, "♍ 處女座"],
+      [10, 24, "♎ 天秤座"], [11, 23, "♏ 天蝍座"], [12, 22, "♐ 射手座"],
+      [12, 31, "♑ 摩羯座"]
+    ];
+    for (var i = 0; i < signs.length; i++) {
+      var m = signs[i][0], dmax = signs[i][1], name = signs[i][2];
+      if (month < m || (month === m && day <= dmax)) return name;
+    }
+    return null;
+  }
+
+  function formatMatchTime(raw) {
+    if (!raw) return "";
+    var d = new Date(raw);
+    if (isNaN(d.getTime())) {
+      var m = String(raw).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) d = new Date(m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0"));
+    }
+    if (isNaN(d.getTime())) return String(raw);
+    return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 配對";
+  }
+
+  function openPhotoModal(src) {
+    var modalBody = previewModal.querySelector(".admin-modal-body");
+    modalBody.innerHTML = '<img class="lookup-photo-modal-img" alt="" />';
+    modalBody.querySelector("img").src = src;
+    previewModal.hidden = false;
   }
 
   // ============================================================

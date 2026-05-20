@@ -54,6 +54,7 @@
       <button class="admin-tab active" type="button" data-tab="blog">📝 新增 Blog</button>
       <button class="admin-tab" type="button" data-tab="member">👥 新增會員</button>
       <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
+      <button class="admin-tab" type="button" data-tab="lookup">🔍 查詢會員</button>
     </div>
 
     <!-- ── Blog tab ── -->
@@ -195,6 +196,31 @@
             <button type="button" id="activities-save-btn" class="btn-primary">儲存</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ── Lookup tab ── -->
+    <section id="admin-tab-lookup" class="admin-panel" hidden>
+
+      <div class="admin-panel-head">
+        <h2 class="admin-panel-title">🔍 查詢會員</h2>
+        <p class="admin-panel-sub">輸入 Instagram username，按「搜尋」查會員資料同配對紀錄。</p>
+      </div>
+
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="lookup-input">Instagram username</label>
+          <div class="field-hint">用逗號 (,) 分隔。可以加 @ 也可以唔加。</div>
+          <textarea class="text-input" id="lookup-input" rows="3" placeholder="alice, @bob, carol"></textarea>
+        </div>
+
+        <div id="lookup-preview" class="admin-chip-preview"></div>
+
+        <div class="admin-actions-row">
+          <button type="button" id="admin-search-members-btn" class="btn-primary">🔍 搜尋</button>
+        </div>
+
+        <div id="lookup-results" class="lookup-results" hidden></div>
       </div>
     </section>
 
