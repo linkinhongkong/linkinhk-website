@@ -51,6 +51,7 @@
   var memberInput = $("member-input");
   var memberPreview = $("member-preview");
   var memberResults = $("member-results");
+  var memberSuggestions = $("member-suggestions");
   var submitMembersBtn = $("admin-submit-members-btn");
 
   // Lookup tab
@@ -58,12 +59,15 @@
   var lookupPreview = $("lookup-preview");
   var lookupResults = $("lookup-results");
   var lookupSearchBtn = $("admin-search-members-btn");
+  var lookupSuggestions = $("lookup-suggestions");
 
   // ── State ──
   var bodyBlocks = []; // [{type:'p'|'h2'|'h3'|'quote', text:string} | {type:'list', items:string[]}]
   var slugManuallyEdited = false;
   var activitiesData = { question: { label: "", hint: "" }, items: [] };
   var lookupState = { activeHandle: null, results: [] };
+  var lookupTypeahead = null;
+  var memberTypeahead = null;
 
   // ============================================================
   // Init
@@ -119,11 +123,17 @@
     });
 
     // Member form
-    memberInput.addEventListener("input", renderMemberPreview);
+    memberTypeahead = createTypeahead({
+      input: memberInput, suggestionsEl: memberSuggestions, previewEl: memberPreview,
+      onSubmit: submitMembers
+    });
     submitMembersBtn.addEventListener("click", submitMembers);
 
     // Lookup tab
-    lookupInput.addEventListener("input", renderLookupPreview);
+    lookupTypeahead = createTypeahead({
+      input: lookupInput, suggestionsEl: lookupSuggestions, previewEl: lookupPreview,
+      onSubmit: searchMembers
+    });
     lookupSearchBtn.addEventListener("click", searchMembers);
 
     renderBlocks();
@@ -757,24 +767,9 @@
   // ============================================================
   // Member tab
   // ============================================================
-  function parseHandles(s) {
-    var seen = {};
-    return String(s || "").split(",").map(function (x) {
-      return x.trim().replace(/^@/, "");
-    }).filter(function (x) {
-      if (!x || seen[x]) return false;
-      seen[x] = true;
-      return true;
-    });
-  }
-  function renderMemberPreview() {
-    var handles = parseHandles(memberInput.value);
-    memberPreview.innerHTML = handles
-      .map(function (h) { return '<span class="admin-chip">@' + escapeHtml(h) + "</span>"; })
-      .join("");
-  }
   function submitMembers() {
-    var handles = parseHandles(memberInput.value);
+    memberTypeahead.commitInput();
+    var handles = memberTypeahead.state.handles.slice();
     if (handles.length === 0) return toast("請輸入至少一個 Instagram username", true);
 
     var token = getToken();
@@ -823,11 +818,9 @@
       toast(problems + " 個 username 處理唔到", true);
     }
 
-    // Keep only the failed handles in the textarea so the user can fix + resubmit.
+    // Keep only the failed handles as chips so the user can fix + resubmit.
     // Successes (updated + alreadyActivated) get cleared.
-    var keep = notFound.concat(ambiguous);
-    memberInput.value = keep.join(", ");
-    renderMemberPreview();
+    memberTypeahead.setHandles(notFound.concat(ambiguous));
   }
 
   function renderMemberResults(r) {
@@ -884,15 +877,216 @@
   // ============================================================
   // Lookup tab
   // ============================================================
-  function renderLookupPreview() {
-    var handles = parseHandles(lookupInput.value);
-    lookupPreview.innerHTML = handles
-      .map(function (h) { return '<span class="admin-chip">@' + escapeHtml(h) + "</span>"; })
-      .join("");
+
+  // Shared full member list, fetched once per session for client-side typeahead
+  // (used by both the lookup and add-member tabs).
+  var memberListCache = { items: [], loaded: false, loading: false };
+
+  // Silently degrades to manual entry if the request fails.
+  function loadMemberList() {
+    if (memberListCache.loaded || memberListCache.loading) return;
+    var token = getToken();
+    if (!token) return;
+    memberListCache.loading = true;
+    fetch(window.webhookUrl("list-members"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r);
+      })
+      .then(function (data) {
+        // Unwrap n8n's 1-element "Respond to Webhook" wrapper around an object.
+        if (Array.isArray(data) && data.length === 1 && data[0] &&
+            typeof data[0] === "object" && !data[0].instagram) {
+          data = data[0];
+        }
+        memberListCache.items = normalizeMemberList(data);
+        memberListCache.loaded = true;
+      })
+      .catch(function () { /* typeahead unavailable; manual entry still works */ })
+      .then(function () { memberListCache.loading = false; });
+  }
+
+  // Accept ["alice"], [{instagram,name}], {members:[...]}, {usernames:[...]},
+  // or {results:[...]}. Returns deduped [{ instagram, name }].
+  function normalizeMemberList(data) {
+    var list = [];
+    if (Array.isArray(data)) list = data;
+    else if (data && Array.isArray(data.members)) list = data.members;
+    else if (data && Array.isArray(data.usernames)) list = data.usernames;
+    else if (data && Array.isArray(data.results)) list = data.results;
+    var seen = {};
+    var out = [];
+    list.forEach(function (item) {
+      var ig, name;
+      if (typeof item === "string") { ig = item; }
+      else if (item && typeof item === "object") {
+        ig = item.instagram || item.username || item.handle;
+        name = item.name;
+      }
+      ig = String(ig || "").replace(/^@/, "").trim();
+      if (!ig) return;
+      var key = ig.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push({ instagram: ig, name: name || "" });
+    });
+    return out;
+  }
+
+  // Reusable username typeahead. Queued handles (the removable chips) are the
+  // source of truth in `state.handles`. cfg: { input, suggestionsEl, previewEl,
+  // onSubmit }.
+  function createTypeahead(cfg) {
+    var state = { handles: [], active: -1 };
+
+    function renderChips() {
+      cfg.previewEl.innerHTML = "";
+      state.handles.forEach(function (h) {
+        var chip = document.createElement("span");
+        chip.className = "admin-chip removable";
+        chip.innerHTML = "@" + escapeHtml(h) +
+          '<button type="button" class="admin-chip-x" aria-label="移除">✕</button>';
+        chip.querySelector(".admin-chip-x").addEventListener("click", function () {
+          removeHandle(h);
+        });
+        cfg.previewEl.appendChild(chip);
+      });
+    }
+
+    function addHandle(raw) {
+      var h = String(raw || "").trim().replace(/^@/, "");
+      if (!h) return;
+      var exists = state.handles.some(function (x) { return x.toLowerCase() === h.toLowerCase(); });
+      if (!exists) state.handles.push(h);
+      renderChips();
+    }
+
+    function removeHandle(h) {
+      state.handles = state.handles.filter(function (x) {
+        return x.toLowerCase() !== h.toLowerCase();
+      });
+      renderChips();
+    }
+
+    function setHandles(arr) {
+      state.handles = (arr || []).slice();
+      renderChips();
+    }
+
+    function onInput() {
+      // Pasting a comma-separated list adds all but the trailing token as chips.
+      if (cfg.input.value.indexOf(",") !== -1) {
+        var parts = cfg.input.value.split(",");
+        var last = parts.pop();
+        parts.forEach(addHandle);
+        cfg.input.value = last.replace(/^\s*@?/, "");
+      }
+      var q = cfg.input.value.replace(/^@/, "").trim().toLowerCase();
+      if (!q) return hide();
+      var queued = {};
+      state.handles.forEach(function (h) { queued[h.toLowerCase()] = true; });
+      var matches = memberListCache.items.filter(function (m) {
+        return m.instagram.toLowerCase().indexOf(q) === 0 && !queued[m.instagram.toLowerCase()];
+      }).slice(0, 8);
+      render(matches);
+    }
+
+    function render(matches) {
+      state.active = -1;
+      cfg.suggestionsEl.innerHTML = "";
+      if (!matches.length) return hide();
+      matches.forEach(function (m, i) {
+        var li = document.createElement("li");
+        li.className = "ta-suggestion";
+        li.dataset.handle = m.instagram;
+        li.innerHTML = '<span class="ta-suggestion-handle">@' + escapeHtml(m.instagram) + "</span>" +
+          (m.name ? '<span class="ta-suggestion-name">' + escapeHtml(m.name) + "</span>" : "");
+        li.addEventListener("mousedown", function (e) {
+          e.preventDefault(); // keep focus on the input
+          choose(m.instagram);
+        });
+        li.addEventListener("mouseenter", function () { setActive(i); });
+        cfg.suggestionsEl.appendChild(li);
+      });
+      cfg.suggestionsEl.hidden = false;
+    }
+
+    function hide() {
+      cfg.suggestionsEl.hidden = true;
+      cfg.suggestionsEl.innerHTML = "";
+      state.active = -1;
+    }
+
+    function setActive(i) {
+      state.active = i;
+      Array.prototype.forEach.call(cfg.suggestionsEl.children, function (li, idx) {
+        li.classList.toggle("active", idx === i);
+      });
+    }
+
+    function choose(handle) {
+      addHandle(handle);
+      cfg.input.value = "";
+      hide();
+      cfg.input.focus();
+    }
+
+    // Fold any half-typed username into the chip queue (called before submit).
+    function commitInput() {
+      if (cfg.input.value.trim()) { addHandle(cfg.input.value); cfg.input.value = ""; }
+      hide();
+    }
+
+    function onKeydown(e) {
+      var items = cfg.suggestionsEl.children;
+      var open = !cfg.suggestionsEl.hidden && items.length;
+      if (e.key === "ArrowDown" && open) {
+        e.preventDefault();
+        setActive((state.active + 1) % items.length);
+      } else if (e.key === "ArrowUp" && open) {
+        e.preventDefault();
+        setActive((state.active - 1 + items.length) % items.length);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (open && state.active >= 0) {
+          choose(items[state.active].dataset.handle);
+        } else if (cfg.input.value.trim()) {
+          addHandle(cfg.input.value);
+          cfg.input.value = "";
+          hide();
+        } else if (cfg.onSubmit) {
+          cfg.onSubmit();
+        }
+      } else if (e.key === "Escape") {
+        hide();
+      } else if (e.key === "Backspace" && !cfg.input.value && state.handles.length) {
+        removeHandle(state.handles[state.handles.length - 1]);
+      }
+    }
+
+    cfg.input.addEventListener("focus", loadMemberList);
+    cfg.input.addEventListener("input", onInput);
+    cfg.input.addEventListener("keydown", onKeydown);
+    document.addEventListener("click", function (e) {
+      if (!cfg.suggestionsEl.contains(e.target) && e.target !== cfg.input) hide();
+    });
+
+    return {
+      state: state,
+      addHandle: addHandle,
+      setHandles: setHandles,
+      commitInput: commitInput,
+      hide: hide
+    };
   }
 
   function searchMembers() {
-    var handles = parseHandles(lookupInput.value);
+    lookupTypeahead.commitInput();
+    var handles = lookupTypeahead.state.handles.slice();
     if (handles.length === 0) return toast("請輸入至少一個 Instagram username", true);
 
     var token = getToken();
@@ -1060,6 +1254,13 @@
       chip.className = "lookup-profile-handle";
       chip.textContent = "@" + String(handle).replace(/^@/, "");
       header.appendChild(chip);
+    }
+    var membership = getMembershipBadge(profile);
+    if (membership) {
+      var mb = document.createElement("span");
+      mb.className = "lookup-membership-badge " + membership.variant;
+      mb.textContent = membership.text;
+      header.appendChild(mb);
     }
     panel.appendChild(header);
 
@@ -1251,6 +1452,17 @@
     var mine = normalizeStatus(match.myStatus);
     var partner = normalizeStatus(match.partnerStatus);
     return MATCH_STATUS_TABLE[mine + "|" + partner] || null;
+  }
+
+  // membership column from n8n: "activated" → active member; "expire"/"expired"
+  // → lapsed; empty → never activated. Unknown values shown as-is.
+  function getMembershipBadge(profile) {
+    if (!profile) return null;
+    var v = String(profile.membership || "").toLowerCase();
+    if (v === "activated") return { text: "會員", variant: "active" };
+    if (v === "expire" || v === "expired") return { text: "會員過期", variant: "expired" };
+    if (!v) return { text: "未啟用", variant: "inactive" };
+    return { text: profile.membership, variant: "inactive" };
   }
 
   function buildProfileChips(p) {
