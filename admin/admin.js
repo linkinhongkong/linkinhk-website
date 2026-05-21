@@ -58,12 +58,21 @@
   var lookupPreview = $("lookup-preview");
   var lookupResults = $("lookup-results");
   var lookupSearchBtn = $("admin-search-members-btn");
+  var lookupSuggestions = $("lookup-suggestions");
 
   // ── State ──
   var bodyBlocks = []; // [{type:'p'|'h2'|'h3'|'quote', text:string} | {type:'list', items:string[]}]
   var slugManuallyEdited = false;
   var activitiesData = { question: { label: "", hint: "" }, items: [] };
-  var lookupState = { activeHandle: null, results: [] };
+  var lookupState = {
+    activeHandle: null,
+    results: [],
+    handles: [],          // queued usernames shown as chips
+    allUsernames: [],      // cached full member list for typeahead
+    listLoaded: false,
+    loadingList: false,
+    activeSuggestion: -1
+  };
 
   // ============================================================
   // Init
@@ -123,8 +132,13 @@
     submitMembersBtn.addEventListener("click", submitMembers);
 
     // Lookup tab
-    lookupInput.addEventListener("input", renderLookupPreview);
+    lookupInput.addEventListener("focus", loadMemberList);
+    lookupInput.addEventListener("input", onLookupInput);
+    lookupInput.addEventListener("keydown", onLookupKeydown);
     lookupSearchBtn.addEventListener("click", searchMembers);
+    document.addEventListener("click", function (e) {
+      if (!lookupSuggestions.contains(e.target) && e.target !== lookupInput) hideSuggestions();
+    });
 
     renderBlocks();
   }
@@ -884,15 +898,184 @@
   // ============================================================
   // Lookup tab
   // ============================================================
-  function renderLookupPreview() {
-    var handles = parseHandles(lookupInput.value);
-    lookupPreview.innerHTML = handles
-      .map(function (h) { return '<span class="admin-chip">@' + escapeHtml(h) + "</span>"; })
-      .join("");
+
+  // Queued handles render as removable chips; lookupState.handles is the
+  // source of truth (replaces the old comma-separated textarea).
+  function renderLookupChips() {
+    lookupPreview.innerHTML = "";
+    lookupState.handles.forEach(function (h) {
+      var chip = document.createElement("span");
+      chip.className = "admin-chip removable";
+      chip.innerHTML = "@" + escapeHtml(h) +
+        '<button type="button" class="admin-chip-x" aria-label="移除">✕</button>';
+      chip.querySelector(".admin-chip-x").addEventListener("click", function () {
+        removeHandle(h);
+      });
+      lookupPreview.appendChild(chip);
+    });
+  }
+
+  function addHandle(raw) {
+    var h = String(raw || "").trim().replace(/^@/, "");
+    if (!h) return;
+    var exists = lookupState.handles.some(function (x) { return x.toLowerCase() === h.toLowerCase(); });
+    if (!exists) lookupState.handles.push(h);
+    renderLookupChips();
+  }
+
+  function removeHandle(h) {
+    lookupState.handles = lookupState.handles.filter(function (x) {
+      return x.toLowerCase() !== h.toLowerCase();
+    });
+    renderLookupChips();
+  }
+
+  // Fetch the full member-username list once per session for client-side
+  // typeahead. Silently degrades to manual entry if it fails.
+  function loadMemberList() {
+    if (lookupState.listLoaded || lookupState.loadingList) return;
+    var token = getToken();
+    if (!token) return;
+    lookupState.loadingList = true;
+    fetch(window.webhookUrl("list-members"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r);
+      })
+      .then(function (data) {
+        // Unwrap n8n's 1-element "Respond to Webhook" wrapper around an object.
+        if (Array.isArray(data) && data.length === 1 && data[0] &&
+            typeof data[0] === "object" && !data[0].instagram) {
+          data = data[0];
+        }
+        lookupState.allUsernames = normalizeMemberList(data);
+        lookupState.listLoaded = true;
+      })
+      .catch(function () { /* typeahead unavailable; manual entry still works */ })
+      .then(function () { lookupState.loadingList = false; });
+  }
+
+  // Accept ["alice"], [{instagram,name}], {members:[...]}, {usernames:[...]},
+  // or {results:[...]}. Returns deduped [{ instagram, name }].
+  function normalizeMemberList(data) {
+    var list = [];
+    if (Array.isArray(data)) list = data;
+    else if (data && Array.isArray(data.members)) list = data.members;
+    else if (data && Array.isArray(data.usernames)) list = data.usernames;
+    else if (data && Array.isArray(data.results)) list = data.results;
+    var seen = {};
+    var out = [];
+    list.forEach(function (item) {
+      var ig, name;
+      if (typeof item === "string") { ig = item; }
+      else if (item && typeof item === "object") {
+        ig = item.instagram || item.username || item.handle;
+        name = item.name;
+      }
+      ig = String(ig || "").replace(/^@/, "").trim();
+      if (!ig) return;
+      var key = ig.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push({ instagram: ig, name: name || "" });
+    });
+    return out;
+  }
+
+  function onLookupInput() {
+    // Pasting a comma-separated list adds all but the trailing token as chips.
+    if (lookupInput.value.indexOf(",") !== -1) {
+      var parts = lookupInput.value.split(",");
+      var last = parts.pop();
+      parts.forEach(addHandle);
+      lookupInput.value = last.replace(/^\s*@?/, "");
+    }
+    var q = lookupInput.value.replace(/^@/, "").trim().toLowerCase();
+    if (!q) return hideSuggestions();
+    var queued = {};
+    lookupState.handles.forEach(function (h) { queued[h.toLowerCase()] = true; });
+    var matches = lookupState.allUsernames.filter(function (m) {
+      return m.instagram.toLowerCase().indexOf(q) === 0 && !queued[m.instagram.toLowerCase()];
+    }).slice(0, 8);
+    renderSuggestions(matches);
+  }
+
+  function renderSuggestions(matches) {
+    lookupState.activeSuggestion = -1;
+    lookupSuggestions.innerHTML = "";
+    if (!matches.length) return hideSuggestions();
+    matches.forEach(function (m, i) {
+      var li = document.createElement("li");
+      li.className = "lookup-suggestion";
+      li.dataset.handle = m.instagram;
+      li.innerHTML = '<span class="lookup-suggestion-handle">@' + escapeHtml(m.instagram) + "</span>" +
+        (m.name ? '<span class="lookup-suggestion-name">' + escapeHtml(m.name) + "</span>" : "");
+      li.addEventListener("mousedown", function (e) {
+        e.preventDefault(); // keep focus on the input
+        chooseSuggestion(m.instagram);
+      });
+      li.addEventListener("mouseenter", function () { setActiveSuggestion(i); });
+      lookupSuggestions.appendChild(li);
+    });
+    lookupSuggestions.hidden = false;
+  }
+
+  function hideSuggestions() {
+    lookupSuggestions.hidden = true;
+    lookupSuggestions.innerHTML = "";
+    lookupState.activeSuggestion = -1;
+  }
+
+  function setActiveSuggestion(i) {
+    lookupState.activeSuggestion = i;
+    Array.prototype.forEach.call(lookupSuggestions.children, function (li, idx) {
+      li.classList.toggle("active", idx === i);
+    });
+  }
+
+  function chooseSuggestion(handle) {
+    addHandle(handle);
+    lookupInput.value = "";
+    hideSuggestions();
+    lookupInput.focus();
+  }
+
+  function onLookupKeydown(e) {
+    var items = lookupSuggestions.children;
+    var open = !lookupSuggestions.hidden && items.length;
+    if (e.key === "ArrowDown" && open) {
+      e.preventDefault();
+      setActiveSuggestion((lookupState.activeSuggestion + 1) % items.length);
+    } else if (e.key === "ArrowUp" && open) {
+      e.preventDefault();
+      setActiveSuggestion((lookupState.activeSuggestion - 1 + items.length) % items.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (open && lookupState.activeSuggestion >= 0) {
+        chooseSuggestion(items[lookupState.activeSuggestion].dataset.handle);
+      } else if (lookupInput.value.trim()) {
+        addHandle(lookupInput.value);
+        lookupInput.value = "";
+        hideSuggestions();
+      } else {
+        searchMembers();
+      }
+    } else if (e.key === "Escape") {
+      hideSuggestions();
+    } else if (e.key === "Backspace" && !lookupInput.value && lookupState.handles.length) {
+      removeHandle(lookupState.handles[lookupState.handles.length - 1]);
+    }
   }
 
   function searchMembers() {
-    var handles = parseHandles(lookupInput.value);
+    // Fold any half-typed username into the queue before searching.
+    if (lookupInput.value.trim()) { addHandle(lookupInput.value); lookupInput.value = ""; }
+    hideSuggestions();
+    var handles = lookupState.handles.slice();
     if (handles.length === 0) return toast("請輸入至少一個 Instagram username", true);
 
     var token = getToken();
@@ -1060,6 +1243,13 @@
       chip.className = "lookup-profile-handle";
       chip.textContent = "@" + String(handle).replace(/^@/, "");
       header.appendChild(chip);
+    }
+    var membership = getMembershipBadge(profile);
+    if (membership) {
+      var mb = document.createElement("span");
+      mb.className = "lookup-membership-badge " + membership.variant;
+      mb.textContent = membership.text;
+      header.appendChild(mb);
     }
     panel.appendChild(header);
 
@@ -1251,6 +1441,17 @@
     var mine = normalizeStatus(match.myStatus);
     var partner = normalizeStatus(match.partnerStatus);
     return MATCH_STATUS_TABLE[mine + "|" + partner] || null;
+  }
+
+  // membership column from n8n: "activated" → active member; "expire"/"expired"
+  // → lapsed; empty → never activated. Unknown values shown as-is.
+  function getMembershipBadge(profile) {
+    if (!profile) return null;
+    var v = String(profile.membership || "").toLowerCase();
+    if (v === "activated") return { text: "會員", variant: "active" };
+    if (v === "expire" || v === "expired") return { text: "會員過期", variant: "expired" };
+    if (!v) return { text: "未啟用", variant: "inactive" };
+    return { text: profile.membership, variant: "inactive" };
   }
 
   function buildProfileChips(p) {

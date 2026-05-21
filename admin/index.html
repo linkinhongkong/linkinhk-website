@@ -210,8 +210,11 @@
       <div class="admin-form">
         <div class="field">
           <label class="field-label" for="lookup-input">Instagram username</label>
-          <div class="field-hint">用逗號 (,) 分隔。可以加 @ 也可以唔加。</div>
-          <textarea class="text-input" id="lookup-input" rows="3" placeholder="alice, @bob, carol"></textarea>
+          <div class="field-hint">輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊查。</div>
+          <div class="lookup-search-box">
+            <input type="text" class="text-input" id="lookup-input" autocomplete="off" placeholder="輸入 username…" />
+            <ul id="lookup-suggestions" class="lookup-suggestions" hidden></ul>
+          </div>
         </div>
 
         <div id="lookup-preview" class="admin-chip-preview"></div>
