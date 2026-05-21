@@ -148,8 +148,11 @@
       <div class="admin-form">
         <div class="field">
           <label class="field-label" for="member-input">Instagram username</label>
-          <div class="field-hint">用逗號 (,) 分隔。可以加 @ 也可以唔加。</div>
-          <textarea class="text-input" id="member-input" rows="3" placeholder="alice, @bob, carol"></textarea>
+          <div class="field-hint">輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。</div>
+          <div class="ta-box">
+            <input type="text" class="text-input" id="member-input" autocomplete="off" placeholder="輸入 username…" />
+            <ul id="member-suggestions" class="ta-suggestions" hidden></ul>
+          </div>
         </div>
 
         <div id="member-preview" class="admin-chip-preview"></div>
@@ -211,9 +214,9 @@
         <div class="field">
           <label class="field-label" for="lookup-input">Instagram username</label>
           <div class="field-hint">輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊查。</div>
-          <div class="lookup-search-box">
+          <div class="ta-box">
             <input type="text" class="text-input" id="lookup-input" autocomplete="off" placeholder="輸入 username…" />
-            <ul id="lookup-suggestions" class="lookup-suggestions" hidden></ul>
+            <ul id="lookup-suggestions" class="ta-suggestions" hidden></ul>
           </div>
         </div>
 
