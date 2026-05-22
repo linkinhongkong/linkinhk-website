@@ -61,6 +61,12 @@
   var lookupSearchBtn = $("admin-search-members-btn");
   var lookupSuggestions = $("lookup-suggestions");
 
+  // Dashboard tab
+  var dashboardState = $("dashboard-state");
+  var dashboardContent = $("dashboard-content");
+  var dashboardRefresh = $("dashboard-refresh");
+  var dashKpis = $("dash-kpis");
+
   // ── State ──
   var bodyBlocks = []; // [{type:'p'|'h2'|'h3'|'quote', text:string} | {type:'list', items:string[]}]
   var slugManuallyEdited = false;
@@ -68,6 +74,8 @@
   var lookupState = { activeHandle: null, results: [] };
   var lookupTypeahead = null;
   var memberTypeahead = null;
+  var dashboardCharts = [];
+  var dashboardLoaded = false;
 
   // ============================================================
   // Init
@@ -136,6 +144,9 @@
     });
     lookupSearchBtn.addEventListener("click", searchMembers);
 
+    // Dashboard tab
+    dashboardRefresh.addEventListener("click", function () { loadDashboard(); });
+
     renderBlocks();
   }
 
@@ -157,6 +168,7 @@
     logoutBtn.hidden = false;
     loadPostsList();
     loadActivities();
+    loadDashboard();
   }
   function switchTab(name) {
     Array.prototype.forEach.call(document.querySelectorAll(".admin-tab"), function (b) {
@@ -1565,6 +1577,395 @@
     modalBody.innerHTML = '<img class="lookup-photo-modal-img" alt="" />';
     modalBody.querySelector("img").src = src;
     previewModal.hidden = false;
+  }
+
+  // ============================================================
+  // Dashboard tab
+  // ============================================================
+  var DASH_PALETTE = [
+    "#FF6EB4", "#A259FF", "#9060E0", "#5B2EAA", "#4DB6AC",
+    "#FFB300", "#7E57C2", "#FF8A65", "#5B9BD5", "#AED581",
+    "#F06292", "#BA68C8", "#4FC3F7", "#FFD54F", "#81C784"
+  ];
+
+  function loadDashboard() {
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+
+    dashboardState.hidden = false;
+    dashboardState.textContent = "載入中…";
+    if (!dashboardLoaded) dashboardContent.hidden = true;
+    setBusy(dashboardRefresh, "…");
+
+    fetch(window.webhookUrl("dashboard-data"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r);
+      })
+      .then(function (data) {
+        renderDashboard(data || {});
+        dashboardState.hidden = true;
+        dashboardContent.hidden = false;
+        dashboardLoaded = true;
+      })
+      .catch(function (e) {
+        if (e && e.message === "auth") return;
+        dashboardState.hidden = false;
+        dashboardState.textContent = "載入失敗，請重試。";
+      })
+      .then(function () { unsetBusy(dashboardRefresh, "🔄"); });
+  }
+
+  // ── Aggregation ──
+  function parseAge(dob) {
+    var m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(dob || ""));
+    if (!m) return null;
+    var now = new Date();
+    var age = now.getFullYear() - parseInt(m[3], 10);
+    var bMonth = parseInt(m[2], 10), bDay = parseInt(m[1], 10);
+    if (now.getMonth() + 1 < bMonth || (now.getMonth() + 1 === bMonth && now.getDate() < bDay)) age--;
+    return (age > 0 && age < 120) ? age : null;
+  }
+  function parseCharge(s) {
+    var m = /\$\s*(\d+)/.exec(String(s || ""));
+    return m ? parseInt(m[1], 10) : 0;
+  }
+  function parseTouchpoint(s) {
+    s = (s || "").trim();
+    if (!s) return [];
+    try {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) return arr.map(function (x) { return String(x).trim(); }).filter(Boolean);
+    } catch (e) { /* fall through */ }
+    return [s];
+  }
+  function isFemale(sex) { return String(sex || "").indexOf("女") !== -1; }
+  function isMale(sex) { return String(sex || "").indexOf("男") !== -1; }
+
+  function countBy(arr, keyFn) {
+    var m = {};
+    arr.forEach(function (x) {
+      var k = keyFn(x);
+      if (k === null || k === undefined || k === "") return;
+      m[k] = (m[k] || 0) + 1;
+    });
+    return m;
+  }
+  function topN(map, n) {
+    var pairs = Object.keys(map).map(function (k) { return [k, map[k]]; });
+    pairs.sort(function (a, b) { return b[1] - a[1]; });
+    return n ? pairs.slice(0, n) : pairs;
+  }
+
+  function aggMembers(members) {
+    var total = members.length;
+    var active = members.filter(function (m) { return m.membership === "activated"; }).length;
+    var male = members.filter(function (m) { return isMale(m.sex); }).length;
+    var female = members.filter(function (m) { return isFemale(m.sex); }).length;
+
+    var ageOrder = ["<25", "25-29", "30-34", "35-39", "40+"];
+    var ageBuckets = { "<25": 0, "25-29": 0, "30-34": 0, "35-39": 0, "40+": 0 };
+    members.forEach(function (m) {
+      var a = parseAge(m["my-age"]);
+      if (a === null) return;
+      if (a < 25) ageBuckets["<25"]++;
+      else if (a < 30) ageBuckets["25-29"]++;
+      else if (a < 35) ageBuckets["30-34"]++;
+      else if (a < 40) ageBuckets["35-39"]++;
+      else ageBuckets["40+"]++;
+    });
+
+    var touch = {};
+    members.forEach(function (m) {
+      parseTouchpoint(m.touchpoint).forEach(function (t) { touch[t] = (touch[t] || 0) + 1; });
+    });
+
+    var signups = {};
+    members.forEach(function (m) {
+      var s = String(m["Submitted at"] || "");
+      var mm = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+      if (!mm) return;
+      var key = mm[3] + "-" + String(parseInt(mm[2], 10)).padStart(2, "0");
+      signups[key] = (signups[key] || 0) + 1;
+    });
+
+    return {
+      total: total, active: active, male: male, female: female,
+      ageOrder: ageOrder, ageBuckets: ageBuckets,
+      occupation: countBy(members, function (m) { return (m["my-occupation"] || "").trim(); }),
+      mbti: countBy(members, function (m) { return (m["my-MBTI"] || "").trim(); }),
+      face: countBy(members, function (m) { return (m["face-rating"] || "").trim(); }),
+      membership: countBy(members, function (m) { return (m.membership || "").trim(); }),
+      touchpoint: touch,
+      signups: signups
+    };
+  }
+
+  function aggMatches(matches) {
+    var resp = { accept: 0, reject: 0, expire: 0, pending: 0 };
+    var mutual = 0, atLeastOneAccept = 0;
+    var outcomes = { mutual: 0, oneAcceptOneExpire: 0, anyReject: 0, bothExpire: 0, awaiting: 0 };
+
+    matches.forEach(function (mt) {
+      var a = (mt["a-status"] || "").trim();
+      var b = (mt["b-status"] || "").trim();
+      [a, b].forEach(function (s) { if (resp.hasOwnProperty(s)) resp[s]++; });
+
+      var set = [a, b];
+      var hasAccept = set.indexOf("accept") !== -1;
+      var hasReject = set.indexOf("reject") !== -1;
+      var hasPending = set.indexOf("pending") !== -1;
+
+      if (hasAccept) atLeastOneAccept++;
+      if (a === "accept" && b === "accept") { mutual++; outcomes.mutual++; }
+      else if (hasReject) outcomes.anyReject++;
+      else if (hasAccept && set.indexOf("expire") !== -1) outcomes.oneAcceptOneExpire++;
+      else if (a === "expire" && b === "expire") outcomes.bothExpire++;
+      else if (hasPending) outcomes.awaiting++;
+    });
+
+    var decided = resp.accept + resp.reject + resp.expire;
+    var responseRate = decided ? Math.round(100 * (resp.accept + resp.reject) / decided) : 0;
+    var mutualRate = matches.length ? Math.round(1000 * mutual / matches.length) / 10 : 0;
+
+    return {
+      total: matches.length, resp: resp, mutual: mutual, atLeastOneAccept: atLeastOneAccept,
+      outcomes: outcomes, responseRate: responseRate, mutualRate: mutualRate
+    };
+  }
+
+  function classifyPayment(p) {
+    p = (p || "").trim().toLowerCase();
+    if (p === "received" || p.indexOf("paid") !== -1) return "confirmed";
+    if (p.indexOf("withdraw") !== -1) return "withdrawn";
+    return "arranging";
+  }
+  function eventActivity(s) {
+    s = (s || "").trim();
+    if (!s) return "";
+    if (s.toLowerCase().indexOf("exchanged ig") !== -1) return "IG 交換";
+    var word = s.split("$")[0].trim();
+    return word || s;
+  }
+  function isIgOnly(ev) {
+    return eventActivity(ev["Event and Charge Per head"]) === "IG 交換";
+  }
+  function paymentHeads(p) {
+    p = (p || "").trim().toLowerCase();
+    if (p === "received") return 2;
+    if (p.indexOf("paid") !== -1) return 1;
+    return 0;
+  }
+
+  function aggEvents(events) {
+    var dates = events.filter(function (e) { return !isIgOnly(e); });
+    var confirmed = 0, withdrawn = 0, arranging = 0, revenue = 0;
+    dates.forEach(function (e) {
+      var c = classifyPayment(e["Payment Status"]);
+      if (c === "confirmed") confirmed++;
+      else if (c === "withdrawn") withdrawn++;
+      else arranging++;
+      revenue += parseCharge(e["Event and Charge Per head"]) * paymentHeads(e["Payment Status"]);
+    });
+
+    return {
+      total: events.length,
+      datesArranged: dates.length,
+      confirmed: confirmed, withdrawn: withdrawn, arranging: arranging, revenue: revenue,
+      payment: countBy(events, function (e) {
+        var p = (e["Payment Status"] || "").trim();
+        return p || "（待安排）";
+      }),
+      activity: countBy(events, function (e) { return eventActivity(e["Event and Charge Per head"]); }),
+      stage: countBy(events, function (e) { return (e.Status || "").trim(); })
+    };
+  }
+
+  // ── Render ──
+  function destroyDashboardCharts() {
+    dashboardCharts.forEach(function (c) { try { c.destroy(); } catch (e) { /* noop */ } });
+    dashboardCharts = [];
+  }
+
+  function makeChart(canvasId, config) {
+    var canvas = $(canvasId);
+    if (!canvas) return;
+    var c = new window.Chart(canvas.getContext("2d"), config);
+    dashboardCharts.push(c);
+  }
+
+  function donut(canvasId, labels, values, colors) {
+    makeChart(canvasId, {
+      type: "doughnut",
+      data: {
+        labels: labels,
+        datasets: [{ data: values, backgroundColor: colors || DASH_PALETTE, borderWidth: 2, borderColor: "#fff" }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: "58%",
+        plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } } }
+      }
+    });
+  }
+
+  function bar(canvasId, labels, values, opts) {
+    opts = opts || {};
+    makeChart(canvasId, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [{ data: values, backgroundColor: opts.colors || "#A259FF", borderRadius: 6, maxBarThickness: 38 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: opts.horizontal ? "y" : "x",
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: !opts.horizontal }, ticks: { font: { size: 11 }, precision: 0 } },
+          y: { grid: { display: !!opts.horizontal }, ticks: { font: { size: 11 }, precision: 0 } }
+        }
+      }
+    });
+  }
+
+  function line(canvasId, labels, values) {
+    makeChart(canvasId, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values, borderColor: "#A259FF", backgroundColor: "rgba(162,89,255,0.12)",
+          fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: "#A259FF"
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } }, x: { ticks: { font: { size: 11 } } } }
+      }
+    });
+  }
+
+  function kpiCard(value, label, sub, accent) {
+    return '<div class="dash-kpi-card' + (accent ? " accent" : "") + '">' +
+      '<div class="dash-kpi-value">' + escapeHtml(String(value)) + "</div>" +
+      '<div class="dash-kpi-label">' + escapeHtml(label) + "</div>" +
+      (sub ? '<div class="dash-kpi-sub">' + escapeHtml(sub) + "</div>" : "") +
+      "</div>";
+  }
+
+  function funnelRow(label, value, max, isEvents) {
+    var pct = max > 0 ? Math.max(4, Math.round(100 * value / max)) : 4;
+    return '<div class="dash-funnel-row' + (isEvents ? " is-events" : "") + '">' +
+      '<div class="dash-funnel-label">' + escapeHtml(label) + "</div>" +
+      '<div class="dash-funnel-bar-wrap">' +
+      '<div class="dash-funnel-bar" style="width:' + pct + '%">' + value + "</div>" +
+      "</div></div>";
+  }
+
+  function renderDashboard(data) {
+    destroyDashboardCharts();
+
+    var members = Array.isArray(data.members) ? data.members : [];
+    var matches = Array.isArray(data.matches) ? data.matches : [];
+    var events = Array.isArray(data.events) ? data.events : [];
+
+    var M = aggMembers(members);
+    var X = aggMatches(matches);
+    var E = aggEvents(events);
+
+    // ── Section A: KPI cards ──
+    dashKpis.innerHTML = [
+      kpiCard(M.total, "總會員", M.male + " 男 · " + M.female + " 女"),
+      kpiCard(M.active, "生效會員", M.total ? Math.round(100 * M.active / M.total) + "% 生效中" : ""),
+      kpiCard(X.total, "總配對數", ""),
+      kpiCard(X.responseRate + "%", "回覆率", "不計 pending"),
+      kpiCard(X.mutual, "雙方接受", X.mutualRate + "% 配對成功", true),
+      kpiCard(E.datesArranged, "安排約會", E.arranging + " 安排中 · " + E.withdrawn + " 退出"),
+      kpiCard(E.confirmed, "已確認/付款", "", true),
+      kpiCard("$" + E.revenue.toLocaleString(), "估算收入", "已付款活動")
+    ].join("");
+
+    $("dash-funnel-note").textContent =
+      "註：「雙方接受」只代表雙方喺配對階段都揀咗對方，未必真正出到嚟見面。實際約會以「活動」資料為準 —— 部分人接受後失聯或中途退出。配對與活動係兩份獨立資料，並非一對一對應。";
+
+    // ── Guard: Chart.js available? ──
+    if (!window.Chart) {
+      var note = document.createElement("div");
+      note.className = "dash-note";
+      note.textContent = "圖表程式庫載入失敗（請檢查網絡），但上方數字仍然可用。";
+      dashKpis.insertAdjacentElement("afterend", note);
+      renderFunnel(X, E);
+      return;
+    }
+
+    // ── Section C: funnel + engagement ──
+    renderFunnel(X, E);
+
+    donut("dash-response",
+      ["接受", "拒絕", "未回覆 (expire)", "等待中"],
+      [X.resp.accept, X.resp.reject, X.resp.expire, X.resp.pending],
+      ["#4CAF50", "#e53e3e", "#bdbdbd", "#FFB300"]);
+
+    bar("dash-outcome",
+      ["雙方接受", "一接受一未覆", "至少一拒絕", "雙方未覆", "等待中"],
+      [X.outcomes.mutual, X.outcomes.oneAcceptOneExpire, X.outcomes.anyReject, X.outcomes.bothExpire, X.outcomes.awaiting],
+      { colors: ["#4CAF50", "#AED581", "#e53e3e", "#bdbdbd", "#FFB300"] });
+
+    // ── Section B: demographics ──
+    donut("dash-gender", ["男性", "女性"], [M.male, M.female], ["#5B9BD5", "#FF6EB4"]);
+    donut("dash-membership",
+      topN(M.membership).map(function (p) { return p[0]; }),
+      topN(M.membership).map(function (p) { return p[1]; }),
+      ["#4CAF50", "#bdbdbd", "#FFB300", "#7E57C2"]);
+    bar("dash-age", M.ageOrder, M.ageOrder.map(function (k) { return M.ageBuckets[k]; }), { colors: "#A259FF" });
+    bar("dash-face", ["A", "B", "C", "D", "E"], ["A", "B", "C", "D", "E"].map(function (k) { return M.face[k] || 0; }),
+      { colors: ["#FF6EB4", "#A259FF", "#9060E0", "#7E57C2", "#5B2EAA"] });
+
+    var occ = topN(M.occupation, 10);
+    bar("dash-occupation", occ.map(function (p) { return p[0]; }), occ.map(function (p) { return p[1]; }),
+      { horizontal: true, colors: "#9060E0" });
+
+    var mbti = topN(M.mbti, 12);
+    bar("dash-mbti", mbti.map(function (p) { return p[0]; }), mbti.map(function (p) { return p[1]; }),
+      { horizontal: true, colors: "#A259FF" });
+
+    var tp = topN(M.touchpoint);
+    if (tp.length) {
+      donut("dash-touchpoint", tp.map(function (p) { return p[0]; }), tp.map(function (p) { return p[1]; }));
+    }
+
+    var sKeys = Object.keys(M.signups).sort();
+    line("dash-signups", sKeys, sKeys.map(function (k) { return M.signups[k]; }));
+
+    // ── Section D: events & revenue ──
+    var pay = topN(E.payment);
+    donut("dash-payment", pay.map(function (p) { return p[0]; }), pay.map(function (p) { return p[1]; }));
+    var act = topN(E.activity);
+    bar("dash-activity", act.map(function (p) { return p[0]; }), act.map(function (p) { return p[1]; }), { colors: "#4DB6AC" });
+    var stg = topN(E.stage);
+    bar("dash-stage", stg.map(function (p) { return p[0]; }), stg.map(function (p) { return p[1]; }),
+      { horizontal: true, colors: "#7E57C2" });
+  }
+
+  function renderFunnel(X, E) {
+    var maxMatch = X.total || 1;
+    var html =
+      '<div class="dash-funnel-divider">— 配對階段（配對資料）—</div>' +
+      funnelRow("已配對", X.total, maxMatch, false) +
+      funnelRow("至少一方接受", X.atLeastOneAccept, maxMatch, false) +
+      funnelRow("雙方接受", X.mutual, maxMatch, false) +
+      '<div class="dash-funnel-divider">— 約會階段（活動資料）—</div>' +
+      funnelRow("安排約會", E.datesArranged, maxMatch, true) +
+      funnelRow("已確認/付款", E.confirmed, maxMatch, true);
+    $("dash-funnel").innerHTML = html;
+    $("dash-funnel-foot").textContent =
+      "活動階段：" + E.datesArranged + " 個約會安排中，當中 " + E.confirmed +
+      " 個已確認/付款、" + E.withdrawn + " 個中途退出。";
   }
 
   // ============================================================
