@@ -52,16 +52,16 @@
   <main id="admin-dashboard-view" class="admin-dashboard" hidden>
 
     <div class="admin-tabs">
-      <button class="admin-tab active" type="button" data-tab="dashboard">📊 Dashboard</button>
-      <button class="admin-tab" type="button" data-tab="blog">📝 新增 Blog</button>
-      <button class="admin-tab" type="button" data-tab="member">👥 新增會員</button>
-      <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
+      <button class="admin-tab active" type="button" data-tab="member">👥 新增會員</button>
       <button class="admin-tab" type="button" data-tab="lookup">🔍 查詢會員</button>
       <button class="admin-tab" type="button" data-tab="followup">🔔 跟進名單</button>
+      <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
+      <button class="admin-tab" type="button" data-tab="blog">📝 新增 Blog</button>
+      <button class="admin-tab" type="button" data-tab="dashboard">📊 Dashboard</button>
     </div>
 
     <!-- ── Dashboard tab ── -->
-    <section id="admin-tab-dashboard" class="admin-panel">
+    <section id="admin-tab-dashboard" class="admin-panel" hidden>
 
       <div class="admin-panel-head admin-posts-head">
         <div>
@@ -235,7 +235,7 @@
     </section>
 
     <!-- ── Member tab ── -->
-    <section id="admin-tab-member" class="admin-panel" hidden>
+    <section id="admin-tab-member" class="admin-panel">
 
       <div class="admin-panel-head">
         <h2 class="admin-panel-title">新增會員</h2>

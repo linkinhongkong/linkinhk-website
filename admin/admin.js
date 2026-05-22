@@ -178,7 +178,6 @@
     logoutBtn.hidden = false;
     loadPostsList();
     loadActivities();
-    loadDashboard();
   }
   function switchTab(name) {
     Array.prototype.forEach.call(document.querySelectorAll(".admin-tab"), function (b) {
@@ -187,6 +186,9 @@
     Array.prototype.forEach.call(document.querySelectorAll(".admin-panel"), function (p) {
       p.hidden = p.id !== "admin-tab-" + name;
     });
+    // Lazy-load the dashboard the first time it's opened: its charts must
+    // render into a visible canvas, otherwise Chart.js sizes them to 0.
+    if (name === "dashboard" && !dashboardLoaded) loadDashboard();
   }
 
   // ============================================================
