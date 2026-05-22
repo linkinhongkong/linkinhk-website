@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/shared/design-system.css">
   <link rel="stylesheet" href="/admin/admin.css">
   <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body class="marketing-body">
 
@@ -51,14 +52,109 @@
   <main id="admin-dashboard-view" class="admin-dashboard" hidden>
 
     <div class="admin-tabs">
-      <button class="admin-tab active" type="button" data-tab="blog">📝 新增 Blog</button>
+      <button class="admin-tab active" type="button" data-tab="dashboard">📊 Dashboard</button>
+      <button class="admin-tab" type="button" data-tab="blog">📝 新增 Blog</button>
       <button class="admin-tab" type="button" data-tab="member">👥 新增會員</button>
       <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
       <button class="admin-tab" type="button" data-tab="lookup">🔍 查詢會員</button>
     </div>
 
+    <!-- ── Dashboard tab ── -->
+    <section id="admin-tab-dashboard" class="admin-panel">
+
+      <div class="admin-panel-head admin-posts-head">
+        <div>
+          <h2 class="admin-panel-title">📊 數據總覽</h2>
+          <p class="admin-panel-sub">會員、配對同活動嘅即時統計。數字嚟自 n8n。</p>
+        </div>
+        <button type="button" id="dashboard-refresh" class="admin-icon-btn" title="重新載入">🔄</button>
+      </div>
+
+      <div id="dashboard-state" class="admin-posts-state">載入中…</div>
+
+      <div id="dashboard-content" hidden>
+
+        <!-- Section A: Overview KPIs -->
+        <div class="dash-kpi-grid" id="dash-kpis"></div>
+        <p class="dash-note" id="dash-funnel-note"></p>
+
+        <!-- Section C: Match funnel (headline) -->
+        <h3 class="dash-section-title">🔗 配對漏斗 &amp; 互動</h3>
+        <div class="dash-grid">
+          <div class="dash-card dash-card-wide">
+            <div class="dash-card-title">配對漏斗（配對資料 → 實際約會）</div>
+            <div class="dash-funnel" id="dash-funnel"></div>
+            <p class="dash-card-foot" id="dash-funnel-foot"></p>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">回覆比例（逐個回覆計）</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-response"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">配對結果分佈</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-outcome"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Section B: Member demographics -->
+        <h3 class="dash-section-title">👥 會員概況</h3>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-title">男女比例</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-gender"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">會員狀態</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-membership"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">年齡分佈</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-age"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">顏值評分 (A–E)</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-face"></canvas></div>
+          </div>
+          <div class="dash-card dash-card-wide">
+            <div class="dash-card-title">職業分佈</div>
+            <div class="dash-canvas-wrap dash-canvas-tall"><canvas id="dash-occupation"></canvas></div>
+          </div>
+          <div class="dash-card dash-card-wide">
+            <div class="dash-card-title">MBTI 分佈</div>
+            <div class="dash-canvas-wrap dash-canvas-tall"><canvas id="dash-mbti"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">認識途徑</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-touchpoint"></canvas></div>
+          </div>
+          <div class="dash-card dash-card-wide">
+            <div class="dash-card-title">會員註冊趨勢</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-signups"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Section D: Events & revenue -->
+        <h3 class="dash-section-title">🎟️ 活動 &amp; 收入</h3>
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="dash-card-title">付款狀態</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-payment"></canvas></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">活動類型</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-activity"></canvas></div>
+          </div>
+          <div class="dash-card dash-card-wide">
+            <div class="dash-card-title">處理進度 (Status)</div>
+            <div class="dash-canvas-wrap"><canvas id="dash-stage"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- ── Blog tab ── -->
-    <section id="admin-tab-blog" class="admin-panel">
+    <section id="admin-tab-blog" class="admin-panel" hidden>
 
       <div class="admin-panel-head">
         <h2 class="admin-panel-title">新增 Blog 文章</h2>
