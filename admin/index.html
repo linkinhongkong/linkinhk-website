@@ -57,6 +57,7 @@
       <button class="admin-tab" type="button" data-tab="member">👥 新增會員</button>
       <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
       <button class="admin-tab" type="button" data-tab="lookup">🔍 查詢會員</button>
+      <button class="admin-tab" type="button" data-tab="followup">🔔 跟進名單</button>
     </div>
 
     <!-- ── Dashboard tab ── -->
@@ -323,6 +324,28 @@
         </div>
 
         <div id="lookup-results" class="lookup-results" hidden></div>
+      </div>
+    </section>
+
+    <!-- ── Follow-up tab ── -->
+    <section id="admin-tab-followup" class="admin-panel" hidden>
+
+      <div class="admin-panel-head">
+        <h2 class="admin-panel-title">🔔 跟進名單</h2>
+        <p class="admin-panel-sub">列出仲未回覆、而配對未過期嘅會員（即係要 chase 嘅人）。撳一下 IG／電話／Email 就即刻複製，方便快速跟進。</p>
+      </div>
+
+      <div class="admin-form">
+        <div class="admin-actions-row">
+          <button type="button" id="followup-load-btn" class="btn-primary">📥 載入跟進名單</button>
+        </div>
+
+        <div id="followup-state" class="admin-posts-state" hidden>載入中…</div>
+
+        <div id="followup-content" hidden>
+          <div id="followup-summary" class="followup-summary"></div>
+          <div id="followup-list" class="followup-list"></div>
+        </div>
       </div>
     </section>
 
