@@ -67,6 +67,13 @@
   var dashboardRefresh = $("dashboard-refresh");
   var dashKpis = $("dash-kpis");
 
+  // Follow-up tab
+  var followupLoadBtn = $("followup-load-btn");
+  var followupState = $("followup-state");
+  var followupContent = $("followup-content");
+  var followupSummary = $("followup-summary");
+  var followupListEl = $("followup-list");
+
   // ── State ──
   var bodyBlocks = []; // [{type:'p'|'h2'|'h3'|'quote', text:string} | {type:'list', items:string[]}]
   var slugManuallyEdited = false;
@@ -147,6 +154,9 @@
     // Dashboard tab
     dashboardRefresh.addEventListener("click", function () { loadDashboard(); });
 
+    // Follow-up tab
+    followupLoadBtn.addEventListener("click", loadFollowups);
+
     renderBlocks();
   }
 
@@ -168,7 +178,6 @@
     logoutBtn.hidden = false;
     loadPostsList();
     loadActivities();
-    loadDashboard();
   }
   function switchTab(name) {
     Array.prototype.forEach.call(document.querySelectorAll(".admin-tab"), function (b) {
@@ -177,6 +186,9 @@
     Array.prototype.forEach.call(document.querySelectorAll(".admin-panel"), function (p) {
       p.hidden = p.id !== "admin-tab-" + name;
     });
+    // Lazy-load the dashboard the first time it's opened: its charts must
+    // render into a visible canvas, otherwise Chart.js sizes them to 0.
+    if (name === "dashboard" && !dashboardLoaded) loadDashboard();
   }
 
   // ============================================================
@@ -1577,6 +1589,248 @@
     modalBody.innerHTML = '<img class="lookup-photo-modal-img" alt="" />';
     modalBody.querySelector("img").src = src;
     previewModal.hidden = false;
+  }
+
+  // ============================================================
+  // Follow-up tab — who to chase: people whose own reply is still
+  // "pending" inside a match that hasn't expired (overall status = pending).
+  // n8n returns the matchesGrid rows (incl. instagram + phone per side).
+  // ============================================================
+  var FOLLOWUP_IG_KEYS = ["instagram", "ig", "instagram-username", "ig-username", "instagram-handle", "username", "handle"];
+  var FOLLOWUP_PHONE_KEYS = ["phone", "phone-number", "phonenumber", "tel", "mobile", "whatsapp", "contact"];
+  var followupLoaded = false;
+
+  function loadFollowups() {
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+
+    followupLoadBtn.disabled = true;
+    followupLoadBtn.textContent = "載入中…";
+    followupState.hidden = false;
+    followupState.textContent = "載入中…";
+    if (!followupLoaded) followupContent.hidden = true;
+
+    fetch(window.webhookUrl("follow-up-list"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r);
+      })
+      .then(function (data) {
+        var people = buildFollowupList(normalizeMatchRows(data));
+        renderFollowups(people);
+        followupState.hidden = true;
+        followupContent.hidden = false;
+        followupLoaded = true;
+      })
+      .catch(function (e) {
+        if (e && e.message === "auth") return;
+        followupState.hidden = false;
+        followupState.textContent = "載入失敗，請重試。";
+      })
+      .then(function () {
+        followupLoadBtn.disabled = false;
+        followupLoadBtn.textContent = "🔄 重新整理";
+      });
+  }
+
+  // Accept a bare rows array, { matches | results | data | rows: [...] }, or
+  // n8n's 1-element "Respond to Webhook" wrapper around any of those.
+  function normalizeMatchRows(data) {
+    if (Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === "object" &&
+        !data[0].status && !data[0]["a-status"]) {
+      data = data[0];
+    }
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.matches)) return data.matches;
+    if (data && Array.isArray(data.results)) return data.results;
+    if (data && Array.isArray(data.data)) return data.data;
+    if (data && Array.isArray(data.rows)) return data.rows;
+    return [];
+  }
+
+  function pickSideField(row, side, keys) {
+    for (var i = 0; i < keys.length; i++) {
+      var v = row[side + "-" + keys[i]];
+      if (v != null && String(v).trim() !== "") return String(v).trim();
+    }
+    return "";
+  }
+
+  function buildFollowupList(rows) {
+    var people = [];
+    var seen = {};
+    rows.forEach(function (row) {
+      if (!row || typeof row !== "object") return;
+      if (String(row.status || "").trim().toLowerCase() !== "pending") return;
+      [["a", "b"], ["b", "a"]].forEach(function (pair) {
+        var me = pair[0], partner = pair[1];
+        if (String(row[me + "-status"] || "").trim().toLowerCase() !== "pending") return;
+        // Skip dead-end matches: if the partner already rejected/expired, no
+        // reply from this person can produce a match, so chasing is wasted.
+        var partnerStatus = String(row[partner + "-status"] || "").trim().toLowerCase();
+        if (partnerStatus === "reject" || partnerStatus === "expire") return;
+        var email = String(row["email-" + me] || "").trim();
+        var key = email.toLowerCase();
+        if (key) { if (seen[key]) return; seen[key] = true; }
+        people.push({
+          name: String(row[me + "-name"] || "").trim(),
+          email: email,
+          instagram: pickSideField(row, me, FOLLOWUP_IG_KEYS).replace(/^@/, ""),
+          phone: pickSideField(row, me, FOLLOWUP_PHONE_KEYS),
+          partnerName: String(row[partner + "-name"] || "").trim(),
+          partnerStatus: partnerStatus,
+          createdAt: row["created-at"] || row.createdAt || ""
+        });
+      });
+    });
+    // Oldest matches first — those are closest to expiring, chase them first.
+    people.sort(function (a, b) {
+      return parseFollowupDate(a.createdAt) - parseFollowupDate(b.createdAt);
+    });
+    return people;
+  }
+
+  // Slash dates are Day/Month/Year here, matching the rest of admin.js.
+  function parseFollowupDate(raw) {
+    if (!raw) return Number.MAX_SAFE_INTEGER;
+    var s = String(raw).trim();
+    var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})\s*(am|pm)?)?/i);
+    if (m) {
+      var day = +m[1], month = +m[2], year = +m[3];
+      var hr = m[4] ? +m[4] : 0, min = m[5] ? +m[5] : 0;
+      var ap = (m[6] || "").toLowerCase();
+      if (ap === "pm" && hr < 12) hr += 12;
+      if (ap === "am" && hr === 12) hr = 0;
+      return new Date(year, month - 1, day, hr, min).getTime();
+    }
+    var t = new Date(s).getTime();
+    return isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+  }
+
+  function renderFollowups(people) {
+    followupListEl.innerHTML = "";
+    if (!people.length) {
+      followupSummary.innerHTML = "";
+      followupListEl.innerHTML =
+        '<div class="admin-posts-state">🎉 暫時冇人需要跟進，全部都回咗覆喇。</div>';
+      return;
+    }
+    var hot = people.filter(function (p) { return p.partnerStatus === "accept"; }).length;
+    followupSummary.innerHTML =
+      '<span class="followup-count">' + people.length + " 位需要跟進</span>" +
+      (hot ? '<span class="followup-count-hot">🔥 ' + hot + " 位對方已接受</span>" : "");
+    people.forEach(function (p) { followupListEl.appendChild(buildFollowupCard(p)); });
+  }
+
+  function buildFollowupCard(p) {
+    var card = document.createElement("div");
+    card.className = "followup-card" + (p.partnerStatus === "accept" ? " hot" : "");
+
+    var head = document.createElement("div");
+    head.className = "followup-card-head";
+    var name = document.createElement("span");
+    name.className = "followup-name";
+    name.textContent = p.name || "(未有名稱)";
+    head.appendChild(name);
+
+    var badge = document.createElement("span");
+    if (p.partnerStatus === "accept") {
+      badge.className = "followup-badge hot";
+      badge.textContent = "🔥 對方已接受";
+    } else if (p.partnerStatus === "pending") {
+      badge.className = "followup-badge wait";
+      badge.textContent = "雙方未回覆";
+    } else {
+      badge.className = "followup-badge";
+      badge.textContent = "等緊佢回覆";
+    }
+    head.appendChild(badge);
+    card.appendChild(head);
+
+    var metaBits = [];
+    if (p.partnerName) metaBits.push("配對對象：" + p.partnerName);
+    var t = formatMatchTime(p.createdAt);
+    if (t) metaBits.push(t);
+    if (metaBits.length) {
+      var meta = document.createElement("div");
+      meta.className = "followup-meta";
+      meta.textContent = metaBits.join(" · ");
+      card.appendChild(meta);
+    }
+
+    var contacts = document.createElement("div");
+    contacts.className = "followup-contacts";
+    if (p.instagram) contacts.appendChild(makeCopyChip("IG", "@" + p.instagram, p.instagram));
+    if (p.phone) contacts.appendChild(makeCopyChip("電話", p.phone, p.phone));
+    if (p.email) contacts.appendChild(makeCopyChip("Email", p.email, p.email));
+    if (p.instagram) {
+      var ig = document.createElement("a");
+      ig.className = "followup-iglink";
+      ig.href = "https://instagram.com/" + encodeURIComponent(p.instagram);
+      ig.target = "_blank";
+      ig.rel = "noopener";
+      ig.textContent = "開 IG ↗";
+      contacts.appendChild(ig);
+    }
+    if (!p.instagram && !p.phone && !p.email) {
+      var none = document.createElement("span");
+      none.className = "followup-nocontact";
+      none.textContent = "⚠️ 冇聯絡資料";
+      contacts.appendChild(none);
+    }
+    card.appendChild(contacts);
+
+    return card;
+  }
+
+  function makeCopyChip(label, display, copyValue) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "followup-copy";
+    btn.innerHTML =
+      '<span class="followup-copy-label">' + escapeHtml(label) + "</span>" +
+      '<span class="followup-copy-val">' + escapeHtml(display) + "</span>" +
+      '<span class="followup-copy-icon">📋</span>';
+    btn.addEventListener("click", function () { copyToClipboard(copyValue, btn); });
+    return btn;
+  }
+
+  function copyToClipboard(text, btn) {
+    function flash() {
+      btn.classList.add("copied");
+      var icon = btn.querySelector(".followup-copy-icon");
+      if (icon) icon.textContent = "✓";
+      toast("已複製：" + text);
+      clearTimeout(btn._copyT);
+      btn._copyT = setTimeout(function () {
+        btn.classList.remove("copied");
+        if (icon) icon.textContent = "📋";
+      }, 1200);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flash, function () { legacyCopy(text); flash(); });
+    } else {
+      legacyCopy(text);
+      flash();
+    }
+  }
+
+  function legacyCopy(text) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    } catch (e) { /* clipboard unavailable */ }
   }
 
   // ============================================================
