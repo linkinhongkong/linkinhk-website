@@ -1,0 +1,13 @@
+{
+  "name": "Link in HK",
+  "short_name": "Link in HK",
+  "description": "香港 AI 配對平台 — 用 AI 幫你搵到屬於你嘅另一半。",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "theme_color": "#9060E0",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/"
+}
