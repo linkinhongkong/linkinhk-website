@@ -141,7 +141,7 @@ function MembershipGate() {
           用 PayMe / FPS 入會
         </div>
         <div className="membership-step-body">
-          <p>請透過 PayMe 或 FPS 轉數至以下號碼:</p>
+          <p>請透過 PayMe 或 FPS 轉數$198至以下號碼:</p>
           <div className="membership-pay-row">
             <span className="membership-pay-number">{phone}</span>
             <button
