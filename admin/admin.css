@@ -113,6 +113,32 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
+/* Sub-tab switcher inside a panel (e.g. 會員管理 actions) */
+.admin-subtabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.admin-subtab {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-light);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.admin-subtab:hover { color: var(--text); border-color: var(--accent); }
+.admin-subtab.active {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
 .admin-panel {
   background: var(--white);
   border: 1px solid var(--border-light);

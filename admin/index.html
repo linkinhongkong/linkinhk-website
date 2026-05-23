@@ -73,7 +73,7 @@
   <main id="admin-dashboard-view" class="admin-dashboard" hidden>
 
     <div class="admin-tabs">
-      <button class="admin-tab active" type="button" data-tab="member">👥 新增會員</button>
+      <button class="admin-tab active" type="button" data-tab="member">👥 會員管理</button>
       <button class="admin-tab" type="button" data-tab="lookup">🔍 查詢會員</button>
       <button class="admin-tab" type="button" data-tab="followup">🔔 跟進名單</button>
       <button class="admin-tab" type="button" data-tab="activities">🎯 活動管理</button>
@@ -258,15 +258,22 @@
     <!-- ── Member tab ── -->
     <section id="admin-tab-member" class="admin-panel">
 
+      <div class="admin-subtabs">
+        <button class="admin-subtab active" type="button" data-membership="activated">啟用</button>
+        <button class="admin-subtab" type="button" data-membership="deactivated">停用</button>
+        <button class="admin-subtab" type="button" data-membership="block-match">封鎖配對</button>
+        <button class="admin-subtab" type="button" data-membership="force-match">強制配對</button>
+      </div>
+
       <div class="admin-panel-head">
-        <h2 class="admin-panel-title">新增會員</h2>
-        <p class="admin-panel-sub">輸入 Instagram username，按「提交」會 trigger n8n 嘅 follow-up flow。</p>
+        <h2 class="admin-panel-title" id="member-title">啟用會員</h2>
+        <p class="admin-panel-sub" id="member-sub">輸入 Instagram username，按「提交」會 trigger n8n 嘅 follow-up flow。</p>
       </div>
 
       <div class="admin-form">
         <div class="field">
           <label class="field-label" for="member-input">Instagram username</label>
-          <div class="field-hint">輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。</div>
+          <div class="field-hint" id="member-hint">輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。</div>
           <div class="ta-box">
             <input type="text" class="text-input" id="member-input" autocomplete="off" placeholder="輸入 username…" />
             <ul id="member-suggestions" class="ta-suggestions" hidden></ul>

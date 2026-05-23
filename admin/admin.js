@@ -53,6 +53,10 @@
   var memberResults = $("member-results");
   var memberSuggestions = $("member-suggestions");
   var submitMembersBtn = $("admin-submit-members-btn");
+  var memberTitle = $("member-title");
+  var memberSub = $("member-sub");
+  var memberHint = $("member-hint");
+  var memberSubtabs = document.querySelectorAll(".admin-subtab");
 
   // Lookup tab
   var lookupInput = $("lookup-input");
@@ -143,6 +147,10 @@
       onSubmit: submitMembers
     });
     submitMembersBtn.addEventListener("click", submitMembers);
+    Array.prototype.forEach.call(memberSubtabs, function (btn) {
+      btn.addEventListener("click", function () { selectMembershipTab(btn.dataset.membership); });
+    });
+    applyMembershipWording(currentMembership);
 
     // Lookup tab
     lookupTypeahead = createTypeahead({
@@ -791,6 +799,59 @@
   // ============================================================
   // Member tab
   // ============================================================
+  // Each sub-tab maps to a membership value the n8n flow writes to the DB.
+  var MEMBERSHIP_ACTIONS = {
+    "activated": {
+      verb: "啟用",
+      title: "啟用會員",
+      sub: "輸入 Instagram username，按「提交」會 trigger n8n 嘅 follow-up flow。",
+      hint: "輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。",
+      btn: "啟用"
+    },
+    "deactivated": {
+      verb: "停用",
+      title: "停用會員",
+      sub: "輸入 Instagram username，提交後會將會員設為停用。",
+      hint: "輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。",
+      btn: "停用"
+    },
+    "block-match": {
+      verb: "封鎖配對",
+      title: "封鎖配對",
+      sub: "輸入 Instagram username，提交後會封鎖該會員嘅配對。",
+      hint: "輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。",
+      btn: "封鎖配對"
+    },
+    "force-match": {
+      verb: "強制配對",
+      title: "強制配對",
+      sub: "輸入 Instagram username，提交後會強制該會員配對。",
+      hint: "輸入字母即時搜尋會員，撳一下或者 Enter 加入。可以加多個一齊提交。",
+      btn: "強制配對"
+    }
+  };
+  var currentMembership = "activated";
+
+  function applyMembershipWording(value) {
+    var a = MEMBERSHIP_ACTIONS[value] || MEMBERSHIP_ACTIONS.activated;
+    memberTitle.textContent = a.title;
+    memberSub.textContent = a.sub;
+    memberHint.textContent = a.hint;
+    submitMembersBtn.textContent = a.btn;
+  }
+
+  function selectMembershipTab(value) {
+    if (!MEMBERSHIP_ACTIONS[value]) return;
+    currentMembership = value;
+    Array.prototype.forEach.call(memberSubtabs, function (b) {
+      b.classList.toggle("active", b.dataset.membership === value);
+    });
+    applyMembershipWording(value);
+    // Reset between actions so handles aren't carried across sub-tabs.
+    memberTypeahead.setHandles([]);
+    renderMemberResults({ updated: [], alreadySet: [], notFound: [], ambiguous: [] });
+  }
+
   function submitMembers() {
     memberTypeahead.commitInput();
     var handles = memberTypeahead.state.handles.slice();
@@ -800,10 +861,10 @@
     if (!token) { showLogin(); return; }
 
     setBusy(submitMembersBtn, "提交中…");
-    fetch(window.webhookUrl("new-member"), {
+    fetch(window.webhookUrl("set-membership"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ adminToken: token, instagramUsernames: handles })
+      body: JSON.stringify({ adminToken: token, instagramUsernames: handles, membership: currentMembership })
     })
       .then(function (r) {
         if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
@@ -819,23 +880,26 @@
       .catch(function (e) {
         if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
       })
-      .then(function () { unsetBusy(submitMembersBtn, "提交"); });
+      .then(function () { unsetBusy(submitMembersBtn, (MEMBERSHIP_ACTIONS[currentMembership] || MEMBERSHIP_ACTIONS.activated).btn); });
   }
 
   // Response from n8n looks like:
-  //   { success, summary: { requested, updated, notFound, ambiguous, alreadyActivated },
-  //     updated: [], notFound: [], ambiguous: [], alreadyActivated: [] }
+  //   { success, summary: { requested, updated, notFound, ambiguous, unchanged },
+  //     updated: [], notFound: [], ambiguous: [], unchanged: [] }
+  // ("unchanged" = rows already at the requested membership; older flows called it
+  // "alreadyActivated", which we still accept.)
   function handleMemberSuccess(data, submitted) {
+    var verb = (MEMBERSHIP_ACTIONS[currentMembership] || MEMBERSHIP_ACTIONS.activated).verb;
     var updated = asArray(data.updated).map(toHandle);
     var notFound = asArray(data.notFound).map(toHandle);
     var ambiguous = asArray(data.ambiguous).map(toHandle);
-    var already = asArray(data.alreadyActivated).map(toHandle);
+    var already = asArray(data.unchanged || data.alreadyActivated).map(toHandle);
 
-    renderMemberResults({ updated: updated, notFound: notFound, ambiguous: ambiguous, alreadyActivated: already });
+    renderMemberResults({ updated: updated, notFound: notFound, ambiguous: ambiguous, alreadySet: already });
 
     var problems = notFound.length + ambiguous.length;
     if (problems === 0 && updated.length > 0) {
-      toast("已新增 " + updated.length + " 位會員 ✅");
+      toast("已" + verb + " " + updated.length + " 位會員 ✅");
     } else if (updated.length > 0 || already.length > 0) {
       toast("處理咗 " + submitted.length + " 個 — " + (updated.length + already.length) + " 成功，" + problems + " 有問題", problems > 0);
     } else {
@@ -843,14 +907,16 @@
     }
 
     // Keep only the failed handles as chips so the user can fix + resubmit.
-    // Successes (updated + alreadyActivated) get cleared.
+    // Successes (updated + alreadySet) get cleared.
     memberTypeahead.setHandles(notFound.concat(ambiguous));
   }
 
   function renderMemberResults(r) {
     memberResults.innerHTML = "";
 
-    var total = r.updated.length + r.alreadyActivated.length + r.notFound.length + r.ambiguous.length;
+    var verb = (MEMBERSHIP_ACTIONS[currentMembership] || MEMBERSHIP_ACTIONS.activated).verb;
+    var alreadySet = r.alreadySet || [];
+    var total = r.updated.length + alreadySet.length + r.notFound.length + r.ambiguous.length;
     if (total === 0) {
       memberResults.hidden = true;
       return;
@@ -863,8 +929,8 @@
     memberResults.appendChild(headline);
 
     var sections = [
-      { key: "updated", title: "✅ 已新增", items: r.updated, cls: "ok" },
-      { key: "alreadyActivated", title: "⏭ 已經啟用", items: r.alreadyActivated, cls: "warn" },
+      { key: "updated", title: "✅ 已" + verb, items: r.updated, cls: "ok" },
+      { key: "alreadySet", title: "⏭ 已經係呢個狀態", items: alreadySet, cls: "warn" },
       { key: "notFound", title: "❌ 搵唔到", items: r.notFound, cls: "err" },
       { key: "ambiguous", title: "⚠️ 多個 match", items: r.ambiguous, cls: "warn" }
     ];
@@ -1479,12 +1545,16 @@
   }
 
   // membership column from n8n: "activated" → active member; "expire"/"expired"
-  // → lapsed; empty → never activated. Unknown values shown as-is.
+  // → lapsed; "deactivated"/"block-match"/"force-match" → admin-set states;
+  // empty → never activated. Unknown values shown as-is.
   function getMembershipBadge(profile) {
     if (!profile) return null;
     var v = String(profile.membership || "").toLowerCase();
     if (v === "activated") return { text: "會員", variant: "active" };
     if (v === "expire" || v === "expired") return { text: "會員過期", variant: "expired" };
+    if (v === "deactivated") return { text: "已停用", variant: "inactive" };
+    if (v === "block-match") return { text: "封鎖配對", variant: "expired" };
+    if (v === "force-match") return { text: "強制配對", variant: "active" };
     if (!v) return { text: "未啟用", variant: "inactive" };
     return { text: profile.membership, variant: "inactive" };
   }
