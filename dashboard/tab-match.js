@@ -94,7 +94,7 @@ function CountdownCard({ deadline }) {
     <div className={"countdown-card" + (expired ? " expired" : "")}>
       {expired
         ? "已過期"
-        : <>請在24小時內回覆: <span className="countdown-card-time">{formatCountdown(remaining)}</span></>}
+        : <>請在48小時內回覆: <span className="countdown-card-time">{formatCountdown(remaining)}</span></>}
     </div>
   );
 }
