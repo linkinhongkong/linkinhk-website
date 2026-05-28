@@ -637,6 +637,21 @@ const STYLES = `
     text-align: center;
   }
 
+  /* ── Feature example images (Instagram推介) ── */
+  .feature-example-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0 12px;
+  }
+  .feature-example-grid img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid #e8e8e8;
+    display: block;
+  }
+
   /* ── Consent ── */
   .consent-box {
     background: var(--white);
@@ -1818,11 +1833,15 @@ function LinkInSignup() {
       <div className="field">
         <div className="field-label">每週 Instagram 推介</div>
         <div className="field-hint">
-          Linkinhk 每週會選用會員提交或 Instagram 內嘅照片，喺 Linkinhk Instagram 發帖推介精選會員（請參考頁面例子）。如你唔希望被 feature，請聯絡我哋 😊
+          Linkinhk 每周會選用會員提交或 Instagram 內嘅照片，喺 Linkinhk Instagram 發帖推介精選會員（請查閱以下範例）。你希望被我們 feature 嗎？😊
+        </div>
+        <div className="feature-example-grid">
+          <img src="/assets/feature-example-1.jpg" alt="Linkinhk Instagram 推介範例 1" loading="lazy" />
+          <img src="/assets/feature-example-2.jpg" alt="Linkinhk Instagram 推介範例 2" loading="lazy" />
         </div>
         <div className={`consent-check ${form.marketingAck ? "active" : ""}`} onClick={() => set("marketingAck", !form.marketingAck)}>
           <div className="consent-checkbox">{form.marketingAck ? "✓" : ""}</div>
-          <div className="consent-label">我明白並知悉</div>
+          <div className="consent-label">我希望在 Linkinhk Instagram 內被發帖推介</div>
         </div>
       </div>
 
