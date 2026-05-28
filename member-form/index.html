@@ -67,7 +67,6 @@ const OCCUPATIONS = SHARED_OCCUPATIONS;
 const UNIVERSITIES = SHARED_UNIVERSITIES;
 const RELIGIONS = SHARED_RELIGIONS;
 const INTERESTS = SHARED_INTERESTS;
-const ACTIVITIES = SHARED_ACTIVITIES;
 const DRINKING = SHARED_DRINKING;
 const SMOKING = SHARED_SMOKING;
 const KIDS_PREF = SHARED_KIDS;
@@ -88,14 +87,12 @@ const SEX_OPTIONS = [
   { val: "female", label: "女性", icon: "👩" },
 ];
 const REFERRAL_SOURCES = ["Instagram", "Threads", "朋友推薦", "網上搜尋", "其他"];
-const ACTIVITY_OTHER_ID = "other_activity";
 
 const STEPS = [
   { title: "基本資料", subtitle: "讓我哋認識你 ✨" },
   { title: "你嘅性格", subtitle: "了解你嘅內在世界 🧠" },
   { title: "生活方式", subtitle: "日常習慣同價值觀 🌿" },
   { title: "興趣愛好", subtitle: "平時鍾意做啲咩 🌸" },
-  { title: "理想見面方式", subtitle: "配對成功後想點樣見面 ✨" },
   { title: "個人展示", subtitle: "一張好照片勝過千言萬語 📸" },
   { title: "聯絡方式", subtitle: "方便我哋搵到你 📮" },
   { title: "自我介紹", subtitle: "講下你嘅故事 💭" },
@@ -211,7 +208,7 @@ const STYLES = `
     align-items: center;
     gap: 4px;
   }
-  .field-label .req { color: var(--accent-pink); font-size: 12px; }
+  .req { color: var(--accent-pink); font-size: 12px; }
   .field-hint { font-size: 12px; color: var(--text-light); margin-bottom: 8px; line-height: 1.5; }
 
   /* ── Text input ── */
@@ -640,6 +637,21 @@ const STYLES = `
     text-align: center;
   }
 
+  /* ── Feature example images (Instagram推介) ── */
+  .feature-example-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0 12px;
+  }
+  .feature-example-grid img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid #e8e8e8;
+    display: block;
+  }
+
   /* ── Consent ── */
   .consent-box {
     background: var(--white);
@@ -961,16 +973,14 @@ function LinkInSignup() {
     kidsPref: "",
     // Page 4 — interests
     interests: [],
-    // Page 5 — activities (new)
-    activities: [], activitiesOther: "",
-    // Page 6 — photos (1-3)
+    // Page 5 — photos (1-3)
     photos: [], photoPreviews: [],
-    // Page 6 — contact: phone, email, IG
+    // Page 5 — contact: phone, email, IG
     whatsapp: "", email: "", instagram: "",
-    // Page 7 — bio
+    // Page 6 — bio
     selfIntro: "",
-    // Page 8 — final: referral, IG understand, consent
-    referral: [], consent: false,
+    // Page 7 — final: referral, marketing ack, consent
+    referral: [], marketingAck: false, consent: false,
   });
 
   /* ── State helpers ── */
@@ -1092,16 +1102,13 @@ function LinkInSignup() {
       if (form.religion === "other_religion" && !form.religionOther.trim()) e.religionOther = "請填寫你嘅信仰";
       if (!form.kidsPref) e.kidsPref = "請選擇";
     } else if (step === 4) {
-      if (form.activities.length < 1) e.activities = "請選擇至少 1 個";
-      if (form.activities.includes(ACTIVITY_OTHER_ID) && !form.activitiesOther.trim()) e.activitiesOther = "請填寫你嘅想法";
-    } else if (step === 5) {
       if (!form.photos || form.photos.length < 1) e.photos = "請上傳至少一張照片";
-    } else if (step === 6) {
+    } else if (step === 5) {
       if (!form.whatsapp.trim()) e.whatsapp = "請輸入 WhatsApp 號碼";
       if (!form.email.trim()) e.email = "請輸入電郵地址";
       else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "電郵格式唔正確";
       if (!form.instagram.trim()) e.instagram = "請輸入 Instagram 名稱";
-    } else if (step === 8) {
+    } else if (step === 7) {
       if (form.referral.length === 0) e.referral = "請選擇至少一個";
       if (!form.consent) e.consent = "請同意會員條款先繼續";
     }
@@ -1187,9 +1194,6 @@ function LinkInSignup() {
       const interestMap = {};
       Object.values(INTERESTS).flat().forEach(i => { interestMap[i.id] = i.icon + i.label; });
 
-      const activityMap = {};
-      Object.values(ACTIVITIES).flat().forEach(a => { activityMap[a.id] = a.icon + " " + a.label; });
-
       const drinkMap = {};
       DRINKING.forEach(d => { drinkMap[d.id] = d.label; });
 
@@ -1252,8 +1256,6 @@ function LinkInSignup() {
       payload.append("my-MBTI", mbtiVal);
       payload.append("my-love-language", loveLangVal);
       payload.append("my-hobby", form.interests.map(id => interestMap[id] || id).join(", "));
-      payload.append("my-activities", form.activities.filter(id => id !== ACTIVITY_OTHER_ID).map(id => activityMap[id] || id).join(", "));
-      payload.append("my-activities-others", form.activities.includes(ACTIVITY_OTHER_ID) ? form.activitiesOther.trim() : "");
       payload.append("my-drinking-habbit", drinkMap[form.drinking] || form.drinking);
       payload.append("my-smoking-habbit", smokeMap[form.smoking] || form.smoking);
       payload.append("my-kids-expectation", kidsMap[form.kidsPref] || form.kidsPref);
@@ -1261,6 +1263,7 @@ function LinkInSignup() {
 
       // Meta
       payload.append("touchpoint", JSON.stringify(form.referral));
+      payload.append("Marketing", form.marketingAck ? "Yes" : "No");
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
@@ -1701,51 +1704,7 @@ function LinkInSignup() {
     );
   };
 
-  /* ── Step 4: 理想見面方式 — activities (min 1, no max) ── */
-  const renderStep4 = () => {
-    const otherSelected = form.activities.includes(ACTIVITY_OTHER_ID);
-    const count = form.activities.length;
-    return (
-      <div className="step-content" key="s4">
-        <div className="field">
-          <div className="field-label">如果成功配對，你會想用咩方式見面？✨ <span className="req">*</span></div>
-          <div className="field-hint">
-            我哋會根據你哋嘅選擇，幫你安排一個自然、唔尷尬嘅見面體驗 🤍<br/>
-            冇標準答案，可以揀多啲～亦都可以填你自己嘅 idea！
-          </div>
-          <div className={`interest-count ${count >= 1 ? "ok" : ""}`}>已選 {count}</div>
-          {Object.entries(ACTIVITIES).map(([cat, items]) => (
-            <div className="interest-cat" key={cat}>
-              <div className="interest-cat-label">{cat}</div>
-              <div className="chip-grid">
-                {items.map(a => <MultiChip key={a.id} stateKey="activities" val={a.id} label={a.label} icon={a.icon} />)}
-              </div>
-            </div>
-          ))}
-          <div className="interest-cat">
-            <div className="interest-cat-label">✏️ 其他</div>
-            <div className="chip-grid">
-              <MultiChip stateKey="activities" val={ACTIVITY_OTHER_ID} label="其他（自己填）" icon="✏️" />
-            </div>
-          </div>
-          <ErrorMsg field="activities" />
-          {otherSelected && (
-            <div style={{ marginTop: 12 }}>
-              <input
-                className="text-input"
-                placeholder="例如：一齊去煮飯、行山睇日落…"
-                value={form.activitiesOther}
-                onChange={e => set("activitiesOther", e.target.value)}
-              />
-              <ErrorMsg field="activitiesOther" />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  /* ── Step 5: 個人展示 — photos (1-3) ── */
+  /* ── Step 4: 個人展示 — photos (1-3) ── */
   const renderStep5 = () => {
     const MAX = 3;
     const slots = Array.from({ length: MAX });
@@ -1871,6 +1830,23 @@ function LinkInSignup() {
 
       <div className="section-divider" />
 
+      <div className="field">
+        <div className="field-label">每週 Instagram 推介</div>
+        <div className="field-hint">
+          Linkinhk 每周會選用會員提交或 Instagram 內嘅照片，喺 Linkinhk Instagram 發帖推介精選會員（請查閱以下範例）。你希望被我們 feature 嗎？😊
+        </div>
+        <div className="feature-example-grid">
+          <img src="/assets/feature-example-1.jpeg" alt="Linkinhk Instagram 推介範例 1" loading="lazy" />
+          <img src="/assets/feature-example-2.jpeg" alt="Linkinhk Instagram 推介範例 2" loading="lazy" />
+        </div>
+        <div className={`consent-check ${form.marketingAck ? "active" : ""}`} onClick={() => set("marketingAck", !form.marketingAck)}>
+          <div className="consent-checkbox">{form.marketingAck ? "✓" : ""}</div>
+          <div className="consent-label">我希望在 Linkinhk Instagram 內被發帖推介</div>
+        </div>
+      </div>
+
+      <div className="section-divider" />
+
       <div className="consent-box">
         <div className="consent-title">會員同意及免責聲明</div>
         <div className="consent-body">
@@ -1898,13 +1874,13 @@ function LinkInSignup() {
 
       <div className={`consent-check ${form.consent ? "active" : ""}`} onClick={() => set("consent", !form.consent)}>
         <div className="consent-checkbox">{form.consent ? "✓" : ""}</div>
-        <div className="consent-label">我已閱讀並同意</div>
+        <div className="consent-label">我已閱讀並同意 <span className="req">*</span></div>
       </div>
       <ErrorMsg field="consent" />
     </div>
   );
 
-  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7, renderStep8];
+  const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep5, renderStep6, renderStep7, renderStep8];
 
 
   /* ═══════════════════════════════════════════
