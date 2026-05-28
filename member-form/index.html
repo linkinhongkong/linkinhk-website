@@ -208,7 +208,7 @@ const STYLES = `
     align-items: center;
     gap: 4px;
   }
-  .field-label .req { color: var(--accent-pink); font-size: 12px; }
+  .req { color: var(--accent-pink); font-size: 12px; }
   .field-hint { font-size: 12px; color: var(--text-light); margin-bottom: 8px; line-height: 1.5; }
 
   /* ── Text input ── */
@@ -1836,8 +1836,8 @@ function LinkInSignup() {
           Linkinhk 每周會選用會員提交或 Instagram 內嘅照片，喺 Linkinhk Instagram 發帖推介精選會員（請查閱以下範例）。你希望被我們 feature 嗎？😊
         </div>
         <div className="feature-example-grid">
-          <img src="/assets/feature-example-1.jpg" alt="Linkinhk Instagram 推介範例 1" loading="lazy" />
-          <img src="/assets/feature-example-2.jpg" alt="Linkinhk Instagram 推介範例 2" loading="lazy" />
+          <img src="/assets/feature-example-1.jpeg" alt="Linkinhk Instagram 推介範例 1" loading="lazy" />
+          <img src="/assets/feature-example-2.jpeg" alt="Linkinhk Instagram 推介範例 2" loading="lazy" />
         </div>
         <div className={`consent-check ${form.marketingAck ? "active" : ""}`} onClick={() => set("marketingAck", !form.marketingAck)}>
           <div className="consent-checkbox">{form.marketingAck ? "✓" : ""}</div>
@@ -1874,7 +1874,7 @@ function LinkInSignup() {
 
       <div className={`consent-check ${form.consent ? "active" : ""}`} onClick={() => set("consent", !form.consent)}>
         <div className="consent-checkbox">{form.consent ? "✓" : ""}</div>
-        <div className="consent-label">我已閱讀並同意</div>
+        <div className="consent-label">我已閱讀並同意 <span className="req">*</span></div>
       </div>
       <ErrorMsg field="consent" />
     </div>
