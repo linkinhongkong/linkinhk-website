@@ -30,6 +30,8 @@ function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) 
         : <WhatIWant profile={profile} dealBreakers={dealBreakers} onProfileUpdated={onProfileUpdated} />
       }
 
+      <NotificationSettings />
+
       <button onClick={onLogout} className="logout-btn">
         <LogoutIcon className="icon-sm" />
         登出
