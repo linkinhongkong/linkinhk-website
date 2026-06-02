@@ -41,6 +41,20 @@
 <body>
   <div id="root"></div>
 
+  <!-- Capture the install prompt ASAP (it can fire before Babel compiles the
+       React files). Stashed for the Add-to-Home-Screen banner in promo.js. -->
+  <script>
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      window.deferredInstallPrompt = e;
+      window.dispatchEvent(new Event("promo-install-available"));
+    });
+    window.addEventListener("appinstalled", function () {
+      window.deferredInstallPrompt = null;
+      window.dispatchEvent(new Event("promo-installed"));
+    });
+  </script>
+
   <!-- Order matters: config (sets window.webhookUrl) → lib → shared-options → form-options → shared components → dashboard layout → tabs → app -->
   <script src="/shared/config.js"></script>
   <script type="text/babel" src="/dashboard/lib.js"></script>
@@ -56,6 +70,7 @@
   <script type="text/babel" src="/dashboard/tab-want-cards.js"></script>
   <script type="text/babel" src="/dashboard/push.js"></script>
   <script type="text/babel" src="/dashboard/tab-profile.js"></script>
+  <script type="text/babel" src="/dashboard/promo.js"></script>
   <script type="text/babel" src="/dashboard/app.js"></script>
 
   <!-- Register the dashboard service worker (push notifications). Plain JS,
