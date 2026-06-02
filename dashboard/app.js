@@ -46,34 +46,38 @@ function Dashboard() {
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
   }, []);
 
-  // ---------------- Bootstrap fetch on load ----------------
-  useEffect(() => {
-    const fetchBootstrap = async () => {
-      try {
-        const res = await authenticatedFetch(API.BOOTSTRAP, {
-          method: "POST",
-          body: JSON.stringify({})
-        });
-        const data = await res.json();
-        if (data.success) {
-          setProfile(data.profile || null);
-          setCurrentMatch(data.currentMatch || null);
-          setHistory(data.history || []);
-          setEvents(data.events || []);
-        } else {
-          setError(data.error || "載入失敗");
-        }
-      } catch (err) {
-        if (err.message !== "Unauthorized" && err.message !== "No token") {
-          console.error(err);
-          setError("網絡連線錯誤");
-        }
-      } finally {
-        setLoading(false);
+  // ---------------- Bootstrap fetch ----------------
+  // Re-runnable: the dashboard data all comes from the get-dashboard-bootstrap
+  // webhook, which re-reads the DB on every call. Pass { silent: true } to
+  // refresh in the background after a mutation (e.g. responding to a match)
+  // without flashing the full-screen loader or unmounting the tabs.
+  const fetchBootstrap = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    try {
+      const res = await authenticatedFetch(API.BOOTSTRAP, {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile || null);
+        setCurrentMatch(data.currentMatch || null);
+        setHistory(data.history || []);
+        setEvents(data.events || []);
+      } else if (!silent) {
+        setError(data.error || "載入失敗");
       }
-    };
-    fetchBootstrap();
+    } catch (err) {
+      if (err.message !== "Unauthorized" && err.message !== "No token") {
+        console.error(err);
+        if (!silent) setError("網絡連線錯誤");
+      }
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchBootstrap(); }, [fetchBootstrap]);
 
   const changeTab = (tabId) => { window.location.hash = tabId; };
   const handleLogout = () => { clearAuth(); redirectToLogin(); };
@@ -95,7 +99,7 @@ function Dashboard() {
           <MatchTab
             profile={profile}
             currentMatch={currentMatch}
-            onMatchResponded={() => setCurrentMatch(null)}
+            onMatchResponded={() => fetchBootstrap({ silent: true })}
           />
         )}
         {activeTab === "events" && <EventsTab profile={profile} events={events} />}
