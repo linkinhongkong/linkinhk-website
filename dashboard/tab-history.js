@@ -140,9 +140,9 @@ function StatusChip({ status }) {
 // duplicates — each cell is independently editable.
 const MATCH_STATUS_TABLE = {
   "accept|accept":   { text: "配對成功",     variant: "matched"   },
-  "accept|reject":   { text: "配對失敗",     variant: "unmatched" },
+  "accept|reject":   { text: "配對失敗(對方拒絕)",   variant: "unmatched" },
   "accept|pending":  { text: "等待對方回覆", variant: "waiting"   },
-  "accept|expire":   { text: "配對失敗",     variant: "unmatched" },
+  "accept|expire":   { text: "配對失敗(對方沒有回覆)", variant: "unmatched" },
   "reject|accept":   { text: "你已拒絕",     variant: "unmatched" },
   "reject|reject":   { text: "你已拒絕",     variant: "unmatched" },
   "reject|pending":  { text: "你已拒絕",     variant: "unmatched" },
@@ -151,10 +151,10 @@ const MATCH_STATUS_TABLE = {
   "pending|reject":  { text: "等待你的回覆", variant: "waiting"   },
   "pending|pending": { text: "等待你的回覆", variant: "waiting"   },
   "pending|expire":  { text: "等待你的回覆", variant: "waiting"   },
-  "expire|accept":   { text: "配對失效",     variant: "unmatched" },
-  "expire|reject":   { text: "配對失效",     variant: "unmatched" },
-  "expire|pending":  { text: "配對失效",     variant: "unmatched" },
-  "expire|expire":   { text: "配對失效",     variant: "unmatched" },
+  "expire|accept":   { text: "配對失敗(你沒有回覆)", variant: "unmatched" },
+  "expire|reject":   { text: "配對失敗(你沒有回覆)", variant: "unmatched" },
+  "expire|pending":  { text: "配對失敗(你沒有回覆)", variant: "unmatched" },
+  "expire|expire":   { text: "配對失敗(你沒有回覆)", variant: "unmatched" },
 };
 
 function normalizeStatus(s) {
