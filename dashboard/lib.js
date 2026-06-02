@@ -2,7 +2,7 @@
 // lib.js — shared utilities, constants, API helpers, icons
 // ============================================================
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useCallback } = React;
 
 // ---------------- API endpoints ----------------
 // webhookUrl() is provided by /shared/config.js; it adds the "uat-" path
