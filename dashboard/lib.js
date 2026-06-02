@@ -176,6 +176,61 @@ async function hasPushSubscription() {
   return !!sub;
 }
 
+// ---------------- Install / "Add to Home Screen" helpers ----------------
+// "Add to Home Screen" only works in real iOS Safari — not Chrome/Firefox on
+// iOS, and not in-app webviews (Instagram/FB/Line), where it is impossible.
+function isIosSafari() {
+  if (!isIos()) return false;
+  const ua = navigator.userAgent;
+  const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(ua);
+  const inApp = /Instagram|FBAN|FBAV|FB_IAB|Line|Twitter|MicroMessenger|TikTok/i.test(ua);
+  return !otherBrowser && !inApp;
+}
+
+// 'installed' | 'native' | 'ios-safari' | 'ios-other' | 'none'
+function getInstallState() {
+  if (isStandalone()) return "installed";
+  if (window.deferredInstallPrompt) return "native"; // Android / desktop Chrome
+  if (isIos()) return isIosSafari() ? "ios-safari" : "ios-other";
+  return "none";
+}
+
+// Fires the browser's native install prompt (Android / desktop Chrome).
+async function triggerNativeInstall() {
+  const p = window.deferredInstallPrompt;
+  if (!p) return false;
+  p.prompt();
+  let accepted = false;
+  try { const choice = await p.userChoice; accepted = choice && choice.outcome === "accepted"; }
+  catch (e) { /* ignore */ }
+  window.deferredInstallPrompt = null;
+  return accepted;
+}
+
+// ---------------- Promo banner snooze (localStorage) ----------------
+function snoozePromo(key, days) {
+  const d = days || 7;
+  localStorage.setItem("linkinhk_promo_" + key + "_until", String(Date.now() + d * 86400000));
+}
+function promoSnoozed(key) {
+  const v = localStorage.getItem("linkinhk_promo_" + key + "_until");
+  return !!v && Date.now() < Number(v);
+}
+
+// Which top banner to show: 'notif' | 'install' | 'none'.
+// Notifications take priority when they can be enabled right now; otherwise we
+// surface install (required on iOS for push, optional elsewhere).
+function getPromoState() {
+  const canNotif = pushSupported() && Notification.permission === "default" && !promoSnoozed("notif");
+  if (canNotif && !(isIos() && !isStandalone())) return "notif";
+  if (!isStandalone()) {
+    const inst = getInstallState();
+    if ((inst === "native" || inst === "ios-safari" || inst === "ios-other") && !promoSnoozed("install"))
+      return "install";
+  }
+  return "none";
+}
+
 // ---------------- Icon components ----------------
 const HeartIcon = ({ className }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
@@ -215,6 +270,16 @@ const CloseIcon = ({ className }) => (
 const BellIcon = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+  </svg>
+);
+const ShareIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V4m0 0L8.5 7.5M12 4l3.5 3.5M6 12v6a2 2 0 002 2h8a2 2 0 002-2v-6" />
+  </svg>
+);
+const HomePlusIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 11.5L12 4l9 7.5M5.5 10v9a1 1 0 001 1H10v-5h4v5h3.5a1 1 0 001-1v-9" />
   </svg>
 );
 
