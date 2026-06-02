@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
+  <link rel="manifest" href="/dashboard/manifest.webmanifest">
   <meta name="theme-color" content="#9060E0">
   <!-- Social share (Open Graph / Twitter) -->
   <meta property="og:type" content="website">
@@ -54,7 +54,20 @@
   <script type="text/babel" src="/dashboard/tab-history.js"></script>
   <script type="text/babel" src="/dashboard/tab-profile-cards.js"></script>
   <script type="text/babel" src="/dashboard/tab-want-cards.js"></script>
+  <script type="text/babel" src="/dashboard/push.js"></script>
   <script type="text/babel" src="/dashboard/tab-profile.js"></script>
   <script type="text/babel" src="/dashboard/app.js"></script>
+
+  <!-- Register the dashboard service worker (push notifications). Plain JS,
+       scoped to /dashboard/. -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker
+          .register("/dashboard/sw.js", { scope: "/dashboard/" })
+          .catch(function (e) { console.warn("SW register failed", e); });
+      });
+    }
+  </script>
 </body>
 </html>

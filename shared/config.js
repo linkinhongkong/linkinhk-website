@@ -29,6 +29,13 @@
     return N8N_BASE + "/" + PATH_PREFIX + name;
   };
 
+  // -------- Web Push --------
+  // VAPID *public* key (non-secret) used by the dashboard service worker to
+  // subscribe the browser to push. The matching private key lives only in the
+  // backend push sender (Cloudflare secret / n8n credential) — never here.
+  window.VAPID_PUBLIC_KEY =
+    "BP1OVMf4y2-0IsLUm2N6ROM1ZXeyQ6-9VT9KQdO7GpVeXMrAnsjdxclCHq2sHbUvCDGrvYrTUA-jSiowekdFSY8";
+
   // -------- UAT banner: visible on every UAT page so it's impossible to
   // mistake for prod. No-op on prod. --------
   if (ENV !== "uat") return;

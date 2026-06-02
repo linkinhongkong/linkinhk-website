@@ -31,6 +31,21 @@ function Dashboard() {
     return () => window.removeEventListener("hashchange", handleHash);
   }, []);
 
+  // ---------------- Notification click → route to tab ----------------
+  // The service worker postMessages the target URL when a notification is
+  // clicked on an already-open tab; apply its hash so handleHash routes us.
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const onMessage = (event) => {
+      if (event.data && event.data.type === "NOTIFICATION_NAVIGATE") {
+        const hash = (event.data.url || "").split("#")[1] || "match";
+        window.location.hash = hash;
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, []);
+
   // ---------------- Bootstrap fetch on load ----------------
   useEffect(() => {
     const fetchBootstrap = async () => {

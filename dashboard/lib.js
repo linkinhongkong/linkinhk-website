@@ -11,6 +11,8 @@ const API = {
   GET_PROFILE: window.webhookUrl("get-profile"),
   BOOTSTRAP: window.webhookUrl("get-dashboard-bootstrap"),
   RESPOND_TO_MATCH: window.webhookUrl("respond-to-match"),
+  SAVE_PUSH_SUBSCRIPTION: window.webhookUrl("save-push-subscription"),
+  DELETE_PUSH_SUBSCRIPTION: window.webhookUrl("delete-push-subscription"),
 };
 
 // ---------------- Tab definitions ----------------
@@ -80,6 +82,100 @@ async function authenticatedFetch(url, options = {}) {
   return res;
 }
 
+// ---------------- Web Push helpers ----------------
+// applicationServerKey must be a Uint8Array; the VAPID public key is base64url.
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+function pushSupported() {
+  return (
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
+}
+
+// iOS only allows push from an installed (standalone) PWA, iOS 16.4+.
+function isIos() {
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+}
+
+// Returns: 'unsupported' | 'ios-needs-install' | 'default' | 'granted' | 'denied'
+function getPushState() {
+  if (isIos() && !isStandalone()) return "ios-needs-install";
+  if (!pushSupported()) return "unsupported";
+  return Notification.permission; // 'default' | 'granted' | 'denied'
+}
+
+// Must be called from a user gesture (button click).
+async function enablePushNotifications() {
+  if (!pushSupported()) throw new Error("unsupported");
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") throw new Error("denied");
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY),
+    });
+  }
+  await savePushSubscription(sub);
+  return sub;
+}
+
+async function savePushSubscription(sub) {
+  const res = await authenticatedFetch(API.SAVE_PUSH_SUBSCRIPTION, {
+    method: "POST",
+    body: JSON.stringify({
+      email: localStorage.getItem("linkinhk_email"),
+      subscription: sub.toJSON(), // { endpoint, expirationTime, keys: { p256dh, auth } }
+      userAgent: navigator.userAgent,
+    }),
+  });
+  return res.json();
+}
+
+async function disablePushNotifications() {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (!sub) return;
+  await authenticatedFetch(API.DELETE_PUSH_SUBSCRIPTION, {
+    method: "POST",
+    body: JSON.stringify({
+      email: localStorage.getItem("linkinhk_email"),
+      endpoint: sub.endpoint,
+    }),
+  });
+  await sub.unsubscribe();
+}
+
+// Whether the current browser already has an active push subscription.
+async function hasPushSubscription() {
+  if (!pushSupported()) return false;
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  return !!sub;
+}
+
 // ---------------- Icon components ----------------
 const HeartIcon = ({ className }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
@@ -114,6 +210,11 @@ const LogoutIcon = ({ className }) => (
 const CloseIcon = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+const BellIcon = ({ className }) => (
+  <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
   </svg>
 );
 

@@ -1,0 +1,15 @@
+{
+  "name": "Link in HK 會員專區",
+  "short_name": "Link in HK",
+  "description": "Link in HK 會員專區 — 查看每星期配對、活動同紀錄，仲可以即時收到配對結果通知。",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "theme_color": "#9060E0",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/dashboard/",
+  "start_url": "/dashboard/?source=pwa"
+}

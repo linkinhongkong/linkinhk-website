@@ -581,6 +581,58 @@
 }
 .logout-btn:hover { background: var(--chip-bg); }
 
+/* ── Notification settings (profile tab) ── */
+.notif-card {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.notif-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.notif-hint {
+  font-size: 14px;
+  color: var(--text-hint);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+.notif-hint--on { color: var(--accent-dark); font-weight: 500; }
+.notif-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-gradient);
+  color: var(--white);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.notif-btn:hover { opacity: 0.92; }
+.notif-btn:disabled { opacity: 0.6; cursor: default; }
+.notif-btn--ghost {
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--text-hint);
+  font-weight: 500;
+}
+.notif-btn--ghost:hover { background: var(--chip-bg); opacity: 1; }
+.notif-error {
+  font-size: 13px;
+  color: var(--accent-pink);
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
 /* ── Back button (History detail) ── */
 .back-btn {
   display: inline-flex;
