@@ -67,11 +67,11 @@ function InstallTour({ onClose }) {
               </li>
               <li>
                 <span className="install-tour__num">5</span>
-                <span>返主畫面打開「Link in HK」App，然後登入 / Open it from the Home Screen, then log in</span>
+                <span>返主畫面打開「Link in HK」App，然後登入</span>
               </li>
               <li>
                 <span className="install-tour__num">6</span>
-                <span>喺 App 內㩒頂部「開啟」通知，再揀 <b>允許 / Allow</b></span>
+                <span>㩒頂部「開啟」通知，再揀 <b>允許 / Allow</b></span>
               </li>
             </ol>
           </>
@@ -97,11 +97,11 @@ function InstallTour({ onClose }) {
               </li>
               <li>
                 <span className="install-tour__num">4</span>
-                <span>返主畫面打開「Link in HK」App，然後登入 / Open it from the Home Screen, then log in</span>
+                <span>返主畫面打開「Link in HK」App，然後登入</span>
               </li>
               <li>
                 <span className="install-tour__num">5</span>
-                <span>喺 App 內㩒頂部「開啟」通知，再揀 <b>允許 / Allow</b></span>
+                <span>㩒頂部「開啟」通知，再揀 <b>允許 / Allow</b></span>
               </li>
             </ol>
           </>
