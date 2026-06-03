@@ -4,12 +4,15 @@
    ══════════════════════════════════════════════════════════ */
 
 /* ── App shell ── */
-.app-header {
-  background: var(--white);
-  border-bottom: 1px solid var(--border-light);
+/* Promo banner + header pin together as one sticky block. */
+.app-topbar {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+.app-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border-light);
 }
 .app-header-inner {
   max-width: 42rem;
@@ -775,3 +778,144 @@
   padding: 4px 10px;
   border-radius: var(--radius-pill);
 }
+
+/* ── Top promo banner (enable notifications / add to home screen) ── */
+.promo-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  color: var(--accent-dark);
+}
+.promo-banner__icon { width: 22px; height: 22px; flex: none; color: var(--accent); }
+.promo-banner__text { flex: 1; font-size: 13.5px; font-weight: 500; line-height: 1.35; }
+.promo-banner__action {
+  flex: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent-gradient);
+  color: var(--white);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.promo-banner__action:hover { opacity: 0.92; }
+.promo-banner__action:disabled { opacity: 0.6; cursor: default; }
+.promo-banner__close {
+  flex: none;
+  background: transparent;
+  border: none;
+  color: var(--accent-dark);
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+.promo-banner__close:hover { opacity: 1; }
+
+/* ── iOS "Add to Home Screen" guided tour ── */
+.install-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 10, 40, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.2s ease;
+}
+.install-tour__card {
+  position: relative;
+  background: var(--white);
+  border-radius: var(--radius);
+  max-width: 360px;
+  width: 100%;
+  padding: 24px 20px 20px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.3);
+}
+.install-tour__x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-hint);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+.install-tour__title { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.install-tour__lead { font-size: 14px; color: var(--text-hint); line-height: 1.6; margin: 0 0 16px; }
+.install-tour__steps { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 12px; }
+.install-tour__steps li { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--text); line-height: 1.4; }
+.install-tour__num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.install-tour__inline { width: 18px; height: 18px; display: inline-block; vertical-align: middle; color: var(--accent); }
+.install-tour__arrow {
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  font-size: 34px;
+  animation: promoArrowBounce 1.2s infinite;
+}
+@keyframes promoArrowBounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 8px); }
+}
+
+/* ── Install tutorial: platform tabs + warning ── */
+.install-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: var(--chip-bg);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.install-tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.install-tab.active {
+  background: var(--white);
+  color: var(--accent-dark);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.install-warn {
+  background: #fff4e5;
+  color: #8a5a00;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  text-align: center;
+}
+.install-native-btn { margin-bottom: 14px; }

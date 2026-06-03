@@ -87,12 +87,15 @@ function Dashboard() {
 
   return (
     <div>
-      <header className="app-header">
-        <div className="app-header-inner">
-          <img src="/logo.png" alt="Link in HK" className="logo-img" />
-          <div className="app-header-email">{profile?.email}</div>
-        </div>
-      </header>
+      <div className="app-topbar">
+        <TopPromoBanner />
+        <header className="app-header">
+          <div className="app-header-inner">
+            <img src="/logo.png" alt="Link in HK" className="logo-img" />
+            <div className="app-header-email">{profile?.email}</div>
+          </div>
+        </header>
+      </div>
 
       <main className="app-main">
         {activeTab === "match" && (
