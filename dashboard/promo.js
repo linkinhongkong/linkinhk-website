@@ -1,49 +1,98 @@
 // ============================================================
 // promo.js — discoverable top banner for enabling notifications and
-// installing the dashboard ("Add to Home Screen"), plus the iOS install tour.
+// installing the dashboard ("Add to Home Screen"), plus a tabbed tutorial.
 // Loaded as type="text/babel" BEFORE app.js. Reuses helpers + icons from lib.js
 // (getPromoState, getInstallState, enablePushNotifications, triggerNativeInstall,
-//  snoozePromo, BellIcon, HomePlusIcon, ShareIcon, CloseIcon).
+//  snoozePromo, BellIcon, ShareIcon, CloseIcon, isIos).
 // ============================================================
 
-// Full-screen guided overlay for iOS, where there is no install API.
-function IosInstallTour({ inAppBrowser, onClose }) {
+// Tabbed how-to-install tutorial (iPhone / Android). Opened from the banner's
+// 睇教學 CTA. Frames installing around the notification benefit.
+function InstallTour({ onClose }) {
+  const [tab, setTab] = useState(isIos() ? "iphone" : "android");
+  const [installing, setInstalling] = useState(false);
+  const canNative = !!window.deferredInstallPrompt;
+
+  const doNative = async () => {
+    setInstalling(true);
+    try { await triggerNativeInstall(); } finally { setInstalling(false); onClose(); }
+  };
+
   return (
     <div className="install-tour" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="install-tour__card" onClick={(e) => e.stopPropagation()}>
         <button className="install-tour__x" onClick={onClose} aria-label="關閉">
           <CloseIcon className="icon-sm" />
         </button>
-        <div className="install-tour__title">加入主畫面</div>
 
-        {inAppBrowser ? (
-          <p className="install-tour__lead">
-            你而家係喺 App 內置瀏覽器打開，未必加到主畫面。請先用 <b>Safari</b> 開啟本頁
-            （㩒右上角 <b>⋯</b> →「喺 Safari 開啟」），再跟以下步驟。
-          </p>
+        <div className="install-tour__title">新配對一到，即刻通知你 🔔</div>
+        <p className="install-tour__lead">
+          開啟通知之後，一有新配對我哋會即刻 send 俾你，唔使次次自己返嚟 check。
+        </p>
+
+        <div className="install-tabs" role="tablist">
+          <button
+            className={"install-tab" + (tab === "iphone" ? " active" : "")}
+            onClick={() => setTab("iphone")}
+          >
+            iPhone
+          </button>
+          <button
+            className={"install-tab" + (tab === "android" ? " active" : "")}
+            onClick={() => setTab("android")}
+          >
+            Android
+          </button>
+        </div>
+
+        {tab === "iphone" ? (
+          <>
+            <div className="install-warn">暫時剩係支援 Safari 🥺🥺</div>
+            <ol className="install-tour__steps">
+              <li>
+                <span className="install-tour__num">1</span>
+                <span>㩒右下角嘅 <b>⋯</b>（更多 / More）</span>
+              </li>
+              <li>
+                <span className="install-tour__num">2</span>
+                <span>揀 <b>分享 / Share</b> <ShareIcon className="install-tour__inline" /></span>
+              </li>
+              <li>
+                <span className="install-tour__num">3</span>
+                <span>向下捲，揀 <b>加入主畫面 / Add to Home Screen</b></span>
+              </li>
+              <li>
+                <span className="install-tour__num">4</span>
+                <span>㩒右上角 <b>加入 / Add</b></span>
+              </li>
+            </ol>
+          </>
         ) : (
-          <p className="install-tour__lead">只需 3 步，就可以好似 App 咁喺主畫面一㩒即開：</p>
+          <>
+            {canNative && (
+              <button className="notif-btn install-native-btn" onClick={doNative} disabled={installing}>
+                {installing ? "…" : "立即安裝 / Install"}
+              </button>
+            )}
+            <ol className="install-tour__steps">
+              <li>
+                <span className="install-tour__num">1</span>
+                <span>㩒右上角嘅 <b>⋮</b>（選單 / Menu）</span>
+              </li>
+              <li>
+                <span className="install-tour__num">2</span>
+                <span>揀 <b>安裝應用程式 / Install app</b>（或 <b>加入主畫面 / Add to Home screen</b>）</span>
+              </li>
+              <li>
+                <span className="install-tour__num">3</span>
+                <span>㩒 <b>安裝 / Install</b> 確認</span>
+              </li>
+            </ol>
+          </>
         )}
-
-        <ol className="install-tour__steps">
-          <li>
-            <span className="install-tour__num">1</span>
-            <span>㩒 Safari 底部嘅<b>分享</b>按鈕 <ShareIcon className="install-tour__inline" /></span>
-          </li>
-          <li>
-            <span className="install-tour__num">2</span>
-            <span>向下捲，揀<b>「加入主畫面」</b></span>
-          </li>
-          <li>
-            <span className="install-tour__num">3</span>
-            <span>㩒右上角<b>「加入」</b></span>
-          </li>
-        </ol>
 
         <button className="notif-btn" onClick={onClose}>知道喇</button>
       </div>
-
-      {!inAppBrowser && <div className="install-tour__arrow" aria-hidden="true">⬇️</div>}
     </div>
   );
 }
@@ -89,15 +138,6 @@ function TopPromoBanner() {
     }
   };
 
-  const handleInstall = async () => {
-    if (getInstallState() === "native") {
-      setBusy(true);
-      try { await triggerNativeInstall(); } finally { setBusy(false); refresh(); }
-    } else {
-      setShowTour(true); // ios-safari / ios-other
-    }
-  };
-
   const dismiss = () => {
     snoozePromo(state === "notif" ? "notif" : "install");
     setState("none");
@@ -115,37 +155,25 @@ function TopPromoBanner() {
   if (state === "none") return null;
 
   const isNotif = state === "notif";
-  const inst = getInstallState();
 
   return (
     <>
       <div className="promo-banner">
-        {isNotif
-          ? <BellIcon className="promo-banner__icon" />
-          : <HomePlusIcon className="promo-banner__icon" />}
-        <span className="promo-banner__text">
-          {isNotif
-            ? "開啟通知，第一時間知道配對結果"
-            : "加入主畫面，好似 App 咁一㩒即開"}
-        </span>
+        <BellIcon className="promo-banner__icon" />
+        <span className="promo-banner__text">開啟通知，唔好錯過任何一個配對</span>
         <button
           className="promo-banner__action"
-          onClick={isNotif ? handleEnable : handleInstall}
+          onClick={isNotif ? handleEnable : () => setShowTour(true)}
           disabled={busy}
         >
-          {busy ? "…" : (isNotif ? "開啟" : "加入")}
+          {busy ? "…" : (isNotif ? "開啟" : "睇教學")}
         </button>
         <button className="promo-banner__close" onClick={dismiss} aria-label="關閉">
           <CloseIcon className="icon-sm" />
         </button>
       </div>
 
-      {showTour && (
-        <IosInstallTour
-          inAppBrowser={inst === "ios-other"}
-          onClose={() => setShowTour(false)}
-        />
-      )}
+      {showTour && <InstallTour onClose={() => setShowTour(false)} />}
     </>
   );
 }

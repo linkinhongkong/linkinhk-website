@@ -880,3 +880,42 @@
   0%, 100% { transform: translate(-50%, 0); }
   50% { transform: translate(-50%, 8px); }
 }
+
+/* ── Install tutorial: platform tabs + warning ── */
+.install-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: var(--chip-bg);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.install-tab {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.install-tab.active {
+  background: var(--white);
+  color: var(--accent-dark);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.install-warn {
+  background: #fff4e5;
+  color: #8a5a00;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  text-align: center;
+}
+.install-native-btn { margin-bottom: 14px; }
