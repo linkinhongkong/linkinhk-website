@@ -980,7 +980,7 @@ function LinkInSignup() {
     // Page 6 — bio
     selfIntro: "",
     // Page 7 — final: referral, marketing ack, consent
-    referral: [], marketingAck: false, consent: false,
+    referral: [], marketingOptOut: false, consent: false,
   });
 
   /* ── State helpers ── */
@@ -1263,7 +1263,7 @@ function LinkInSignup() {
 
       // Meta
       payload.append("touchpoint", JSON.stringify(form.referral));
-      payload.append("Marketing", form.marketingAck ? "Yes" : "No");
+      payload.append("Marketing", form.marketingOptOut ? "No" : "Yes");
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000);
@@ -1833,15 +1833,15 @@ function LinkInSignup() {
       <div className="field">
         <div className="field-label">每週 Instagram 推介</div>
         <div className="field-hint">
-          Linkinhk 每周會選用會員提交或 Instagram 內嘅照片，喺 Linkinhk Instagram 發帖推介精選會員（請查閱以下範例）。你希望被我們 feature 嗎？😊
+          Linkinhk 每周會選用會員提交或 Instagram 內嘅照片，喺 Linkinhk Instagram 發帖推介精選會員（請查閱以下範例）。如你唔希望被 feature，請剔選以下選項。😊
         </div>
         <div className="feature-example-grid">
           <img src="/assets/feature-example-1.jpeg" alt="Linkinhk Instagram 推介範例 1" loading="lazy" />
           <img src="/assets/feature-example-2.jpeg" alt="Linkinhk Instagram 推介範例 2" loading="lazy" />
         </div>
-        <div className={`consent-check ${form.marketingAck ? "active" : ""}`} onClick={() => set("marketingAck", !form.marketingAck)}>
-          <div className="consent-checkbox">{form.marketingAck ? "✓" : ""}</div>
-          <div className="consent-label">我希望在 Linkinhk Instagram 內被發帖推介</div>
+        <div className={`consent-check ${form.marketingOptOut ? "active" : ""}`} onClick={() => set("marketingOptOut", !form.marketingOptOut)}>
+          <div className="consent-checkbox">{form.marketingOptOut ? "✓" : ""}</div>
+          <div className="consent-label">我不希望在 Linkinhk Instagram 內被發帖推介</div>
         </div>
       </div>
 
