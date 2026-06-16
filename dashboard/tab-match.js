@@ -293,7 +293,7 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
   };
 
   const membership = String((profile && profile.membership) || "").toLowerCase();
-  if (membership !== "activated") {
+  if (membership !== "activated" && membership !== "force-match") {
     return <MembershipGate />;
   }
 
