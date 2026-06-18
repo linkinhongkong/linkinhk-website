@@ -16,6 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const VITE_PAGES = {
   "member-form": resolve(__dirname, "member-form/index.html"),
   login: resolve(__dirname, "login/index.html"),
+  "availability-form": resolve(__dirname, "availability-form/index.html"),
 };
 
 // Build/tooling files that must never be copied into dist/.
