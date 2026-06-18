@@ -30,12 +30,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/shared/design-system.css">
   <link rel="stylesheet" href="/dashboard/dashboard-layout.css">
-  <!-- Must load before the React/Babel CDN scripts so it can catch their load
-       errors and replace a blank #root with a friendly fallback. -->
+  <!-- Loads early so it can replace a blank #root with a friendly fallback
+       if the app fails to mount. -->
   <script src="/shared/boot-fallback.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
   <style>
     /* Dashboard-only: reserve space under bottom nav */
     body { padding-bottom: 80px; }
@@ -44,8 +41,8 @@
 <body>
   <div id="root"></div>
 
-  <!-- Capture the install prompt ASAP (it can fire before Babel compiles the
-       React files). Stashed for the Add-to-Home-Screen banner in promo.js. -->
+  <!-- Capture the install prompt ASAP (it can fire before the app module loads).
+       Stashed for the Add-to-Home-Screen banner in promo.js. -->
   <script>
     window.addEventListener("beforeinstallprompt", function (e) {
       e.preventDefault();
@@ -58,23 +55,15 @@
     });
   </script>
 
-  <!-- Order matters: config (sets window.webhookUrl) → lib → shared-options → form-options → shared components → dashboard layout → tabs → app -->
+  <!-- Shared globals (classic scripts), run before the deferred module which reads
+       them. Order: config → shared-options → form-options → ideal-fields. -->
   <script src="/shared/config.js"></script>
-  <script type="text/babel" src="/dashboard/lib.js"></script>
   <script src="/shared/shared-options.js"></script>
-  <script type="text/babel" src="/shared/form-options.js"></script>
-  <script type="text/babel" src="/shared/ideal-fields.js"></script>
-  <script type="text/babel" src="/shared/components.js"></script>
-  <script type="text/babel" src="/dashboard/layout.js"></script>
-  <script type="text/babel" src="/dashboard/tab-match.js"></script>
-  <script type="text/babel" src="/dashboard/tab-events.js"></script>
-  <script type="text/babel" src="/dashboard/tab-history.js"></script>
-  <script type="text/babel" src="/dashboard/tab-profile-cards.js"></script>
-  <script type="text/babel" src="/dashboard/tab-want-cards.js"></script>
-  <script type="text/babel" src="/dashboard/push.js"></script>
-  <script type="text/babel" src="/dashboard/tab-profile.js"></script>
-  <script type="text/babel" src="/dashboard/promo.js"></script>
-  <script type="text/babel" src="/dashboard/app.js"></script>
+  <script src="/shared/form-options.js"></script>
+  <script src="/shared/ideal-fields.js"></script>
+
+  <!-- Dashboard app (lib + shared components + layout + tabs + app), compiled by Vite. -->
+  <script type="module" src="./main.jsx"></script>
 
   <!-- Register the dashboard service worker (push notifications). Plain JS,
        scoped to /dashboard/. -->

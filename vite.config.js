@@ -18,6 +18,7 @@ const VITE_PAGES = {
   login: resolve(__dirname, "login/index.html"),
   "availability-form": resolve(__dirname, "availability-form/index.html"),
   "ideal-form": resolve(__dirname, "ideal-form/index.html"),
+  dashboard: resolve(__dirname, "dashboard/index.html"),
 };
 
 // Build/tooling files that must never be copied into dist/.
@@ -40,12 +41,26 @@ function copyVerbatimPlugin() {
     name: "copy-verbatim-static",
     apply: "build",
     closeBundle() {
-      const migrated = new Set(Object.keys(VITE_PAGES));
+      const migratedDirs = new Set(Object.keys(VITE_PAGES));
       for (const entry of readdirSync(__dirname)) {
-        if (EXCLUDE.has(entry) || migrated.has(entry)) continue;
-        cpSync(resolve(__dirname, entry), resolve(__dirname, "dist", entry), {
-          recursive: true,
-        });
+        if (EXCLUDE.has(entry)) continue;
+        const src = resolve(__dirname, entry);
+        const dest = resolve(__dirname, "dist", entry);
+        if (migratedDirs.has(entry)) {
+          // Vite emits this page's index.html into dist; copy the REST of the
+          // directory verbatim (e.g. dashboard/sw.js, manifest.webmanifest) so
+          // those static assets keep serving from their original URLs. Never copy
+          // the source index.html (Vite owns it) or the main.jsx entry source.
+          cpSync(src, dest, {
+            recursive: true,
+            filter: (s) => {
+              const base = s.split(/[\\/]/).pop();
+              return base !== "index.html" && base !== "main.jsx";
+            },
+          });
+        } else {
+          cpSync(src, dest, { recursive: true });
+        }
       }
     },
   };
