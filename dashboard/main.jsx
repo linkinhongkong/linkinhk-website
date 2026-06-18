@@ -2541,6 +2541,19 @@ function NotificationSettings() {
 // ============================================================
 
 function ProfileTab({ profile, subTab, setSubTab, onLogout, onProfileUpdated }) {
+  // A logged-in member should always have a profile, but if the bootstrap returns
+  // null/empty (e.g. a transient backend hiccup), render a friendly retry state
+  // instead of throwing on profile[...] below — which would blank the whole app.
+  if (!profile) {
+    return (
+      <div className="fade-in" style={{ padding: "60px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🙈</div>
+        <p style={{ fontSize: 15, color: "var(--text)", marginBottom: 8 }}>暫時載入唔到你嘅個人資料</p>
+        <p style={{ fontSize: 13, color: "var(--text-light)", marginBottom: 20 }}>請試吓重新整理頁面</p>
+        <button onClick={() => window.location.reload()} className="nav-btn primary" style={{ maxWidth: 200, margin: "0 auto" }}>重新整理</button>
+      </div>
+    );
+  }
   const rawDealBreaker = profile["deal-breaker"];
   const dealBreakers = Array.isArray(rawDealBreaker)
     ? rawDealBreaker
