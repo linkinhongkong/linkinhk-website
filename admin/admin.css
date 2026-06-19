@@ -540,6 +540,24 @@
 .lookup-membership-badge.expired  { background: var(--red-bg); color: var(--red); }
 .lookup-membership-badge.inactive { background: var(--chip-bg); color: var(--text-muted, #777); }
 
+.lookup-impersonate-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #7c3aed;
+  border-radius: var(--radius-pill);
+  background: #f3effd;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.lookup-impersonate-btn:hover { background: #7c3aed; color: #fff; }
+.lookup-impersonate-btn:disabled { opacity: 0.6; cursor: default; }
+
 .lookup-info-chips {
   display: flex;
   flex-wrap: wrap;
