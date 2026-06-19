@@ -1354,6 +1354,19 @@
     }
     panel.appendChild(header);
 
+    // "View as user" — opens this member's dashboard in an impersonation
+    // session (admin-only, server-side flagged with the admin's username).
+    if (profile.email) {
+      var impersonateBtn = document.createElement("button");
+      impersonateBtn.type = "button";
+      impersonateBtn.className = "lookup-impersonate-btn";
+      impersonateBtn.innerHTML = "👁 以此會員身分檢視";
+      impersonateBtn.addEventListener("click", function () {
+        startImpersonation(profile.email, impersonateBtn);
+      });
+      panel.appendChild(impersonateBtn);
+    }
+
     // Info chips
     var chips = buildProfileChips(profile);
     if (chips.length) {
@@ -1421,6 +1434,48 @@
       history.forEach(function (m) { list.appendChild(buildHistoryRow(m)); });
       panel.appendChild(list);
     }
+  }
+
+  // ============================================================
+  // Impersonation — "view as user"
+  // Asks the backend to mint a short-lived member session for the target
+  // email (flagged server-side with the admin's username), then opens the
+  // member dashboard in a new tab carrying that token via the URL hash.
+  // ============================================================
+  function startImpersonation(email, btn) {
+    var token = getToken();
+    if (!token) { showLogin(); return; }
+    if (!email) { toast("此會員冇電郵，無法檢視", true); return; }
+    if (!window.confirm("以 " + email + " 身分開啟會員介面?\n你睇到嘅嘢同佢一樣，操作會記錄喺佢嘅帳戶上。")) return;
+
+    setBusy(btn, "開啟緊…");
+    fetch(window.webhookUrl("admin-impersonate"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminToken: token, email: email })
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) { handleAuthError(); throw new Error("auth"); }
+        return parseJsonSafe(r);
+      })
+      .then(function (data) {
+        // n8n's "Respond to Webhook" may wrap the payload in a 1-element array.
+        if (Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === "object") {
+          data = data[0];
+        }
+        if (!data || data.success === false || !data.token) {
+          toast((data && data.error) || "無法開啟會員介面", true);
+          return;
+        }
+        var url = "/dashboard#impersonate=" + encodeURIComponent(data.token) +
+                  "&email=" + encodeURIComponent(data.email || email);
+        window.open(url, "_blank", "noopener");
+        toast("已開啟 " + (data.email || email) + " 嘅會員介面 👁");
+      })
+      .catch(function (e) {
+        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
+      })
+      .then(function () { unsetBusy(btn, "👁 以此會員身分檢視"); });
   }
 
   function buildHistoryRow(match) {

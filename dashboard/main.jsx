@@ -60,6 +60,65 @@ function redirectToLogin() {
   window.location.href = "/login?redirect=" + encodeURIComponent(target);
 }
 
+// ---------------- Impersonation (admin "view as user") ----------------
+// When an admin opens the dashboard via the admin portal's "view as user"
+// button, the short-lived impersonation session token arrives in the URL hash:
+//   /dashboard#impersonate=<token>&email=<email>
+// We move it into localStorage (backing up any real session first) and strip
+// the hash so the token never lingers in the URL/history. A persistent banner
+// then makes the mode obvious and offers a one-tap exit.
+const IMP_FLAG = "linkinhk_impersonation";
+const IMP_TOKEN_BACKUP = "linkinhk_token_backup";
+const IMP_EMAIL_BACKUP = "linkinhk_email_backup";
+
+function captureImpersonationFromHash() {
+  const hash = window.location.hash || "";
+  if (hash.indexOf("impersonate=") === -1) return;
+  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  const token = params.get("impersonate");
+  const email = params.get("email") || "";
+  if (!token) return;
+
+  // Back up any existing real session so exiting restores it (same-origin
+  // localStorage is shared with the admin portal).
+  const prevToken = localStorage.getItem("linkinhk_token");
+  if (prevToken && prevToken !== token) {
+    localStorage.setItem(IMP_TOKEN_BACKUP, prevToken);
+    localStorage.setItem(IMP_EMAIL_BACKUP, localStorage.getItem("linkinhk_email") || "");
+  }
+  localStorage.setItem("linkinhk_token", token);
+  localStorage.setItem("linkinhk_email", email);
+  localStorage.setItem(IMP_FLAG, email || "1");
+
+  // Drop the token from the URL/history immediately.
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+}
+
+function isImpersonating() {
+  return !!localStorage.getItem(IMP_FLAG);
+}
+
+function exitImpersonation() {
+  localStorage.removeItem(IMP_FLAG);
+  const backup = localStorage.getItem(IMP_TOKEN_BACKUP);
+  if (backup) {
+    localStorage.setItem("linkinhk_token", backup);
+    localStorage.setItem("linkinhk_email", localStorage.getItem(IMP_EMAIL_BACKUP) || "");
+    localStorage.removeItem(IMP_TOKEN_BACKUP);
+    localStorage.removeItem(IMP_EMAIL_BACKUP);
+  } else {
+    clearAuth();
+  }
+  // The tab was opened by the admin portal; try to close it, and fall back to
+  // the admin portal if the browser blocks window.close().
+  window.close();
+  window.location.href = "/admin";
+}
+
+// Consume the impersonation hash before React mounts so the token is in
+// localStorage in time for the first authenticated fetch.
+captureImpersonationFromHash();
+
 // ---------------- API helper ----------------
 async function authenticatedFetch(url, options = {}) {
   const token = getToken();
@@ -2793,6 +2852,50 @@ function TopPromoBanner() {
 // app.js — main Dashboard component, routing, header, bottom nav, mount
 // ============================================================
 
+// Persistent banner shown while an admin is viewing a member's dashboard.
+function ImpersonationBanner() {
+  if (!isImpersonating()) return null;
+  const email = localStorage.getItem(IMP_FLAG);
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 2147483646,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        padding: "6px 12px",
+        background: "#7c3aed",
+        color: "#fff",
+        font: "600 12px/1.4 system-ui,-apple-system,sans-serif",
+        letterSpacing: "0.3px",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.18)"
+      }}
+    >
+      <span>
+        👁 管理員模式 · 正以 <strong>{email && email !== "1" ? email : "會員"}</strong> 身分檢視
+      </span>
+      <button
+        onClick={exitImpersonation}
+        style={{
+          flex: "0 0 auto",
+          border: "1px solid rgba(255,255,255,0.7)",
+          background: "rgba(255,255,255,0.12)",
+          color: "#fff",
+          borderRadius: 999,
+          padding: "2px 12px",
+          font: "600 12px system-ui,-apple-system,sans-serif",
+          cursor: "pointer"
+        }}
+      >
+        結束
+      </button>
+    </div>
+  );
+}
+
 function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
@@ -2873,11 +2976,12 @@ function Dashboard() {
   const changeTab = (tabId) => { window.location.hash = tabId; };
   const handleLogout = () => { clearAuth(); redirectToLogin(); };
 
-  if (loading) return <LoadingScreen />;
-  if (error) return <ErrorScreen message={error} />;
+  if (loading) return (<><ImpersonationBanner /><LoadingScreen /></>);
+  if (error) return (<><ImpersonationBanner /><ErrorScreen message={error} /></>);
 
   return (
     <div>
+      <ImpersonationBanner />
       <div className="app-topbar">
         <TopPromoBanner />
         <header className="app-header">
