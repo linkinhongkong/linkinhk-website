@@ -1430,9 +1430,9 @@ function NoMatchState({ rejected }) {
   return (
     <div className="flex flex-col items-center justify-center fade-in" style={{ padding: "80px 0" }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>💌</div>
-      <p style={{ color: "var(--text)", fontWeight: 500, marginBottom: 4 }}>今個禮拜暫時未有配對</p>
+      <p style={{ color: "var(--text)", fontWeight: 500, marginBottom: 4 }}>你嘅配對準備緊</p>
       <p style={{ color: "var(--text-light)", fontSize: 14, textAlign: "center", maxWidth: 300 }}>
-        我哋每星期二夜晚送出新嘅配對結果,記得返嘅睬睬 ✨
+        新配對一出爐,我哋會發電郵通知你。記得開啟通知,第一時間收到你嘅配對 ✨
       </p>
     </div>
   );
@@ -1505,16 +1505,9 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
       </div>
 
       <Card>
-        {(partner.name || currentMatch.compatibilityScore != null) && (
+        {partner.name && (
           <div className="match-name-row">
-            {partner.name && (
-              <h2 className="match-name">{partner.name}</h2>
-            )}
-            {currentMatch.compatibilityScore != null && (
-              <span className="match-score-chip">
-                匹配度 {currentMatch.compatibilityScore}%
-              </span>
-            )}
+            <h2 className="match-name">{partner.name}</h2>
           </div>
         )}
         <InfoChipsRow partner={partner} />
