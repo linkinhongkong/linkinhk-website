@@ -230,7 +230,7 @@
           showLoginError("登入失敗，請再試一次");
         }
       })
-      .catch(function () { showLoginError("連線錯誤，請稍後再試"); })
+      .catch(function (e) { showLoginError("連線錯誤，請稍後再試" + failDetail(e, "admin-login")); })
       .then(function () {
         loginSubmit.disabled = false;
         loginSubmit.textContent = "登入";
@@ -475,7 +475,7 @@
         }
       })
       .catch(function (e) {
-        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
+        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試" + failDetail(e, "publish-blog-post"), true);
       })
       .then(function () { unsetBusy(publishBtn, "發布"); });
   }
@@ -579,7 +579,7 @@
       })
       .catch(function (e) {
         if (e && e.message === "auth") return;
-        toast("刪除失敗,請稍後再試", true);
+        toast("刪除失敗,請稍後再試" + failDetail(e, "delete-blog-post"), true);
         btn.disabled = false;
         btn.textContent = "🗑 刪除";
         itemEl.classList.remove("pending");
@@ -791,7 +791,7 @@
       })
       .catch(function (e) {
         if (e && e.message === "auth") return;
-        toast("儲存失敗,請稍後再試", true);
+        toast("儲存失敗,請稍後再試" + failDetail(e, "update-activities"), true);
       })
       .then(function () { unsetBusy(activitiesSaveBtn, "儲存"); });
   }
@@ -878,7 +878,7 @@
         handleMemberSuccess(data, handles);
       })
       .catch(function (e) {
-        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
+        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試" + failDetail(e, "set-membership"), true);
       })
       .then(function () { unsetBusy(submitMembersBtn, (MEMBERSHIP_ACTIONS[currentMembership] || MEMBERSHIP_ACTIONS.activated).btn); });
   }
@@ -1219,7 +1219,7 @@
         }
       })
       .catch(function (e) {
-        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試", true);
+        if (e && e.message !== "auth") toast("連線錯誤，請稍後再試" + failDetail(e, "lookup-member"), true);
       })
       .then(function () { unsetBusy(lookupSearchBtn, "🔍 搜尋"); });
   }
@@ -2322,6 +2322,14 @@
       toastEl.classList.remove("show");
       setTimeout(function () { toastEl.hidden = true; }, 250);
     }, 2800);
+  }
+  // Compact diagnostic suffix (e.g. " (lookup-member · TypeError · 16:08)")
+  // from shared/error-utils.js, appended to admin error toasts so a screenshot
+  // of an internal failure tells us what actually went wrong.
+  function failDetail(failure, endpoint) {
+    if (!window.describeError) return "";
+    var d = window.describeError(failure, { endpoint: endpoint }).detail;
+    return d ? " (" + d + ")" : "";
   }
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {

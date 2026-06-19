@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorReportLink } from "../shared/error-report-link.jsx";
 
     /* ═══════════════════════════════════════════
        CONFIG
@@ -7,18 +8,6 @@ import { createRoot } from "react-dom/client";
     const WEBHOOK_URL = window.webhookUrl("ideal-form");
     const LOGO_URL = "/logo.png";
     const DASHBOARD_IDEAL_URL = "/dashboard#ideal";
-
-    function ErrorReportLink() {
-      return (
-        <div className="error-report-link">
-          問題持續?描述一下情況同附上截圖,{" "}
-          <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
-            傳到我哋 IG DM →
-          </a>
-          <br />我哋會盡快回覆 💜
-        </div>
-      );
-    }
 
     // Default ranges — user can adjust
     const AGE_MIN_DEFAULT = 22, AGE_MAX_DEFAULT = 35;
@@ -475,6 +464,7 @@ import { createRoot } from "react-dom/client";
       const [step, setStep] = useState(0);
       const [submitting, setSubmitting] = useState(false);
       const [submitError, setSubmitError] = useState("");
+      const [submitDetail, setSubmitDetail] = useState("");
       const [toast, setToast] = useState("");
 
       // Auth gate — redirect if no token
@@ -588,6 +578,7 @@ import { createRoot } from "react-dom/client";
         }
         setSubmitting(true);
         setSubmitError("");
+        setSubmitDetail("");
 
         const token = localStorage.getItem("linkinhk_token");
         if (!token) { window.location.href = "/login"; return; }
@@ -640,12 +631,15 @@ import { createRoot } from "react-dom/client";
             window.location.href = DASHBOARD_IDEAL_URL;
             return;
           }
-          const errMsg = (data && (data.error || data.message)) || "提交失敗,請稍後再試";
-          setSubmitError(errMsg);
+          const info = window.describeError(res, { action: "保存", endpoint: "ideal-form" });
+          setSubmitError((data && (data.error || data.message)) || info.message);
+          setSubmitDetail(info.detail);
           setSubmitting(false);
         } catch (err) {
           console.error("Submit error:", err);
-          setSubmitError(err.name === "AbortError" ? "提交超時,請檢查網絡後再試" : "網絡連線錯誤,請再試");
+          const info = window.describeError(err, { action: "保存", endpoint: "ideal-form" });
+          setSubmitError(info.message);
+          setSubmitDetail(info.detail);
           setSubmitting(false);
         }
       };
@@ -776,7 +770,7 @@ import { createRoot } from "react-dom/client";
                   {submitError && step === STEPS.length - 1 && (
                     <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
                       {submitError}
-                      <ErrorReportLink />
+                      <ErrorReportLink detail={submitDetail} />
                     </div>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorReportLink } from "../shared/error-report-link.jsx";
 const { useState, useEffect, useCallback } = React;
 
 // ===================== dashboard/lib.js =====================
@@ -311,7 +312,7 @@ function LoadingScreen({ text = "載入中..." }) {
   );
 }
 
-function ErrorScreen({ message }) {
+function ErrorScreen({ message, detail }) {
   return (
     <div className="flex flex-col items-center justify-center" style={{ minHeight: "100dvh", padding: 24 }}>
       <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
@@ -320,24 +321,8 @@ function ErrorScreen({ message }) {
         重新載入
       </button>
       <div style={{ marginTop: 20, textAlign: "center" }}>
-        <ErrorReportLink />
+        <ErrorReportLink detail={detail} />
       </div>
-    </div>
-  );
-}
-
-// Inline link rendered next to errors the member can't fix themselves
-// (server failures, network issues, unexpected API errors). Hidden for
-// validation errors (empty fields, bad format), which the user can fix.
-function ErrorReportLink({ variant }) {
-  const cls = "error-report-link" + (variant === "on-dark" ? " on-dark" : "");
-  return (
-    <div className={cls}>
-      問題持續?描述一下情況同附上截圖,{" "}
-      <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
-        傳到我哋 IG DM →
-      </a>
-      <br />我哋會盡快回覆 💜
     </div>
   );
 }
@@ -706,6 +691,7 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const [values, setValues] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -716,6 +702,7 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
       });
       setValues(initial);
       setError(null);
+      setErrorDetail("");
       setSaving(false);
       document.body.style.overflow = "hidden";
     } else {
@@ -730,6 +717,7 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setErrorDetail("");
     const updates = {};
     fields.forEach((f) => {
       if (f.readOnly) return;
@@ -746,12 +734,16 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         if (onSaved) onSaved(data.profile);
         onClose();
       } else {
-        setError(data.error || "保存失敗,請再試");
+        const info = window.describeError(res, { action: "保存", endpoint: "update-profile" });
+        setError(data.error || info.message);
+        setErrorDetail(info.detail);
         setSaving(false);
       }
     } catch (err) {
       if (err.message !== "Unauthorized" && err.message !== "No token") {
-        setError("網絡連線錯誤");
+        const info = window.describeError(err, { action: "保存", endpoint: "update-profile" });
+        setError(info.message);
+        setErrorDetail(info.detail);
         setSaving(false);
       }
     }
@@ -808,7 +800,7 @@ function BottomSheet({ open, title, fields, profile, onClose, onSaved }) {
           {error && (
             <div className="sheet-error">
               {error}
-              <ErrorReportLink />
+              <ErrorReportLink detail={errorDetail} />
             </div>
           )}
         </div>
@@ -827,6 +819,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const [dealBreakers, setDealBreakers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [errorDetail, setErrorDetail] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -845,6 +838,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         : String(raw || "").split(",").map((s) => s.trim()).filter(Boolean);
       setDealBreakers(arr);
       setError(null);
+      setErrorDetail("");
       setSaving(false);
       document.body.style.overflow = "hidden";
     } else {
@@ -861,6 +855,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
+    setErrorDetail("");
     const isExtraOnly = fields.length === 1 && fields[0].key === "extra-requirements";
     try {
       if (isExtraOnly) {
@@ -874,7 +869,9 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
           if (onSaved) onSaved(data.profile || { ...profile, "extra-requirements": extraValue });
           onClose();
         } else {
-          setError(data.error || "保存失敗,請再試");
+          const info = window.describeError(res, { action: "保存", endpoint: "extra-requirements" });
+          setError(data.error || info.message);
+          setErrorDetail(info.detail);
           setSaving(false);
         }
         return;
@@ -898,12 +895,16 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
         if (onSaved) onSaved(data.profile);
         onClose();
       } else {
-        setError(data.error || "保存失敗,請再試");
+        const info = window.describeError(res, { action: "保存", endpoint: "update-profile" });
+        setError(data.error || info.message);
+        setErrorDetail(info.detail);
         setSaving(false);
       }
     } catch (err) {
       if (err.message !== "Unauthorized" && err.message !== "No token") {
-        setError("網絡連線錯誤");
+        const info = window.describeError(err, { action: "保存", endpoint: "update-profile" });
+        setError(info.message);
+        setErrorDetail(info.detail);
         setSaving(false);
       }
     }
@@ -956,7 +957,7 @@ function WantBottomSheet({ open, title, fields, profile, onClose, onSaved }) {
           {error && (
             <div className="sheet-error">
               {error}
-              <ErrorReportLink />
+              <ErrorReportLink detail={errorDetail} />
             </div>
           )}
         </div>
@@ -1383,6 +1384,7 @@ function NoMatchState({ rejected }) {
 function MatchTab({ profile, currentMatch, onMatchResponded }) {
   const [toast, setToast] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [actionDetail, setActionDetail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [responded, setResponded] = useState(false);
   const [justRejected, setJustRejected] = useState(false);
@@ -1391,6 +1393,7 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
     if (submitting || !currentMatch) return;
     setSubmitting(true);
     setActionError(null);
+    setActionDetail("");
     try {
       const res = await authenticatedFetch(API.RESPOND_TO_MATCH, {
         method: "POST",
@@ -1407,12 +1410,16 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
         if (response === "reject") setJustRejected(true);
         if (onMatchResponded) onMatchResponded();
       } else {
-        setActionError(data.error || "出錯,請再試");
+        const info = window.describeError(res, { action: "回覆", endpoint: "respond-to-match" });
+        setActionError(data.error || info.message);
+        setActionDetail(info.detail);
         setSubmitting(false);
       }
     } catch (err) {
       if (err.message !== "Unauthorized" && err.message !== "No token") {
-        setActionError("網絡連線錯誤");
+        const info = window.describeError(err, { action: "回覆", endpoint: "respond-to-match" });
+        setActionError(info.message);
+        setActionDetail(info.detail);
       }
       setSubmitting(false);
     }
@@ -1468,7 +1475,7 @@ function MatchTab({ profile, currentMatch, onMatchResponded }) {
         {actionError && (
           <div className="sheet-error">
             {actionError}
-            <ErrorReportLink />
+            <ErrorReportLink detail={actionDetail} />
           </div>
         )}
         <ActionButtons
@@ -1852,17 +1859,6 @@ function formatMatchTime(raw) {
 const UPDATE_BIO_URL = window.webhookUrl("update-bio");
 const UPDATE_PHOTO_URL = window.webhookUrl("update-photo");
 
-function authPostCustom(url, body, isFormData) {
-  const token = getToken() || "";
-  const headers = { "Authorization": "Bearer " + token };
-  if (!isFormData) headers["Content-Type"] = "application/json";
-  return fetch(url, {
-    method: "POST",
-    headers,
-    body: isFormData ? body : JSON.stringify(body),
-  }).then((res) => res.json());
-}
-
 // ---------------- Card edit configs (for standard BottomSheet) ----------------
 const PROFILE_CARD_CONFIGS = {
   summary: {
@@ -1950,18 +1946,39 @@ function PhotoCell({ url, alt, className }) {
 function BioEditSheet({ open, currentBio, onClose, onSaved }) {
   const [text, setText] = useState(currentBio || "");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
 
   if (!open) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
-    authPostCustom(UPDATE_BIO_URL, { bio: text })
-      .then((result) => {
-        setSaving(false);
-        if (result && result.success && result.profile && onSaved) onSaved(result.profile);
+    setError("");
+    setErrorDetail("");
+    try {
+      const res = await authenticatedFetch(UPDATE_BIO_URL, {
+        method: "POST",
+        body: JSON.stringify({ bio: text }),
+      });
+      const result = await res.json().catch(() => null);
+      if (result && result.success) {
+        if (result.profile && onSaved) onSaved(result.profile);
         onClose();
-      })
-      .catch((e) => { console.error("Bio save error:", e); setSaving(false); onClose(); });
+      } else {
+        const info = window.describeError(res, { action: "保存", endpoint: "update-bio" });
+        setError((result && result.error) || info.message);
+        setErrorDetail(info.detail);
+        setSaving(false);
+      }
+    } catch (err) {
+      if (err.message !== "Unauthorized" && err.message !== "No token") {
+        console.error("Bio save error:", err);
+        const info = window.describeError(err, { action: "保存", endpoint: "update-bio" });
+        setError(info.message);
+        setErrorDetail(info.detail);
+        setSaving(false);
+      }
+    }
   };
 
   return (
@@ -1983,6 +2000,12 @@ function BioEditSheet({ open, currentBio, onClose, onSaved }) {
             placeholder="講少少關於你..."
             style={{ resize: "none" }}
           />
+          {error && (
+            <div className="sheet-error" style={{ marginTop: 16 }}>
+              {error}
+              <ErrorReportLink detail={errorDetail} />
+            </div>
+          )}
         </div>
         <div className="sheet-footer">
           <button
@@ -2004,6 +2027,8 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
   const [previews, setPreviews] = useState([null, null, null]);
   const [files, setFiles] = useState([null, null, null]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
 
   if (!open) return null;
 
@@ -2024,13 +2049,15 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
 
   const handleSave = () => {
     setSaving(true);
+    setError("");
+    setErrorDetail("");
     const uploads = [];
     for (let i = 0; i < 3; i++) {
       if (files[i]) uploads.push({ idx: i, file: files[i] });
     }
     if (uploads.length === 0) { onClose(); return; }
 
-    const uploadNext = (pos) => {
+    const uploadNext = async (pos) => {
       if (pos >= uploads.length) {
         setSaving(false);
         if (onSaved) onSaved();
@@ -2041,9 +2068,37 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
       const formData = new FormData();
       formData.append("photoIndex", String(item.idx + 1));
       formData.append("photo", item.file);
-      authPostCustom(UPDATE_PHOTO_URL, formData, true)
-        .then(() => uploadNext(pos + 1))
-        .catch((e) => { console.error("Photo upload error:", e); uploadNext(pos + 1); });
+      // FormData upload: can't use authenticatedFetch (it forces a JSON
+      // Content-Type). Handle auth + errors inline instead. Previously a failed
+      // upload was swallowed (console.error) and the sheet closed as if saved.
+      try {
+        const token = getToken() || "";
+        const res = await fetch(UPDATE_PHOTO_URL, {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: formData,
+        });
+        if (res.status === 401) { clearAuth(); redirectToLogin(); return; }
+        const data = await res.json().catch(() => null);
+        if (!res.ok || (data && data.success === false)) {
+          const info = window.describeError(res, {
+            action: "上傳相片", endpoint: "update-photo", sizeBytes: item.file.size,
+          });
+          setError((data && data.error) || info.message);
+          setErrorDetail(info.detail);
+          setSaving(false);
+          return; // stop the chain; keep the sheet open so the user can retry
+        }
+        uploadNext(pos + 1);
+      } catch (e) {
+        console.error("Photo upload error:", e);
+        const info = window.describeError(e, {
+          action: "上傳相片", endpoint: "update-photo", sizeBytes: item.file.size,
+        });
+        setError(info.message);
+        setErrorDetail(info.detail);
+        setSaving(false);
+      }
     };
     uploadNext(0);
   };
@@ -2084,6 +2139,12 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
               );
             })}
           </div>
+          {error && (
+            <div className="sheet-error">
+              {error}
+              <ErrorReportLink detail={errorDetail} />
+            </div>
+          )}
         </div>
         <div className="sheet-footer">
           <button
@@ -2800,6 +2861,7 @@ function Dashboard() {
   const [history, setHistory] = useState([]);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
+  const [errorDetail, setErrorDetail] = useState("");
   const [activeTab, setActiveTab] = useState("match");
   const [profileSubTab, setProfileSubTab] = useState("me");
 
@@ -2856,12 +2918,18 @@ function Dashboard() {
         setHistory(data.history || []);
         setEvents(data.events || []);
       } else if (!silent) {
-        setError(data.error || "載入失敗");
+        const info = window.describeError(res, { action: "載入", endpoint: "get-dashboard-bootstrap" });
+        setError(data.error || info.message);
+        setErrorDetail(info.detail);
       }
     } catch (err) {
       if (err.message !== "Unauthorized" && err.message !== "No token") {
         console.error(err);
-        if (!silent) setError("網絡連線錯誤");
+        if (!silent) {
+          const info = window.describeError(err, { action: "載入", endpoint: "get-dashboard-bootstrap" });
+          setError(info.message);
+          setErrorDetail(info.detail);
+        }
       }
     } finally {
       if (!silent) setLoading(false);
@@ -2874,7 +2942,7 @@ function Dashboard() {
   const handleLogout = () => { clearAuth(); redirectToLogin(); };
 
   if (loading) return <LoadingScreen />;
-  if (error) return <ErrorScreen message={error} />;
+  if (error) return <ErrorScreen message={error} detail={errorDetail} />;
 
   return (
     <div>
