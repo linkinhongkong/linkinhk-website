@@ -16,6 +16,14 @@ const LOGO_URL = "/logo.png";
 // user gets a clear, fixable message instead of a confusing gateway failure.
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
+// Draft persistence — text/selection fields go to localStorage (debounced),
+// photos go to IndexedDB (shared/draft-photos.js). The draft is only cleared
+// after a successful submit, so a refresh/quit/failed-webhook loses nothing.
+// The "-v1" suffix lets us invalidate old drafts if the form schema changes.
+const DRAFT_KEY = "linkinhk-member-draft-v1";
+const DRAFT_DEBOUNCE_MS = 600;
+const DRAFT_TTL_MS = 14 * 24 * 60 * 60 * 1000; // ignore drafts older than 14 days
+
 /* ═══════════════════════════════════════════
    DATA — Options loaded from shared-options.js (single source of truth)
    ═══════════════════════════════════════════ */
@@ -884,6 +892,54 @@ const STYLES = `
     opacity: 1;
   }
 
+  /* ── Resume banner ── */
+  .resume-banner {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 460px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #e6dcfb;
+    color: #4a3a6b;
+    padding: 10px 12px 10px 16px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    box-shadow: 0 6px 24px rgba(144, 96, 224, 0.18);
+    z-index: 99;
+  }
+  .resume-text { flex: 1; line-height: 1.4; }
+  .resume-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .resume-btn {
+    background: #9060E0;
+    color: #fff;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .resume-btn:hover { background: #7d4fd0; }
+  .resume-dismiss {
+    background: transparent;
+    border: none;
+    color: #b0a4c8;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 4px 6px;
+    line-height: 1;
+  }
+  .resume-dismiss:hover { color: #7a6a9a; }
+
   /* ── Mobile tweaks ── */
   @media (max-width: 500px) {
     .form-root { padding: 12px 8px 40px; }
@@ -913,6 +969,10 @@ function LinkInSignup() {
   const cardRef = useRef(null);
   // Keyed by original File so submit() can resolve compressed blobs without depending on stale closure state.
   const photoCompressions = useRef(new Map());
+  // Guards the autosave effect so it doesn't overwrite a saved draft with the
+  // empty initial form before the restore-on-mount effect has run.
+  const restoredRef = useRef(false);
+  const [showResumeNotice, setShowResumeNotice] = useState(false);
 
   const [form, setForm] = useState({
     // Page 1 — basics: name, sex, orientation, occupation, uni, DOB, height
@@ -1016,6 +1076,16 @@ function LinkInSignup() {
         photoPreviews: [...prev.photoPreviews, ...previews],
       }));
       setErrors(prev => ({ ...prev, photos: undefined }));
+
+      // Persist each photo (the compressed blob, once ready) to IndexedDB so it
+      // survives a refresh. Slot index = position in the final photos array.
+      if (window.draftPhotos) {
+        toAdd.forEach((file, i) => {
+          const slot = currentCount + i;
+          const compressed = photoCompressions.current.get(file) || Promise.resolve(file);
+          compressed.then(blob => window.draftPhotos.save(slot, blob, previews[i])).catch(() => {});
+        });
+      }
     });
 
     // reset input so same file can be reselected
@@ -1026,11 +1096,21 @@ function LinkInSignup() {
     setForm(prev => {
       const removed = prev.photos[idx];
       if (removed) photoCompressions.current.delete(removed);
-      return {
-        ...prev,
-        photos: prev.photos.filter((_, i) => i !== idx),
-        photoPreviews: prev.photoPreviews.filter((_, i) => i !== idx),
-      };
+      const photos = prev.photos.filter((_, i) => i !== idx);
+      const photoPreviews = prev.photoPreviews.filter((_, i) => i !== idx);
+
+      // Removing a slot shifts everything after it down, so rewrite the whole
+      // IndexedDB store to keep slot ids contiguous and in sync with the array.
+      if (window.draftPhotos) {
+        window.draftPhotos.clear().then(() => {
+          photos.forEach((file, i) => {
+            const compressed = photoCompressions.current.get(file) || Promise.resolve(file);
+            compressed.then(blob => window.draftPhotos.save(i, blob, photoPreviews[i])).catch(() => {});
+          });
+        }).catch(() => {});
+      }
+
+      return { ...prev, photos, photoPreviews };
     });
   };
 
@@ -1087,26 +1167,122 @@ function LinkInSignup() {
     scrollToTop();
   }, [step]);
 
+  /* ── Draft persistence ── */
+  // True only when the user has actually entered something, so we don't save or
+  // "restore" a pristine form (loveLangRank has a non-empty default; ignore it).
+  const draftHasContent = (f) => {
+    if (!f) return false;
+    const ignore = new Set(["loveLangRank", "photos", "photoPreviews", "marketingOptOut"]);
+    return Object.keys(f).some(k => {
+      if (ignore.has(k)) return false;
+      const v = f[k];
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "boolean") return v === true;
+      return typeof v === "string" ? v.trim() !== "" : !!v;
+    });
+  };
+
+  // Restore on mount: rehydrate text fields + step from localStorage, then load
+  // photos from IndexedDB. Silent restore with a dismissible banner (no prompt).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        const fresh = draft && draft.savedAt && (Date.now() - draft.savedAt) < DRAFT_TTL_MS;
+        if (draft && draft.form && fresh && draftHasContent(draft.form)) {
+          setForm(prev => ({ ...prev, ...draft.form, photos: [], photoPreviews: [] }));
+          if (typeof draft.step === "number") setStep(draft.step);
+          setShowResumeNotice(true);
+        } else if (!fresh) {
+          localStorage.removeItem(DRAFT_KEY);
+          if (window.draftPhotos) window.draftPhotos.clear();
+        }
+      }
+    } catch (err) {
+      console.warn("Draft restore failed:", err);
+    }
+
+    // Photos live in IndexedDB; load and merge once available.
+    if (window.draftPhotos) {
+      window.draftPhotos.load().then(items => {
+        if (!items || !items.length) return;
+        setForm(prev => ({
+          ...prev,
+          photos: items.map(i => i.file),
+          photoPreviews: items.map(i => i.previewDataUrl),
+        }));
+        setShowResumeNotice(true);
+      }).catch(() => {});
+    }
+
+    restoredRef.current = true;
+  }, []);
+
+  // Autosave (debounced): one effect captures every form mutation path. Photo
+  // fields are non-serializable, so they're stripped here and kept in IndexedDB.
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    const t = setTimeout(() => {
+      try {
+        const { photos, photoPreviews, ...rest } = form;
+        if (!draftHasContent(rest)) return; // nothing worth saving yet
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          version: 1,
+          savedAt: Date.now(),
+          step,
+          form: rest,
+        }));
+      } catch (err) {
+        // QuotaExceeded / private-mode: degrade silently, draft just won't persist.
+        console.warn("Draft save failed:", err);
+      }
+    }, DRAFT_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [form, step]);
+
+  // Wipe the persisted draft (localStorage + IndexedDB photos). Called only on a
+  // successful submit, or when the user taps "重新開始" on the resume banner.
+  // Returns a promise so callers that navigate/reload can await the IndexedDB
+  // clear and avoid a race where stale photos get restored afterwards.
+  const clearDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    try { return window.draftPhotos ? window.draftPhotos.clear() : Promise.resolve(); }
+    catch (e) { return Promise.resolve(); }
+  };
+
+  const discardDraft = async () => {
+    setShowResumeNotice(false);
+    await clearDraft();
+    window.location.reload();
+  };
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2800);
   };
 
+  // Toast the count of unfilled questions and smooth-scroll to the first error.
+  // Returns true if there are errors (caller should stop). Shared by next() and
+  // submit() so the last page gives the same feedback as every other step.
+  const reportStepErrors = (e) => {
+    const errCount = Object.keys(e).length;
+    if (errCount === 0) return false;
+    showToast(`仲有 ${errCount} 題未填 ✏️`);
+    setTimeout(() => {
+      const firstErr = document.querySelector('.field-error');
+      if (firstErr) {
+        const field = firstErr.closest('.field') || firstErr;
+        field.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 80);
+    return true;
+  };
+
   const next = () => {
     const e = getStepErrors();
     setErrors(e);
-    const errCount = Object.keys(e).length;
-    if (errCount > 0) {
-      showToast(`仲有 ${errCount} 題未填 ✏️`);
-      setTimeout(() => {
-        const firstErr = document.querySelector('.field-error');
-        if (firstErr) {
-          const field = firstErr.closest('.field') || firstErr;
-          field.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      }, 80);
-      return;
-    }
+    if (reportStepErrors(e)) return;
     if (step < STEPS.length - 1) {
       setStep(s => s + 1);
     }
@@ -1119,7 +1295,9 @@ function LinkInSignup() {
 
   /* ── Submit ── */
   const submit = async () => {
-    if (!validateStep()) return;
+    const stepErrors = getStepErrors();
+    setErrors(stepErrors);
+    if (reportStepErrors(stepErrors)) return;
     setSubmitting(true);
     setSubmitError("");
     setSubmitDetail("");
@@ -1246,6 +1424,7 @@ function LinkInSignup() {
       clearTimeout(timeout);
 
       if (res.ok) {
+        await clearDraft();
         window.location.href = "/thank-you";
         return;
       } else {
@@ -1887,6 +2066,15 @@ function LinkInSignup() {
     <>
       <style>{STYLES}</style>
       <div className={`toast ${toast ? "show" : ""}`}>{toast}</div>
+      {showResumeNotice && (
+        <div className="resume-banner">
+          <span className="resume-text">已為你還原上次填寫嘅內容 ✨</span>
+          <div className="resume-actions">
+            <button className="resume-btn" onClick={discardDraft}>重新開始</button>
+            <button className="resume-dismiss" onClick={() => setShowResumeNotice(false)} aria-label="關閉">✕</button>
+          </div>
+        </div>
+      )}
       <div className="form-root">
         <div className="form-card" ref={cardRef}>
           {submitting && (
