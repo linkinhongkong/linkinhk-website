@@ -1,20 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorReportLink } from "../shared/error-report-link.jsx";
 
     const REQUEST_OTP_URL = window.webhookUrl("request-otp");
     const VERIFY_OTP_URL = window.webhookUrl("verify-otp");
-
-    function ErrorReportLink() {
-      return (
-        <div className="error-report-link">
-          問題持續?描述一下情況同附上截圖,{" "}
-          <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
-            傳到我哋 IG DM →
-          </a>
-          <br />我哋會盡快回覆 💜
-        </div>
-      );
-    }
 
     function LoginPage() {
       // screens: "checking" | "email" | "code" | "loggedIn"
@@ -29,6 +18,8 @@ import { createRoot } from "react-dom/client";
       // errorReportable: true when the error is server/network-side (user can't
       // fix it themselves) — shows the IG DM report link. False for validation.
       const [errorReportable, setErrorReportable] = useState(false);
+      // Compact diagnostic line (shown with the report link) for screenshots.
+      const [errorDetail, setErrorDetail] = useState("");
 
       const [loggedInEmail, setLoggedInEmail] = useState("");
 
@@ -79,6 +70,7 @@ import { createRoot } from "react-dom/client";
         setStatus("loading");
         setErrorMsg("");
         setErrorReportable(false);
+        setErrorDetail("");
 
         try {
           const res = await fetch(REQUEST_OTP_URL, {
@@ -100,12 +92,16 @@ import { createRoot } from "react-dom/client";
             setStatus("idle");
             setScreen("code");
           } else {
-            setErrorMsg(data.error || "發生錯誤,請稍後再試");
+            const info = window.describeError(res, { action: "登入", endpoint: "request-otp" });
+            setErrorMsg(data.error || info.message);
+            setErrorDetail(info.detail);
             setErrorReportable(true);
             setStatus("error");
           }
         } catch (err) {
-          setErrorMsg("網絡連線錯誤,請稍後再試");
+          const info = window.describeError(err, { action: "登入", endpoint: "request-otp" });
+          setErrorMsg(info.message);
+          setErrorDetail(info.detail);
           setErrorReportable(true);
           setStatus("error");
         }
@@ -122,6 +118,7 @@ import { createRoot } from "react-dom/client";
         setStatus("loading");
         setErrorMsg("");
         setErrorReportable(false);
+        setErrorDetail("");
 
         try {
           const res = await fetch(VERIFY_OTP_URL, {
@@ -144,14 +141,18 @@ import { createRoot } from "react-dom/client";
             // Wrong-code from user is NOT reportable; other server-side
             // failures (e.g. expired session, server bug) are.
             const isWrongCode = data.error && /驗證碼|錯誤|過期|invalid|expired/i.test(data.error);
-            setErrorMsg(data.error || "驗證失敗,請再試");
+            const info = window.describeError(res, { action: "驗證", endpoint: "verify-otp" });
+            setErrorMsg(data.error || info.message);
+            setErrorDetail(info.detail);
             setErrorReportable(!isWrongCode);
             setStatus("error");
             setCode("");
             setTimeout(() => codeInputRef.current?.focus(), 100);
           }
         } catch (err) {
-          setErrorMsg("網絡連線錯誤,請稍後再試");
+          const info = window.describeError(err, { action: "驗證", endpoint: "verify-otp" });
+          setErrorMsg(info.message);
+          setErrorDetail(info.detail);
           setErrorReportable(true);
           setStatus("error");
         }
@@ -161,6 +162,7 @@ import { createRoot } from "react-dom/client";
         setStatus("loading");
         setErrorMsg("");
         setErrorReportable(false);
+        setErrorDetail("");
         setCode("");
 
         try {
@@ -182,7 +184,9 @@ import { createRoot } from "react-dom/client";
           setStatus("idle");
           setErrorMsg("");
         } catch (err) {
-          setErrorMsg("網絡連線錯誤");
+          const info = window.describeError(err, { action: "登入", endpoint: "request-otp" });
+          setErrorMsg(info.message);
+          setErrorDetail(info.detail);
           setErrorReportable(true);
           setStatus("error");
         }
@@ -267,7 +271,7 @@ import { createRoot } from "react-dom/client";
                     {status === "error" && (
                       <div className="error-box fade-in">
                         {errorMsg}
-                        {errorReportable && <ErrorReportLink />}
+                        {errorReportable && <ErrorReportLink detail={errorDetail} />}
                       </div>
                     )}
                   </div>
@@ -323,7 +327,7 @@ import { createRoot } from "react-dom/client";
                     {status === "error" && (
                       <div className="error-box fade-in">
                         {errorMsg}
-                        {errorReportable && <ErrorReportLink />}
+                        {errorReportable && <ErrorReportLink detail={errorDetail} />}
                       </div>
                     )}
 

@@ -1,20 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorReportLink } from "../shared/error-report-link.jsx";
 
     const WEBHOOK_URL = window.webhookUrl("availability");
     const LOGO_URL = "/logo.png";
-
-    function ErrorReportLink() {
-      return (
-        <div className="error-report-link">
-          問題持續?描述一下情況同附上截圖,{" "}
-          <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
-            傳到我哋 IG DM →
-          </a>
-          <br />我哋會盡快回覆 💜
-        </div>
-      );
-    }
 
     // Day offsets from sent date: +7 ... +21 inclusive (15 dates).
     const DAY_OFFSET_START = 7;
@@ -170,6 +159,7 @@ import { createRoot } from "react-dom/client";
       const [done, setDone] = useState(false);
       const [submitting, setSubmitting] = useState(false);
       const [submitError, setSubmitError] = useState("");
+      const [submitDetail, setSubmitDetail] = useState("");
       const [toast, setToast] = useState("");
 
       const [meetArea, setMeetArea] = useState([]);    // array of stored strings (e.g. "九龍")
@@ -282,6 +272,7 @@ import { createRoot } from "react-dom/client";
       const submit = async () => {
         setSubmitting(true);
         setSubmitError("");
+        setSubmitDetail("");
 
         const selected = buildSelectedSlots();
 
@@ -318,12 +309,15 @@ import { createRoot } from "react-dom/client";
             window.scrollTo({ top: 0, behavior: "smooth" });
             return;
           }
-          const msg = (data && (data.error || data.message)) || "提交失敗,請稍後再試";
-          setSubmitError(msg);
+          const info = window.describeError(res, { action: "提交", endpoint: "availability" });
+          setSubmitError((data && (data.error || data.message)) || info.message);
+          setSubmitDetail(info.detail);
           setSubmitting(false);
         } catch (err) {
           console.error("Submit error:", err);
-          setSubmitError(err.name === "AbortError" ? "提交超時,請檢查網絡後再試" : "網絡連線錯誤,請再試");
+          const info = window.describeError(err, { action: "提交", endpoint: "availability" });
+          setSubmitError(info.message);
+          setSubmitDetail(info.detail);
           setSubmitting(false);
         }
       };
@@ -460,7 +454,7 @@ import { createRoot } from "react-dom/client";
                       {submitError && (
                         <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
                           {submitError}
-                          <ErrorReportLink />
+                          <ErrorReportLink detail={submitDetail} />
                         </div>
                       )}
                     </div>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorReportLink } from "../shared/error-report-link.jsx";
 
 
 
@@ -9,17 +10,11 @@ import { createRoot } from "react-dom/client";
 const WEBHOOK_URL = window.webhookUrl("member-form");
 const LOGO_URL = "/logo.png";
 
-function ErrorReportLink() {
-  return (
-    <div className="error-report-link">
-      問題持續?描述一下情況同附上截圖,{" "}
-      <a href="https://ig.me/m/linkinhk" target="_blank" rel="noopener noreferrer">
-        傳到我哋 IG DM →
-      </a>
-      <br />我哋會盡快回覆 💜
-    </div>
-  );
-}
+// Photos are compressed client-side (shared/image-utils.js) to ~1920px JPEG,
+// but a decode/compress failure falls back to the original file. Block a submit
+// whose total photo payload would be rejected upstream (n8n ~16MB cap) so the
+// user gets a clear, fixable message instead of a confusing gateway failure.
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
 /* ═══════════════════════════════════════════
    DATA — Options loaded from shared-options.js (single source of truth)
@@ -913,6 +908,7 @@ function LinkInSignup() {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [submitDetail, setSubmitDetail] = useState("");
   const fileInputRef = useRef(null);
   const cardRef = useRef(null);
   // Keyed by original File so submit() can resolve compressed blobs without depending on stale closure state.
@@ -1126,6 +1122,7 @@ function LinkInSignup() {
     if (!validateStep()) return;
     setSubmitting(true);
     setSubmitError("");
+    setSubmitDetail("");
     try {
       /* ── Mapping helpers ── */
       const occMap = {};
@@ -1196,6 +1193,18 @@ function LinkInSignup() {
         form.photos.map(p => photoCompressions.current.get(p) || Promise.resolve(p))
       );
 
+      // Guard: if compression failed/skipped and the photos are still too big,
+      // stop here with a clear message rather than firing a request the gateway
+      // will reject (which would surface as a confusing generic failure).
+      const photoBytes = finalPhotos.reduce((sum, p) => sum + (p.size || 0), 0);
+      if (photoBytes > MAX_UPLOAD_BYTES) {
+        const mb = Math.round((photoBytes / (1024 * 1024)) * 10) / 10;
+        setSubmitError("相片太大，請揀細啲嘅相再試 🙏");
+        setSubmitDetail("member-form · 相片過大 · " + mb + "MB");
+        setSubmitting(false);
+        return;
+      }
+
       // Photos: my-photo-1, my-photo-2, my-photo-3
       finalPhotos.forEach((p, i) => {
         payload.append(`my-photo-${i + 1}`, p, p.name);
@@ -1240,15 +1249,17 @@ function LinkInSignup() {
         window.location.href = "/thank-you";
         return;
       } else {
-        setSubmitError("提交失敗，請稍後再試 🙏");
+        const info = window.describeError(res, {
+          action: "提交", endpoint: "member-form", sizeBytes: photoBytes,
+        });
+        setSubmitError(info.message);
+        setSubmitDetail(info.detail);
       }
     } catch (err) {
       console.error("Submit error:", err);
-      if (err.name === "AbortError") {
-        setSubmitError("提交超時，請檢查網絡後再試 🙏");
-      } else {
-        setSubmitError("提交失敗，請檢查網絡後再試 🙏");
-      }
+      const info = window.describeError(err, { action: "提交", endpoint: "member-form" });
+      setSubmitError(info.message);
+      setSubmitDetail(info.detail);
     } finally {
       setSubmitting(false);
     }
@@ -1905,7 +1916,7 @@ function LinkInSignup() {
             {submitError && step === STEPS.length - 1 && (
               <div className="submit-error-box">
                 {submitError}
-                <ErrorReportLink />
+                <ErrorReportLink detail={submitDetail} />
               </div>
             )}
           </div>

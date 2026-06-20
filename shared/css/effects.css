@@ -280,6 +280,17 @@
 /* When rendered on a dark surface (e.g. match toast) */
 .error-report-link.on-dark { color: rgba(255,255,255,0.75); }
 .error-report-link.on-dark a { color: #d8b4fe; }
+/* Compact diagnostic line (HTTP status / error type / size / time) shown above
+   the report link so a user's screenshot tells support what actually failed. */
+.error-detail {
+  margin-bottom: 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--text-light);
+  opacity: 0.85;
+  word-break: break-word;
+}
+.error-report-link.on-dark .error-detail { color: rgba(255,255,255,0.6); }
 
 /* ── Icon sizes ── */
 .icon-sm { width: 16px; height: 16px; }
