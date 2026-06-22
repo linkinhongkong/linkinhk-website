@@ -80,9 +80,8 @@ var IDEAL_FIELDS = [
     cardKey: "relationship",
     icon: "💛",
     title: "關係觀",
-    subtitle: "對小朋友同宗教嘅想法 💛",
+    subtitle: "對宗教嘅想法 💛",
     fields: [
-      { key: "their-kids-preferences", label: "對小朋友的想法 (可多選)", type: "flatmulti", options: OPTIONS.kids,     dealBreakerKey: "kids-preferences" },
       { key: "their-religion",         label: "宗教 (可多選)",            type: "flatmulti", options: OPTIONS.religion, dealBreakerKey: "religion" },
     ],
   },
