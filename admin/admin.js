@@ -1790,7 +1790,10 @@
     var seen = {};
     rows.forEach(function (row) {
       if (!row || typeof row !== "object") return;
-      if (String(row.status || "").trim().toLowerCase() !== "pending") return;
+      // "pending" = both sides still pending; "need chase" = one side accepted
+      // and the other is still pending. Both have someone worth chasing.
+      var overall = String(row.status || "").trim().toLowerCase();
+      if (overall !== "pending" && overall !== "need chase") return;
       [["a", "b"], ["b", "a"]].forEach(function (pair) {
         var me = pair[0], partner = pair[1];
         if (String(row[me + "-status"] || "").trim().toLowerCase() !== "pending") return;
