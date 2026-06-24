@@ -2076,8 +2076,14 @@ function BioEditSheet({ open, currentBio, onClose, onSaved }) {
 
 // ---------------- Photo edit sheet ----------------
 function PhotoEditSheet({ open, photos, onClose, onSaved }) {
-  const [previews, setPreviews] = useState([null, null, null]);
-  const [files, setFiles] = useState([null, null, null]);
+  // Work on a single, always-compacted list of photo slots. Each slot is either
+  // an existing photo ({ url }) or a pending upload ({ file, preview }). Keeping
+  // the list gap-free means a delete shifts later photos up — e.g. removing
+  // photo 1 promotes photo 2 into the (featured) first slot, instead of leaving
+  // the first slot blank.
+  const [slots, setSlots] = useState(() =>
+    (photos || []).filter(Boolean).map((url) => ({ url, file: null, preview: null }))
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
@@ -2086,44 +2092,47 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
 
   const handleFile = (idx, e) => {
     const file = e.target.files && e.target.files[0];
+    e.target.value = ""; // let the same file be picked again after a removal
     if (!file) return;
-    const newFiles = [files[0], files[1], files[2]];
-    newFiles[idx] = file;
-    setFiles(newFiles);
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const newPreviews = [previews[0], previews[1], previews[2]];
-      newPreviews[idx] = ev.target.result;
-      setPreviews(newPreviews);
+      setSlots((prev) => {
+        const next = prev.slice();
+        if (idx >= next.length) {
+          next.push({ url: null, file, preview: ev.target.result }); // add
+        } else {
+          next[idx] = { url: next[idx].url, file, preview: ev.target.result }; // replace
+        }
+        return next;
+      });
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const removeSlot = (idx) => {
+    setError("");
+    setSlots((prev) => {
+      if (prev.length <= 1) return prev; // every member must keep at least 1 photo
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const handleSave = async () => {
     setSaving(true);
     setError("");
     setErrorDetail("");
-    const uploads = [];
-    for (let i = 0; i < 3; i++) {
-      if (files[i]) uploads.push({ idx: i, file: files[i] });
-    }
-    if (uploads.length === 0) { onClose(); return; }
 
-    const uploadNext = async (pos) => {
-      if (pos >= uploads.length) {
-        setSaving(false);
-        if (onSaved) onSaved();
-        onClose();
-        return;
-      }
-      const item = uploads[pos];
-      const formData = new FormData();
-      formData.append("photoIndex", String(item.idx + 1));
-      formData.append("photo", item.file);
-      // FormData upload: can't use authenticatedFetch (it forces a JSON
-      // Content-Type). Handle auth + errors inline instead. Previously a failed
-      // upload was swallowed (console.error) and the sheet closed as if saved.
-      try {
+    // 1) Upload any pending files; collect the final URL for each slot, in order.
+    const finalUrls = slots.map((s) => s.url || "");
+    try {
+      for (let i = 0; i < slots.length; i++) {
+        const s = slots[i];
+        if (!s.file) continue;
+        const formData = new FormData();
+        formData.append("photoIndex", String(i + 1));
+        formData.append("photo", s.file);
+        // FormData upload can't use authenticatedFetch (it forces a JSON
+        // Content-Type), so handle auth + errors inline.
         const token = getToken() || "";
         const res = await fetch(UPDATE_PHOTO_URL, {
           method: "POST",
@@ -2132,30 +2141,69 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
         });
         if (res.status === 401) { clearAuth(); redirectToLogin(); return; }
         const data = await res.json().catch(() => null);
-        if (!res.ok || (data && data.success === false)) {
+        if (!res.ok || !data || data.success === false || !data.url) {
           const info = window.describeError(res, {
-            action: "上傳相片", endpoint: "update-photo", sizeBytes: item.file.size,
+            action: "上傳相片", endpoint: "update-photo", sizeBytes: s.file.size,
           });
           setError((data && data.error) || info.message);
           setErrorDetail(info.detail);
           setSaving(false);
-          return; // stop the chain; keep the sheet open so the user can retry
+          return; // keep the sheet open so the user can retry
         }
-        uploadNext(pos + 1);
-      } catch (e) {
-        console.error("Photo upload error:", e);
-        const info = window.describeError(e, {
-          action: "上傳相片", endpoint: "update-photo", sizeBytes: item.file.size,
-        });
+        finalUrls[i] = data.url;
+      }
+    } catch (e) {
+      console.error("Photo upload error:", e);
+      const info = window.describeError(e, { action: "上傳相片", endpoint: "update-photo" });
+      setError(info.message);
+      setErrorDetail(info.detail);
+      setSaving(false);
+      return;
+    }
+
+    // 2) Write the final, compacted photo set in one go. This persists deletes
+    //    and any reordering, and clears trailing slots. The server enforces the
+    //    at-least-1-photo rule.
+    const updates = {
+      "my-photo-1": finalUrls[0] || "",
+      "my-photo-2": finalUrls[1] || "",
+      "my-photo-3": finalUrls[2] || "",
+    };
+    const unchanged = [0, 1, 2].every(
+      (i) => (photos[i] || "") === updates["my-photo-" + (i + 1)]
+    );
+    if (unchanged) { setSaving(false); onClose(); return; }
+
+    try {
+      const res = await authenticatedFetch(
+        window.webhookUrl("update-profile"),
+        { method: "POST", body: JSON.stringify({ updates }) }
+      );
+      const data = await res.json().catch(() => null);
+      if (data && data.success) {
+        setSaving(false);
+        if (onSaved) onSaved(data.profile);
+        onClose();
+      } else {
+        const info = window.describeError(res, { action: "儲存相片", endpoint: "update-profile" });
+        setError((data && data.error) || info.message);
+        setErrorDetail(info.detail);
+        setSaving(false);
+      }
+    } catch (err) {
+      if (err.message !== "Unauthorized" && err.message !== "No token") {
+        const info = window.describeError(err, { action: "儲存相片", endpoint: "update-profile" });
         setError(info.message);
         setErrorDetail(info.detail);
         setSaving(false);
       }
-    };
-    uploadNext(0);
+    }
   };
 
-  const hasChanges = files[0] || files[1] || files[2];
+  const atMin = slots.length <= 1;
+  const hasChanges =
+    slots.some((s) => s.file) ||
+    [0, 1, 2].some((i) => (slots[i] ? (slots[i].url || "") : "") !== (photos[i] || ""));
 
   return (
     <div className="sheet-overlay">
@@ -2168,19 +2216,36 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
           </button>
         </div>
         <div className="sheet-body">
-          <div className="photo-grid" style={{ marginBottom: 16 }}>
+          <div className="photo-grid" style={{ marginBottom: 8 }}>
             {[0, 1, 2].map((idx) => {
-              const src = previews[idx] || photos[idx];
-              return (
-                <label key={idx} className={"photo-slot" + (src ? " filled" : "")}>
-                  {src ? (
+              const slot = slots[idx];
+              const src = slot ? (slot.preview || slot.url) : null;
+              if (src) {
+                return (
+                  <label key={idx} className="photo-slot filled">
+                    <span className="slot-badge">{idx + 1}</span>
+                    <button
+                      type="button"
+                      className="slot-remove"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeSlot(idx); }}
+                      disabled={atMin}
+                      style={atMin ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
+                      aria-label="移除相片"
+                    >✕</button>
                     <img src={src} alt={`photo-${idx + 1}`} />
-                  ) : (
-                    <>
-                      <span className="slot-icon">+</span>
-                      <span className="slot-label">上傳</span>
-                    </>
-                  )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="upload-input"
+                      onChange={(e) => handleFile(idx, e)}
+                    />
+                  </label>
+                );
+              }
+              return (
+                <label key={idx} className="photo-slot">
+                  <span className="slot-icon">+</span>
+                  <span className="slot-label">上傳</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -2191,6 +2256,9 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
               );
             })}
           </div>
+          <p className="photo-count-hint">
+            {atMin ? "最少需要保留 1 張相片" : "點相片右上角 ✕ 可移除,最少保留 1 張"}
+          </p>
           {error && (
             <div className="sheet-error">
               {error}
@@ -2205,7 +2273,7 @@ function PhotoEditSheet({ open, photos, onClose, onSaved }) {
             className="nav-btn primary"
             style={{ width: "100%" }}
           >
-            {saving ? "上傳中⋯" : "儲存"}
+            {saving ? "儲存中⋯" : "儲存"}
           </button>
         </div>
       </div>
