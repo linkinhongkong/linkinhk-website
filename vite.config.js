@@ -18,6 +18,7 @@ const VITE_PAGES = {
   login: resolve(__dirname, "login/index.html"),
   "availability-form": resolve(__dirname, "availability-form/index.html"),
   "ideal-form": resolve(__dirname, "ideal-form/index.html"),
+  "event-signup": resolve(__dirname, "event-signup/index.html"),
   dashboard: resolve(__dirname, "dashboard/index.html"),
 };
 
