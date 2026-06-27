@@ -34,15 +34,15 @@ special response node is required.
 
 ### Webhook URL / environment
 
-The URL is built by `shared/config.js` → `window.webhookUrl("event-signup")`:
+The URL is built by `shared/config.js` → `window.webhookUrl("summer-party")`:
 
 | Environment | Hostname                                   | Webhook path           |
 | ----------- | ------------------------------------------ | ---------------------- |
-| **Prod**    | `www.linkinhk.com`                         | `event-signup`         |
-| **UAT**     | `localhost`, `127.0.0.1`, `*.pages.dev`, `uat.*` | `uat-event-signup` |
+| **Prod**    | `www.linkinhk.com`                         | `summer-party`         |
+| **UAT**     | `localhost`, `127.0.0.1`, `*.pages.dev`, `uat.*` | `uat-summer-party` |
 
-Full URL = `https://linkinhk.app.n8n.cloud/webhook/<path>`. So you need the path **`event-signup`**
-for production, and **`uat-event-signup`** for testing — mirroring how the other forms split UAT/prod.
+Full URL = `https://linkinhk.app.n8n.cloud/webhook/<path>`. So you need the path **`summer-party`**
+for production, and **`uat-summer-party`** for testing — mirroring how the other forms split UAT/prod.
 
 ---
 
@@ -75,7 +75,7 @@ Airtable credential, then swap the two nodes):
 
 1. **Webhook node** (trigger)
    - HTTP Method: `POST`
-   - Path: `event-signup`
+   - Path: `summer-party`
    - Respond: `Immediately` (default 200 is enough — see note above).
 
 2. **Airtable node** → Resource: `Record`, Operation: `Create`
@@ -99,20 +99,20 @@ Airtable credential, then swap the two nodes):
 ### UAT variant
 
 So you can test from `localhost` / Cloudflare previews without writing to the prod table, duplicate
-the workflow with the Webhook path **`uat-event-signup`** (optionally pointing the Airtable node at
+the workflow with the Webhook path **`uat-summer-party`** (optionally pointing the Airtable node at
 a `Event Signups (UAT)` table or view). Activate it too.
 
 ---
 
 ## Step 3 — Test end-to-end
 
-1. `npm run dev`, open `http://localhost:5173/event-signup/` (note the yellow **UAT** banner — it
-   posts to `uat-event-signup`).
+1. `npm run dev`, open `http://localhost:5173/summer-party/` (note the yellow **UAT** banner — it
+   posts to `uat-summer-party`).
 2. Fill the form, submit → you should see the "多謝報名！" success screen, and a new row in the
    UAT Airtable table.
 3. In n8n, open the workflow's **Executions** tab to confirm the webhook fired and the Airtable
    step succeeded.
-4. Repeat on production once deployed (posts to `event-signup`).
+4. Repeat on production once deployed (posts to `summer-party`).
 
 If submission errors, the form shows a Cantonese error message + an IG DM link with a diagnostic
 detail line (shared `describeError` / `ErrorReportLink`) — the detail tells you the HTTP status.

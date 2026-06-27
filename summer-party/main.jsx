@@ -4,7 +4,7 @@ import { ErrorReportLink } from "../shared/error-report-link.jsx";
 
 // ── Event constants ──────────────────────────────────────────────────────────
 // One webhook/table can host future events too; event_id/name tag each row.
-const WEBHOOK_URL = window.webhookUrl("event-signup");
+const WEBHOOK_URL = window.webhookUrl("summer-party");
 const LOGO_URL = "/logo.png";
 const EVENT_ID = "2026-07-18-summer-party";
 const EVENT_NAME = "2026.07.18 Linkinhk 特約初夏 Party";
@@ -190,13 +190,13 @@ function App() {
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-      const info = window.describeError(res, { action: "提交", endpoint: "event-signup" });
+      const info = window.describeError(res, { action: "提交", endpoint: "summer-party" });
       setSubmitError((data && (data.error || data.message)) || info.message);
       setSubmitDetail(info.detail);
       setSubmitting(false);
     } catch (err) {
       console.error("Submit error:", err);
-      const info = window.describeError(err, { action: "提交", endpoint: "event-signup" });
+      const info = window.describeError(err, { action: "提交", endpoint: "summer-party" });
       setSubmitError(info.message);
       setSubmitDetail(info.detail);
       setSubmitting(false);
