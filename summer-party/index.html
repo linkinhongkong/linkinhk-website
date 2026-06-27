@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <!-- Favicons / app icons -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#9060E0">
+  <!-- Social share (Open Graph / Twitter) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Link in HK">
+  <meta property="og:title" content="Link in HK — 初夏 Party 報名">
+  <meta property="og:description" content="Linkinhk 特約初夏 Party 官方報名表單。一次過見人,輕鬆開心交友 🎉">
+  <meta property="og:image" content="https://linkinhk.com/og-default.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="1200">
+  <meta property="og:url" content="https://www.linkinhk.com/summer-party/">
+  <meta property="og:locale" content="zh_HK">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Link in HK — 初夏 Party 報名">
+  <meta name="twitter:description" content="Linkinhk 特約初夏 Party 官方報名表單。一次過見人,輕鬆開心交友 🎉">
+  <meta name="twitter:image" content="https://linkinhk.com/og-default.png">
+  <title>Link in HK — 初夏 Party 報名</title>
+  <meta name="description" content="Linkinhk 特約初夏 Party 官方報名表單。一次過見人,輕鬆開心交友 🎉">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/design-system.css">
+  <style>
+    /* Page-specific: event intro + terms. All other styling comes from /shared/design-system.css */
+    .event-hero {
+      background: var(--accent-soft);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      padding: 18px 24px 20px;
+      margin-bottom: 4px;
+    }
+    .event-hero-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent-dark);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    .event-hero-lead {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .event-meta { display: flex; flex-direction: column; gap: 6px; }
+    .event-meta-row {
+      display: flex;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .event-meta-row .emo { flex-shrink: 0; }
+    .event-meta-row b { color: var(--accent-dark); }
+    .event-perks {
+      margin: 10px 0 0;
+      padding: 0 0 0 2px;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .event-perks li {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text-hint);
+      padding-left: 18px;
+      position: relative;
+    }
+    .event-perks li::before {
+      content: '🎁';
+      position: absolute;
+      left: 0;
+      font-size: 11px;
+    }
+
+    /* Terms & conditions block */
+    .terms-box {
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .terms-item { margin-bottom: 12px; }
+    .terms-item:last-child { margin-bottom: 0; }
+    .terms-item-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .terms-item-body {
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: var(--text-hint);
+    }
+
+    /* Resume notice (draft restored) */
+    .resume-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 24px 4px;
+      padding: 10px 14px;
+      background: var(--green-bg);
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      color: var(--green-text);
+      line-height: 1.5;
+    }
+    .resume-notice button {
+      flex-shrink: 0;
+      background: transparent;
+      border: none;
+      color: var(--green-text);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 2px 4px;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="/shared/config.js"></script>
+  <script src="/shared/error-utils.js"></script>
+  <script type="module" src="./main.jsx"></script>
+</body>
+</html>
