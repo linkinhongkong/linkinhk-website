@@ -32,12 +32,22 @@
   <link rel="stylesheet" href="/shared/design-system.css">
   <style>
     /* Page-specific: event intro + terms. All other styling comes from /shared/design-system.css */
-    .event-hero {
+    /* White intro area + reusable purple cards */
+    .event-top { padding: 4px 24px 0; }
+    .event-intro { margin-bottom: 14px; }
+    .event-card {
       background: var(--accent-soft);
-      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-      padding: 18px 24px 20px;
-      margin-bottom: 4px;
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 12px;
     }
+    .event-card-note {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+    @media (max-width: 500px) { .event-top { padding: 4px 20px 0; } }
     .event-hero-title {
       font-size: 18px;
       font-weight: 700;
@@ -77,10 +87,11 @@
       position: relative;
     }
     .event-perks li::before {
-      content: '🎁';
+      content: '✓';
       position: absolute;
       left: 0;
-      font-size: 11px;
+      color: var(--green-text);
+      font-weight: 700;
     }
 
     /* Games highlight list (悄悄話你知有咩玩) */
@@ -88,7 +99,7 @@
       font-size: 13px;
       font-weight: 700;
       color: var(--accent-dark);
-      margin: 14px 0 6px;
+      margin: 0 0 8px;
     }
     .event-games {
       margin: 0;
@@ -106,10 +117,11 @@
       position: relative;
     }
     .event-games li::before {
-      content: '✨';
+      content: '•';
       position: absolute;
-      left: 0;
-      font-size: 11px;
+      left: 2px;
+      color: var(--accent);
+      font-weight: 700;
     }
     .event-games li b { color: var(--text); }
 
