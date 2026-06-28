@@ -172,11 +172,11 @@ function App() {
       if (form.university === "other_uni" && !form.universityOther.trim()) e.universityOther = "請填寫";
       if (!form.birthYear || !form.birthMonth || !form.birthDay) e.birthday = "請選擇完整生日";
       if (!form.mbti) e.mbti = "請選擇你嘅 MBTI";
+      if (!form.wantMembership) e.wantMembership = "請選擇";
     }
 
     if (form.isMember) {
       if (!form.occupation.trim()) e.occupation = "請輸入你現時嘅職業";
-      if (!form.wantMembership) e.wantMembership = "請選擇";
       if (!form.consent) e.consent = "請閱讀並同意條款與細則";
     }
 
@@ -220,7 +220,7 @@ function App() {
       mbti: isNewMember ? (form.mbti === "unsure" ? "不清楚" : form.mbti) : "",
       // common
       occupation: form.occupation.trim(),
-      want_membership: form.wantMembership === "want" ? "想" : "未需要住",
+      want_membership: isNewMember ? (form.wantMembership === "want" ? "想" : "未需要住") : "",
       consent: form.consent,
     };
 
@@ -311,9 +311,8 @@ function App() {
           </div>
         )}
 
-        <div className="form-header">
+        <div className="form-header" style={{ justifyContent: "center" }}>
           <img src={LOGO_URL} alt="Link in HK" className="logo-img" />
-          <div className="step-indicator">報名表單</div>
         </div>
 
         {showResumeNotice && (
@@ -324,33 +323,42 @@ function App() {
         )}
 
         {/* ── Event intro (image 1) ── */}
-        <div className="event-hero">
-          <div className="event-hero-title">🎉 {EVENT_NAME}</div>
-          <div className="event-hero-lead">想認識另一半? Linkinhk 為你舉辦開心交友初夏 Party 🎉</div>
-          <div className="event-hero-lead">
-            本次活動特邀擁有接近 10 年舉辦交友活動經驗嘅專業女主持全程帶領!
-            透過遊戲同分組小比賽輕鬆開心識新朋友,唔使等 match 🥳
-          </div>
-          <div className="event-meta">
-            <div className="event-meta-row"><span className="emo">📅</span><span><b>活動日期：</b>2026 年 7 月 18 日</span></div>
-            <div className="event-meta-row"><span className="emo">⏰</span><span><b>活動時間：</b>14:00 - 18:00</span></div>
-            <div className="event-meta-row"><span className="emo">📍</span><span><b>活動地點：</b>牛頭角</span></div>
-            <div className="event-meta-row"><span className="emo">🍻</span><span><b>活動費用：</b>男 $520 / 女 $488,現有或新加入會員即減 $28!</span></div>
-          </div>
-          <div className="event-hero-lead" style={{ marginTop: 12, marginBottom: 0 }}>
-            全程無冷場,唔會令你睇望你眼尷尬嘥嘢。E 人 I 人 friendly,主持會照住所有人 😎
+        <div className="event-top">
+          {/* White intro: title + lead paragraphs */}
+          <div className="event-intro">
+            <div className="event-hero-title">🎉 {EVENT_NAME}</div>
+            <div className="event-hero-lead">想認識另一半? Linkinhk 為你舉辦開心交友初夏 Party 🎉</div>
+            <div className="event-hero-lead" style={{ marginBottom: 0 }}>
+              本次活動特邀擁有接近 10 年舉辦交友活動經驗嘅專業女主持全程帶領!
+              透過遊戲同分組小比賽輕鬆開心識新朋友,唔使等 match 🥳
+            </div>
           </div>
 
-          <div className="event-games-title">悄悄話你知有咩玩〜</div>
-          <ul className="event-games">
-            {GAMES.map(g => (
-              <li key={g.name}><b>{g.name}</b> – {g.desc}</li>
-            ))}
-          </ul>
+          {/* Purple card: event details */}
+          <div className="event-card">
+            <div className="event-meta">
+              <div className="event-meta-row"><span className="emo">📅</span><span><b>活動日期：</b>2026 年 7 月 18 日</span></div>
+              <div className="event-meta-row"><span className="emo">⏰</span><span><b>活動時間：</b>14:00 - 18:00</span></div>
+              <div className="event-meta-row"><span className="emo">📍</span><span><b>活動地點：</b>牛頭角</span></div>
+              <div className="event-meta-row"><span className="emo">🍻</span><span><b>活動費用：</b>男 $520 / 女 $488,現有或新加入會員即減 $28!</span></div>
+            </div>
+            <div className="event-card-note">
+              全程無冷場,唔會令你睇望你眼尷尬嘥嘢。E 人 I 人 friendly,主持會照住所有人 😎
+            </div>
+          </div>
 
-          <ul className="event-perks">
-            {PERKS.map(p => <li key={p}>{p}</li>)}
-          </ul>
+          {/* Purple card: games + perks */}
+          <div className="event-card">
+            <div className="event-games-title">悄悄話你知有咩玩〜</div>
+            <ul className="event-games">
+              {GAMES.map(g => (
+                <li key={g.name}><b>{g.name}</b> – {g.desc}</li>
+              ))}
+            </ul>
+            <ul className="event-perks">
+              {PERKS.map(p => <li key={p}>{p}</li>)}
+            </ul>
+          </div>
         </div>
 
         <div className="step-body">
@@ -368,8 +376,6 @@ function App() {
           {/* Everything below is revealed only after the first question is answered. */}
           {answeredMember && (
             <>
-              <div className="step-title" style={{ fontSize: 17, margin: "4px 0 16px" }}>第一部分：基本資料</div>
-
               {form.isMember === "yes" && (
                 <>
                   <div className="field">
@@ -379,7 +385,6 @@ function App() {
                       type="text"
                       value={form.instagram}
                       onChange={e => set("instagram", e.target.value)}
-                      placeholder="例如 @linkinhk"
                     />
                     <ErrorMsg field="instagram" />
                   </div>
@@ -391,7 +396,6 @@ function App() {
                       type="text"
                       value={form.occupation}
                       onChange={e => set("occupation", e.target.value)}
-                      placeholder="例如 市場推廣經理"
                     />
                     <ErrorMsg field="occupation" />
                   </div>
@@ -401,13 +405,12 @@ function App() {
               {form.isMember === "no" && (
                 <>
                   <div className="field">
-                    <div className="field-label">姓名 <span className="req">*</span></div>
+                    <div className="field-label">名字／暱稱 <span className="req">*</span></div>
                     <input
                       className="text-input"
                       type="text"
                       value={form.name}
                       onChange={e => set("name", e.target.value)}
-                      placeholder="你嘅名字"
                       autoComplete="name"
                     />
                     <ErrorMsg field="name" />
@@ -430,7 +433,6 @@ function App() {
                       type="text"
                       value={form.occupation}
                       onChange={e => set("occupation", e.target.value)}
-                      placeholder="例如 市場推廣"
                     />
                     <ErrorMsg field="occupation" />
                   </div>
@@ -443,13 +445,13 @@ function App() {
                     <ErrorMsg field="university" />
                     {form.university === "overseas" && (
                       <div style={{ marginTop: 10 }}>
-                        <input className="text-input" placeholder="請填寫" value={form.overseasUni} onChange={e => set("overseasUni", e.target.value)} />
+                        <input className="text-input" value={form.overseasUni} onChange={e => set("overseasUni", e.target.value)} />
                         <ErrorMsg field="overseasUni" />
                       </div>
                     )}
                     {form.university === "other_uni" && (
                       <div style={{ marginTop: 10 }}>
-                        <input className="text-input" placeholder="請填寫" value={form.universityOther} onChange={e => set("universityOther", e.target.value)} />
+                        <input className="text-input" value={form.universityOther} onChange={e => set("universityOther", e.target.value)} />
                         <ErrorMsg field="universityOther" />
                       </div>
                     )}
@@ -504,7 +506,8 @@ function App() {
                 </>
               )}
 
-              {/* ── Membership question (image 3) — shown to both branches ── */}
+              {/* ── Membership question (image 3) — new members only ── */}
+              {form.isMember === "no" && (
               <div className="field">
                 <div className="field-label">你希望加入成為會員嗎?</div>
                 <div className="membership-desc">
@@ -523,6 +526,7 @@ function App() {
                 </div>
                 <ErrorMsg field="wantMembership" />
               </div>
+              )}
 
               {/* ── Terms & consent ── */}
               <div className="step-title" style={{ fontSize: 17, margin: "28px 0 8px" }}>條款與細則</div>
