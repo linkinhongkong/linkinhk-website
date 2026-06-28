@@ -3,40 +3,64 @@ import { createRoot } from "react-dom/client";
 import { ErrorReportLink } from "../shared/error-report-link.jsx";
 
 // ── Event constants ──────────────────────────────────────────────────────────
-// One webhook/table can host future events too; event_id/name tag each row.
 const WEBHOOK_URL = window.webhookUrl("summer-party");
 const LOGO_URL = "/logo.png";
 const EVENT_ID = "2026-07-18-summer-party";
-const EVENT_NAME = "2026.07.18 Linkinhk 特約初夏 Party";
+const EVENT_NAME = "2026.07.18 Linkinhk 特約 — 初夏 Party";
 
 // ── Draft persistence (localStorage, mirrors member-form pattern) ─────────────
-const DRAFT_KEY = "linkinhk-party-2026-07-18-draft-v1";
+const DRAFT_KEY = "linkinhk-party-2026-07-18-draft-v2";
 const DRAFT_DEBOUNCE_MS = 600;
 const DRAFT_TTL_MS = 14 * 24 * 60 * 60 * 1000; // ignore drafts older than 14 days
 
+// ── Option lists — single source of truth from shared-options.js (global) ─────
+const UNIVERSITIES = SHARED_UNIVERSITIES;
+const MBTI_TYPES = SHARED_MBTI_TYPES;
+// MBTI_COLORS uses hex for chip dot styling (same as member-form).
+const MBTI_COLORS = {
+  INTJ: "#7B68EE", INTP: "#7B68EE", ENTJ: "#CD5C5C", ENTP: "#CD5C5C",
+  INFJ: "#3CB371", INFP: "#3CB371", ENFJ: "#3CB371", ENFP: "#3CB371",
+  ISTJ: "#4682B4", ISFJ: "#4682B4", ESTJ: "#4682B4", ESFJ: "#4682B4",
+  ISTP: "#DAA520", ISFP: "#DAA520", ESTP: "#DAA520", ESFP: "#DAA520",
+};
+
 const EMPTY_FORM = {
+  isMember: "",        // "yes" (喺) | "no" (唔喺)
+  // ── existing-member branch ──
+  instagram: "",
+  // ── new-member branch ──
   name: "",
-  gender: "",       // "男" | "女"
-  phone: "",
-  occupation: "",
-  mbti: "",         // "E" | "I"
-  styling: "",      // "需要" | "不需要"
+  sex: "",             // "male" | "female"
+  university: "",      // option id
+  overseasUni: "",
+  universityOther: "",
+  birthYear: "",
+  birthMonth: "",
+  birthDay: "",
+  mbti: "",            // 16-type code or "unsure"
+  // ── common ──
+  occupation: "",      // 你現時嘅職業 (precise title for this event)
+  wantMembership: "",  // "want" (想) | "not_yet" (未需要住)
   consent: false,
 };
 
-const GENDER_OPTIONS = [
-  { val: "男", icon: "👨" },
-  { val: "女", icon: "👩" },
+// Static copy from the partner's final form ──────────────────────────────────
+const GAMES = [
+  { name: "Find Your Secret Angel", desc: "每人精準安排兩個配對,即場相認" },
+  { name: "Best Match Bingooooo", desc: "分三組比賽,用速度了解所有人" },
+  { name: "伙記,唔該!", desc: "分兩組比賽,每人一角,合腦力沖杯消暑正嘢飲" },
 ];
-const MBTI_OPTIONS = [
-  { val: "E", icon: "🥳", label: "E 人" },
-  { val: "I", icon: "🌙", label: "I 人" },
+const PERKS = [
+  "預先提供在場會員簡介",
+  "篩選背景相近參加者",
+  "小工具助你輕鬆打開話題",
+  "活動前穿搭意見(如需)",
+  "提供有酒精及無酒精飲品,要休息就飲啦!",
 ];
-const STYLING_OPTIONS = [
-  { val: "需要", icon: "✨" },
-  { val: "不需要", icon: "🙆" },
+const MEMBERSHIP_POINTS = [
+  { title: "大數據配對", desc: "我哋有完善 AI algorithm,分析你同其他會員嘅工作及學歷背景、喜好、性格,甚至外貌,介紹符合你理想型嘅對象" },
+  { title: "拍一日拖", desc: "唔使再諗話題,唔使怕被拒絕,我哋根據雙方興趣,直接安排 First date,一邊認識對方,一邊學習新技能" },
 ];
-
 const TERMS = [
   {
     title: "相片及影片拍攝 (Photography & Media Consent)",
@@ -52,11 +76,13 @@ const TERMS = [
   },
 ];
 
-// A draft is worth restoring once the user has typed/picked anything.
+// A draft is worth restoring once the user has answered anything.
 function draftHasContent(f) {
   if (!f) return false;
   return Boolean(
-    f.name || f.gender || f.phone || f.occupation || f.mbti || f.styling || f.consent
+    f.isMember || f.instagram || f.name || f.sex || f.university ||
+    f.birthYear || f.birthMonth || f.birthDay || f.mbti ||
+    f.occupation || f.wantMembership || f.consent
   );
 }
 
@@ -71,13 +97,23 @@ function App() {
 
   const restoredRef = useRef(false);
 
-  const setField = (key, value) => {
+  const set = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setErrors(prev => (prev[key] ? { ...prev, [key]: "" } : prev));
   };
 
-  // Restore on mount: rehydrate fields from localStorage. Silent restore with a
-  // dismissible notice (no blocking prompt). Stale drafts are wiped.
+  // ── Birthday dropdown data (same construction as member-form) ──
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 60 }, (_, i) => String(currentYear - 18 - i));
+  const months = Array.from({ length: 12 }, (_, i) => String(i + 1));
+  const getDaysInMonth = (month, year) => {
+    if (!month) return 31;
+    return new Date(year ? parseInt(year) : 2000, parseInt(month), 0).getDate();
+  };
+  const maxDays = getDaysInMonth(form.birthMonth, form.birthYear);
+  const days = Array.from({ length: maxDays }, (_, i) => String(i + 1));
+
+  // Restore on mount: rehydrate from localStorage, dismissible notice, wipe stale.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
@@ -97,20 +133,14 @@ function App() {
     restoredRef.current = true;
   }, []);
 
-  // Autosave (debounced): persist every form mutation once restore has run, so we
-  // never clobber a restored draft with the initial empty state.
+  // Autosave (debounced) once restore has run.
   useEffect(() => {
     if (!restoredRef.current) return;
     const t = setTimeout(() => {
       try {
-        if (!draftHasContent(form)) return; // nothing worth saving yet
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({
-          version: 1,
-          savedAt: Date.now(),
-          form,
-        }));
+        if (!draftHasContent(form)) return;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ version: 2, savedAt: Date.now(), form }));
       } catch (err) {
-        // QuotaExceeded / private-mode: degrade silently, draft just won't persist.
         console.warn("Draft save failed:", err);
       }
     }, DRAFT_DEBOUNCE_MS);
@@ -120,7 +150,6 @@ function App() {
   const clearDraft = () => {
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
   };
-
   const discardDraft = () => {
     setShowResumeNotice(false);
     clearDraft();
@@ -131,22 +160,39 @@ function App() {
   // ── Validation ──────────────────────────────────────────────────────────────
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "請輸入姓名";
-    if (!form.gender) e.gender = "請選擇性別";
-    const phoneDigits = form.phone.replace(/\D/g, "");
-    if (!form.phone.trim()) e.phone = "請輸入聯絡電話 / WhatsApp";
-    else if (phoneDigits.length < 8) e.phone = "請輸入有效嘅電話號碼";
-    if (!form.occupation.trim()) e.occupation = "請輸入現時職業";
-    if (!form.mbti) e.mbti = "請選擇你嘅 MBTI 傾向";
-    if (!form.styling) e.styling = "請選擇是否需要穿搭意見";
-    if (!form.consent) e.consent = "請閱讀並同意條款與細則";
+    if (!form.isMember) e.isMember = "請選擇你是否現有會員";
+
+    if (form.isMember === "yes") {
+      if (!form.instagram.trim()) e.instagram = "請填寫你已登記嘅 Instagram Account";
+    } else if (form.isMember === "no") {
+      if (!form.name.trim()) e.name = "請輸入姓名";
+      if (!form.sex) e.sex = "請選擇性別";
+      if (!form.university) e.university = "請選擇學院";
+      if (form.university === "overseas" && !form.overseasUni.trim()) e.overseasUni = "請填寫";
+      if (form.university === "other_uni" && !form.universityOther.trim()) e.universityOther = "請填寫";
+      if (!form.birthYear || !form.birthMonth || !form.birthDay) e.birthday = "請選擇完整生日";
+      if (!form.mbti) e.mbti = "請選擇你嘅 MBTI";
+    }
+
+    if (form.isMember) {
+      if (!form.occupation.trim()) e.occupation = "請輸入你現時嘅職業";
+      if (!form.wantMembership) e.wantMembership = "請選擇";
+      if (!form.consent) e.consent = "請閱讀並同意條款與細則";
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
+  const resolveUniversity = () => {
+    if (form.university === "overseas") return form.overseasUni.trim();
+    if (form.university === "other_uni") return form.universityOther.trim();
+    const u = UNIVERSITIES.find(x => x.id === form.university);
+    return u ? u.label : "";
+  };
+
   const submit = async () => {
     if (!validate()) {
-      // Scroll to the first field with an error so nothing fails silently.
       const firstErr = document.querySelector(".field-error");
       if (firstErr) firstErr.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
@@ -156,16 +202,25 @@ function App() {
     setSubmitError("");
     setSubmitDetail("");
 
+    const isNewMember = form.isMember === "no";
     const body = {
       event_id: EVENT_ID,
       event_name: EVENT_NAME,
       submitted_at: new Date().toISOString(),
-      name: form.name.trim(),
-      gender: form.gender,
-      phone: form.phone.trim(),
+      is_existing_member: form.isMember === "yes",
+      // existing-member branch
+      instagram: form.isMember === "yes" ? form.instagram.trim() : "",
+      // new-member branch
+      name: isNewMember ? form.name.trim() : "",
+      sex: isNewMember ? (form.sex === "male" ? "男" : "女") : "",
+      university: isNewMember ? resolveUniversity() : "",
+      birthday: isNewMember
+        ? `${form.birthYear}-${String(form.birthMonth).padStart(2, "0")}-${String(form.birthDay).padStart(2, "0")}`
+        : "",
+      mbti: isNewMember ? (form.mbti === "unsure" ? "不清楚" : form.mbti) : "",
+      // common
       occupation: form.occupation.trim(),
-      mbti: form.mbti,
-      styling_advice: form.styling,
+      want_membership: form.wantMembership === "want" ? "想" : "未需要住",
       consent: form.consent,
     };
 
@@ -203,24 +258,47 @@ function App() {
     }
   };
 
-  // ── Success screen ────────────────────────────────────────────────────────────
+  // ── Reusable field controls (same markup/classes as member-form) ──
+  const Binary = ({ stateKey, opt1, opt2 }) => (
+    <div className="binary-row">
+      {[opt1, opt2].map(o => (
+        <div
+          key={o.val}
+          className={`binary-btn ${form[stateKey] === o.val ? "active" : ""}`}
+          onClick={() => set(stateKey, o.val)}
+        >
+          {o.icon && <span className="binary-icon">{o.icon}</span>}
+          {o.label}
+        </div>
+      ))}
+    </div>
+  );
+  const Chip = ({ stateKey, val, label }) => (
+    <div className={`chip ${form[stateKey] === val ? "active" : ""}`} onClick={() => set(stateKey, val)}>
+      {label}
+    </div>
+  );
+  const ErrorMsg = ({ field }) => (errors[field] ? <div className="field-error">{errors[field]}</div> : null);
+
+  // ── Success screen (image 4) ──
   if (done) {
     return (
       <div className="form-root">
         <div className="form-card">
           <div className="success-screen">
             <div className="success-icon">✓</div>
-            <div className="success-title">多謝報名！🎉</div>
+            <div className="success-title">多謝你嘅報名！🎉</div>
             <div className="success-subtitle">
-              我哋已經收到你嘅報名表 💚<br/>
-              工作人員會盡快聯絡你,<br/>
-              提供活動嘅進一步安排同詳情。
+              成功入選／報名之申請者<br/>
+              將會獲得進一步通知。
             </div>
           </div>
         </div>
       </div>
     );
   }
+
+  const answeredMember = form.isMember === "yes" || form.isMember === "no";
 
   return (
     <div className="form-root">
@@ -245,166 +323,246 @@ function App() {
           </div>
         )}
 
-        {/* ── Event intro (from partner doc) ── */}
+        {/* ── Event intro (image 1) ── */}
         <div className="event-hero">
-          <div className="event-hero-title">🎉 {EVENT_NAME}<br/>官方報名表單</div>
+          <div className="event-hero-title">🎉 {EVENT_NAME}</div>
+          <div className="event-hero-lead">想認識另一半? Linkinhk 為你舉辦開心交友初夏 Party 🎉</div>
           <div className="event-hero-lead">
-            想擴闊社交圈子、告別尷尬對望?本次活動特邀擁有接近 10 年舉辦交友活動經驗嘅專業女主持全程帶領!
-            透過遊戲同分組小比賽輕鬆開心交友,一次過見人,唔使等 match 🥳
+            本次活動特邀擁有接近 10 年舉辦交友活動經驗嘅專業女主持全程帶領!
+            透過遊戲同分組小比賽輕鬆開心識新朋友,唔使等 match 🥳
           </div>
           <div className="event-meta">
             <div className="event-meta-row"><span className="emo">📅</span><span><b>活動日期：</b>2026 年 7 月 18 日</span></div>
-            <div className="event-meta-row"><span className="emo">💰</span><span><b>活動費用：</b>男 $498 / 女 $478</span></div>
+            <div className="event-meta-row"><span className="emo">⏰</span><span><b>活動時間：</b>14:00 - 18:00</span></div>
+            <div className="event-meta-row"><span className="emo">📍</span><span><b>活動地點：</b>牛頭角</span></div>
+            <div className="event-meta-row"><span className="emo">🍻</span><span><b>活動費用：</b>男 $520 / 女 $488,現有或新加入會員即減 $28!</span></div>
           </div>
+          <div className="event-hero-lead" style={{ marginTop: 12, marginBottom: 0 }}>
+            全程無冷場,唔會令你睇望你眼尷尬嘥嘢。E 人 I 人 friendly,主持會照住所有人 😎
+          </div>
+
+          <div className="event-games-title">悄悄話你知有咩玩〜</div>
+          <ul className="event-games">
+            {GAMES.map(g => (
+              <li key={g.name}><b>{g.name}</b> – {g.desc}</li>
+            ))}
+          </ul>
+
           <ul className="event-perks">
-            <li>預先提供在場會員簡介</li>
-            <li>篩選背景相近參加者</li>
-            <li>小工具助你輕鬆打開話題</li>
-            <li>活動前穿搭意見(如需)</li>
-            <li>提供有酒精及無酒精飲品,要休息就飲啦!</li>
+            {PERKS.map(p => <li key={p}>{p}</li>)}
           </ul>
         </div>
 
         <div className="step-body">
-          {/* ── 第一部分：基本資料 ── */}
-          <div className="step-title" style={{ fontSize: 17, marginBottom: 16 }}>第一部分：基本資料</div>
-
+          {/* ── First question (always shown) ── */}
           <div className="field">
-            <div className="field-label">姓名 <span className="req">*</span></div>
-            <input
-              className="text-input"
-              type="text"
-              value={form.name}
-              onChange={e => setField("name", e.target.value)}
-              placeholder="你嘅名字"
-              autoComplete="name"
+            <div className="field-label">你係現有會員嗎? <span className="req">*</span></div>
+            <Binary
+              stateKey="isMember"
+              opt1={{ val: "yes", label: "喺" }}
+              opt2={{ val: "no", label: "唔喺" }}
             />
-            {errors.name && <div className="field-error">{errors.name}</div>}
+            <ErrorMsg field="isMember" />
           </div>
 
-          <div className="field">
-            <div className="field-label">性別 <span className="req">*</span></div>
-            <div className="binary-row">
-              {GENDER_OPTIONS.map(o => (
-                <button
-                  key={o.val}
-                  type="button"
-                  className={`binary-btn ${form.gender === o.val ? "active" : ""}`}
-                  onClick={() => setField("gender", o.val)}
-                >
-                  <span className="binary-icon">{o.icon}</span>
-                  {o.val}
-                </button>
-              ))}
-            </div>
-            {errors.gender && <div className="field-error">{errors.gender}</div>}
-          </div>
+          {/* Everything below is revealed only after the first question is answered. */}
+          {answeredMember && (
+            <>
+              <div className="step-title" style={{ fontSize: 17, margin: "4px 0 16px" }}>第一部分：基本資料</div>
 
-          <div className="field">
-            <div className="field-label">聯絡電話 / WhatsApp <span className="req">*</span></div>
-            <input
-              className="text-input"
-              type="tel"
-              inputMode="tel"
-              value={form.phone}
-              onChange={e => setField("phone", e.target.value)}
-              placeholder="例如 9123 4567"
-              autoComplete="tel"
-            />
-            {errors.phone && <div className="field-error">{errors.phone}</div>}
-          </div>
+              {form.isMember === "yes" && (
+                <>
+                  <div className="field">
+                    <div className="field-label">你已登記嘅 Instagram Account <span className="req">*</span></div>
+                    <input
+                      className="text-input"
+                      type="text"
+                      value={form.instagram}
+                      onChange={e => set("instagram", e.target.value)}
+                      placeholder="例如 @linkinhk"
+                    />
+                    <ErrorMsg field="instagram" />
+                  </div>
 
-          <div className="field">
-            <div className="field-label">現時職業 <span className="req">*</span></div>
-            <input
-              className="text-input"
-              type="text"
-              value={form.occupation}
-              onChange={e => setField("occupation", e.target.value)}
-              placeholder="例如 市場推廣"
-            />
-            <div className="field-hint">用作篩選背景相近參加者之用</div>
-            {errors.occupation && <div className="field-error">{errors.occupation}</div>}
-          </div>
+                  <div className="field">
+                    <div className="field-label">你現時嘅職業 <span className="req">*</span></div>
+                    <input
+                      className="text-input"
+                      type="text"
+                      value={form.occupation}
+                      onChange={e => set("occupation", e.target.value)}
+                      placeholder="例如 市場推廣經理"
+                    />
+                    <ErrorMsg field="occupation" />
+                  </div>
+                </>
+              )}
 
-          {/* ── 第二部分：活動配對資料 ── */}
-          <div className="step-title" style={{ fontSize: 17, margin: "28px 0 16px" }}>第二部分：活動配對資料</div>
+              {form.isMember === "no" && (
+                <>
+                  <div className="field">
+                    <div className="field-label">姓名 <span className="req">*</span></div>
+                    <input
+                      className="text-input"
+                      type="text"
+                      value={form.name}
+                      onChange={e => set("name", e.target.value)}
+                      placeholder="你嘅名字"
+                      autoComplete="name"
+                    />
+                    <ErrorMsg field="name" />
+                  </div>
 
-          <div className="field">
-            <div className="field-label">您嘅 MBTI 傾向 <span className="req">*</span></div>
-            <div className="binary-row">
-              {MBTI_OPTIONS.map(o => (
-                <button
-                  key={o.val}
-                  type="button"
-                  className={`binary-btn ${form.mbti === o.val ? "active" : ""}`}
-                  onClick={() => setField("mbti", o.val)}
-                >
-                  <span className="binary-icon">{o.icon}</span>
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            {errors.mbti && <div className="field-error">{errors.mbti}</div>}
-          </div>
+                  <div className="field">
+                    <div className="field-label">性別 <span className="req">*</span></div>
+                    <Binary
+                      stateKey="sex"
+                      opt1={{ val: "male", label: "男性", icon: "👨" }}
+                      opt2={{ val: "female", label: "女性", icon: "👩" }}
+                    />
+                    <ErrorMsg field="sex" />
+                  </div>
 
-          <div className="field">
-            <div className="field-label">活動當天您是否需要主辦方提供穿搭意見? <span className="req">*</span></div>
-            <div className="binary-row">
-              {STYLING_OPTIONS.map(o => (
-                <button
-                  key={o.val}
-                  type="button"
-                  className={`binary-btn ${form.styling === o.val ? "active" : ""}`}
-                  onClick={() => setField("styling", o.val)}
-                >
-                  <span className="binary-icon">{o.icon}</span>
-                  {o.val}
-                </button>
-              ))}
-            </div>
-            {errors.styling && <div className="field-error">{errors.styling}</div>}
-          </div>
+                  <div className="field">
+                    <div className="field-label">你現時嘅職業 <span className="req">*</span></div>
+                    <input
+                      className="text-input"
+                      type="text"
+                      value={form.occupation}
+                      onChange={e => set("occupation", e.target.value)}
+                      placeholder="例如 市場推廣"
+                    />
+                    <ErrorMsg field="occupation" />
+                  </div>
 
-          {/* ── 第三部分：條款與細則 ── */}
-          <div className="step-title" style={{ fontSize: 17, margin: "28px 0 8px" }}>第三部分：條款與細則</div>
-          <div className="field-hint" style={{ marginBottom: 12 }}>提交本表單即代表您明白並同意以下所有條款：</div>
+                  <div className="field">
+                    <div className="field-label">🎓 你嘅學院 <span className="req">*</span></div>
+                    <div className="chip-grid">
+                      {UNIVERSITIES.map(u => <Chip key={u.id} stateKey="university" val={u.id} label={u.label} />)}
+                    </div>
+                    <ErrorMsg field="university" />
+                    {form.university === "overseas" && (
+                      <div style={{ marginTop: 10 }}>
+                        <input className="text-input" placeholder="請填寫" value={form.overseasUni} onChange={e => set("overseasUni", e.target.value)} />
+                        <ErrorMsg field="overseasUni" />
+                      </div>
+                    )}
+                    {form.university === "other_uni" && (
+                      <div style={{ marginTop: 10 }}>
+                        <input className="text-input" placeholder="請填寫" value={form.universityOther} onChange={e => set("universityOther", e.target.value)} />
+                        <ErrorMsg field="universityOther" />
+                      </div>
+                    )}
+                  </div>
 
-          <div className="terms-box">
-            {TERMS.map((t, i) => (
-              <div className="terms-item" key={i}>
-                <div className="terms-item-title">{i + 1}. {t.title}</div>
-                <div className="terms-item-body">{t.body}</div>
+                  <div className="field">
+                    <div className="field-label">🎂 你嘅生日 <span className="req">*</span></div>
+                    <div className="dob-row">
+                      <div className="dob-group">
+                        <div className="dob-label">年</div>
+                        <select className="dob-select" value={form.birthYear} onChange={e => set("birthYear", e.target.value)}>
+                          <option value=""></option>
+                          {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                      </div>
+                      <div className="dob-group">
+                        <div className="dob-label">月</div>
+                        <select className="dob-select" value={form.birthMonth} onChange={e => set("birthMonth", e.target.value)}>
+                          <option value=""></option>
+                          {months.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <div className="dob-group">
+                        <div className="dob-label">日</div>
+                        <select className="dob-select" value={form.birthDay} onChange={e => set("birthDay", e.target.value)}>
+                          <option value=""></option>
+                          {days.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <ErrorMsg field="birthday" />
+                  </div>
+
+                  <div className="field">
+                    <div className="field-label">你嘅 MBTI <span className="req">*</span></div>
+                    <div className="mbti-grid">
+                      <div className={`mbti-chip unsure-chip ${form.mbti === "unsure" ? "active" : ""}`} onClick={() => set("mbti", "unsure")}>
+                        不清楚
+                      </div>
+                      {MBTI_TYPES.map(t => (
+                        <div key={t} className={`mbti-chip ${form.mbti === t ? "active" : ""}`} onClick={() => set("mbti", t)}>
+                          <img className="mbti-img" src={`/mbti/${t}.png`} alt={t} />
+                          <div className="mbti-label-row">
+                            <span className="dot" style={{ background: MBTI_COLORS[t] }} />
+                            {t}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <ErrorMsg field="mbti" />
+                  </div>
+                </>
+              )}
+
+              {/* ── Membership question (image 3) — shown to both branches ── */}
+              <div className="field">
+                <div className="field-label">你希望加入成為會員嗎?</div>
+                <div className="membership-desc">
+                  <p>成為會員後,我哋會喺 Party 以外為你安排一對一配對,安排完美 first date! 🎉</p>
+                  <p className="membership-promo">加入會員即享是次 Party $28 折扣優惠 ✨</p>
+                  <ol>
+                    {MEMBERSHIP_POINTS.map((m, i) => (
+                      <li key={i}><b>{m.title}</b> – {m.desc}</li>
+                    ))}
+                  </ol>
+                  <p>我哋會稍後安排專人服務真誠想出 pool、搵到對的人嘅你 💖</p>
+                </div>
+                <div className="option-list" style={{ marginTop: 12 }}>
+                  <div className={`option-item ${form.wantMembership === "want" ? "active" : ""}`} onClick={() => set("wantMembership", "want")}>想</div>
+                  <div className={`option-item ${form.wantMembership === "not_yet" ? "active" : ""}`} onClick={() => set("wantMembership", "not_yet")}>未需要住</div>
+                </div>
+                <ErrorMsg field="wantMembership" />
               </div>
-            ))}
-          </div>
 
-          <div className="field" style={{ marginBottom: 8 }}>
-            <button
-              type="button"
-              className={`check-option ${form.consent ? "active" : ""}`}
-              onClick={() => setField("consent", !form.consent)}
-              style={{ width: "100%", textAlign: "left" }}
-            >
-              <span className="check-box">{form.consent ? "✓" : ""}</span>
-              <span>我已閱讀並同意以上所有條款與細則</span>
-            </button>
-            {errors.consent && <div className="field-error">{errors.consent}</div>}
-          </div>
+              {/* ── Terms & consent ── */}
+              <div className="step-title" style={{ fontSize: 17, margin: "28px 0 8px" }}>條款與細則</div>
+              <div className="field-hint" style={{ marginBottom: 12 }}>提交本表單即代表您明白並同意以下所有條款：</div>
+              <div className="terms-box">
+                {TERMS.map((t, i) => (
+                  <div className="terms-item" key={i}>
+                    <div className="terms-item-title">{i + 1}. {t.title}</div>
+                    <div className="terms-item-body">{t.body}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <div
+                  className={`check-option ${form.consent ? "active" : ""}`}
+                  onClick={() => set("consent", !form.consent)}
+                >
+                  <div className="check-box">{form.consent ? "✓" : ""}</div>
+                  <div>我已閱讀並同意以上所有條款與細則</div>
+                </div>
+                <ErrorMsg field="consent" />
+              </div>
 
-          {submitError && (
-            <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
-              {submitError}
-              <ErrorReportLink detail={submitDetail} />
-            </div>
+              {submitError && (
+                <div className="field-error" style={{ marginTop: 12, fontSize: 13 }}>
+                  {submitError}
+                  <ErrorReportLink detail={submitDetail} />
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        <div className="nav-row">
-          <button className="nav-btn primary" onClick={submit} disabled={submitting}>
-            依家即刻報名！
-          </button>
-        </div>
+        {answeredMember && (
+          <div className="nav-row">
+            <button className="nav-btn primary" onClick={submit} disabled={submitting}>
+              依家即刻報名！
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
