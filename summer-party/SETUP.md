@@ -11,22 +11,32 @@ table** and an **n8n workflow**.
 
 ## What the form sends
 
-The form does `POST <n8n-webhook>` with `Content-Type: application/json` and this body:
+The form has **two branches** driven by the first question (你係現有會員嗎?). It does
+`POST <n8n-webhook>` with `Content-Type: application/json`. Full body shape:
 
 ```json
 {
   "event_id": "2026-07-18-summer-party",
-  "event_name": "2026.07.18 Linkinhk 特約初夏 Party",
-  "submitted_at": "2026-06-26T09:30:00.000Z",
+  "event_name": "2026.07.18 Linkinhk 特約 — 初夏 Party",
+  "submitted_at": "2026-06-28T09:30:00.000Z",
+  "is_existing_member": false,
+  "instagram": "",
   "name": "陳大文",
-  "gender": "男",
-  "phone": "91234567",
+  "sex": "男",
+  "university": "香港大學",
+  "birthday": "1996-07-18",
+  "mbti": "ENFP",
   "occupation": "設計師",
-  "mbti": "E",
-  "styling_advice": "需要",
+  "want_membership": "想",
   "consent": true
 }
 ```
+
+**Branch-dependent fields** (the other branch's fields are sent as empty strings):
+- `is_existing_member: true` (現有會員) → `instagram` + `occupation` are filled; new-member fields blank.
+- `is_existing_member: false` (新朋友) → `name`, `sex`, `university`, `birthday`, `mbti` are filled;
+  `instagram` blank.
+- Always present: `occupation`, `want_membership` (`想` / `未需要住`), `consent`, and the event/meta keys.
 
 The form treats the submit as **successful** when the webhook replies `HTTP 2xx` and the JSON body
 is *not* `{ "success": false }`. n8n's default webhook 200 response already satisfies this, so no
@@ -50,18 +60,21 @@ for production, and **`uat-summer-party`** for testing — mirroring how the oth
 
 Create a table (e.g. **`Event Signups`**) in the same base your other forms use. Suggested fields:
 
-| Field name      | Type                        | From payload     |
-| --------------- | --------------------------- | ---------------- |
-| `姓名`           | Single line text            | `name`           |
-| `性別`           | Single select (`男`, `女`)   | `gender`         |
-| `電話 / WhatsApp`| Phone / Single line text    | `phone`          |
-| `職業`           | Single line text            | `occupation`     |
-| `MBTI`          | Single select (`E`, `I`)     | `mbti`           |
-| `穿搭意見`        | Single select (`需要`, `不需要`) | `styling_advice` |
-| `同意條款`        | Checkbox                    | `consent`        |
-| `Submitted At`  | Date (include time)         | `submitted_at`   |
-| `Event`         | Single line text            | `event_name`     |
-| `Event ID`      | Single line text            | `event_id`       |
+| Field name      | Type                        | From payload          |
+| --------------- | --------------------------- | --------------------- |
+| `現有會員`        | Checkbox                    | `is_existing_member`  |
+| `Instagram`     | Single line text            | `instagram`           |
+| `姓名`           | Single line text            | `name`                |
+| `性別`           | Single select (`男`, `女`)   | `sex`                 |
+| `學院`           | Single line text / select   | `university`          |
+| `生日`           | Date                        | `birthday`            |
+| `MBTI`          | Single select (16 類 + `不清楚`) | `mbti`            |
+| `職業`           | Single line text            | `occupation`          |
+| `想加入會員`      | Single select (`想`, `未需要住`) | `want_membership`  |
+| `同意條款`        | Checkbox                    | `consent`             |
+| `Submitted At`  | Date (include time)         | `submitted_at`        |
+| `Event`         | Single line text            | `event_name`          |
+| `Event ID`      | Single line text            | `event_id`            |
 
 > `Event ID` / `Event` let one table hold future events too — just change `EVENT_ID` / `EVENT_NAME`
 > at the top of `main.jsx` for the next event and filter Airtable by `Event ID`.
@@ -82,12 +95,15 @@ Airtable credential, then swap the two nodes):
    - Use the **same Airtable credential** as the other forms.
    - Base: your base · Table: `Event Signups`.
    - Map each Airtable field to the webhook value. n8n nests posted JSON under `body`, so use:
+     - `現有會員` → `{{ $json.body.is_existing_member }}`
+     - `Instagram` → `{{ $json.body.instagram }}`
      - `姓名` → `{{ $json.body.name }}`
-     - `性別` → `{{ $json.body.gender }}`
-     - `電話 / WhatsApp` → `{{ $json.body.phone }}`
-     - `職業` → `{{ $json.body.occupation }}`
+     - `性別` → `{{ $json.body.sex }}`
+     - `學院` → `{{ $json.body.university }}`
+     - `生日` → `{{ $json.body.birthday }}`
      - `MBTI` → `{{ $json.body.mbti }}`
-     - `穿搭意見` → `{{ $json.body.styling_advice }}`
+     - `職業` → `{{ $json.body.occupation }}`
+     - `想加入會員` → `{{ $json.body.want_membership }}`
      - `同意條款` → `{{ $json.body.consent }}`
      - `Submitted At` → `{{ $json.body.submitted_at }}`
      - `Event` → `{{ $json.body.event_name }}`
