@@ -1,0 +1,65 @@
+{
+  "name": "Summer Party Signup — PROD",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "summer-party",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "summer-party-prod-wh",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "summer-party-prod"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appmdriYp9QILilWm/tblKLcqrVt6zXzHej",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: Object.fromEntries(Object.entries({ \"現有會員\": $json.body.is_existing_member, \"Instagram\": $json.body.instagram, \"姓名\": $json.body.name, \"性別\": $json.body.sex, \"WhatsApp\": $json.body.whatsapp, \"學院\": $json.body.university, \"生日\": $json.body.birthday, \"MBTI\": $json.body.mbti, \"職業\": $json.body.occupation, \"想加入會員\": $json.body.want_membership, \"同意條款\": $json.body.consent, \"Submitted At\": $json.body.submitted_at, \"Event\": $json.body.event_name, \"Event ID\": $json.body.event_id }).filter(e => e[1] !== \"\" && e[1] !== null && e[1] !== undefined)), typecast: true }) }}",
+        "options": {}
+      },
+      "id": "summer-party-prod-air",
+      "name": "Airtable — Create record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        540,
+        300
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Airtable — Create record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

@@ -516,8 +516,7 @@ function App() {
                   </div>
 
                   <div className="field">
-                    <div className="field-label">📱 WhatsApp 號碼 <span className="req">*</span></div>
-                    <div className="field-hint">我哋只會係緊急情況下（例如活動當日未見到你）先會主動聯絡你！請確保電話正確</div>
+                    <div className="field-label">WhatsApp 號碼 <span className="req">*</span></div>
                     <input
                       className="text-input"
                       type="tel"
