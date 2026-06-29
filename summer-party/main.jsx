@@ -25,12 +25,13 @@ const MBTI_COLORS = {
 };
 
 const EMPTY_FORM = {
-  isMember: "",        // "yes" (喺) | "no" (唔喺)
-  // ── existing-member branch ──
+  isMember: "",        // "yes" (係) | "no" (唔係)
+  // ── contact — collected in both branches ──
   instagram: "",
   // ── new-member branch ──
   name: "",
   sex: "",             // "male" | "female"
+  whatsapp: "",
   university: "",      // option id
   overseasUni: "",
   universityOther: "",
@@ -53,8 +54,8 @@ const GAMES = [
 const PERKS = [
   "預先提供在場會員簡介",
   "篩選背景相近參加者",
-  "小工具助你輕鬆打開話題",
-  "活動前穿搭意見(如需)",
+  "分享小工具助你輕鬆打開話題",
+  "分享活動前穿搭意見(如需)",
   "提供有酒精及無酒精飲品,要休息就飲啦!",
 ];
 const MEMBERSHIP_POINTS = [
@@ -63,16 +64,12 @@ const MEMBERSHIP_POINTS = [
 ];
 const TERMS = [
   {
-    title: "相片及影片拍攝 (Photography & Media Consent)",
-    body: "參加者知悉並同意,活動期間將進行拍照及錄影,相關相片及影片將有機會保留作未來宣傳及推廣用途。",
-  },
-  {
-    title: "個人安全責任 (Personal Safety Disclaimer)",
-    body: "參加者須全權負責其自身的個人、財產及活動期間的安全。",
-  },
-  {
     title: "報名審核與進一步通知 (Application & Notification)",
     body: "提交表單並不代表成功報名。成功入選／報名之申請者將會獲得進一步通知,屆時請根據指示完成付款以確認名額。",
+  },
+  {
+    title: "個人資料收集聲明 (Personal Data Collection Statement)",
+    body: "本表格所收集的個人資料僅用於處理是次活動的報名、審核及其後相關聯絡事宜。",
   },
 ];
 
@@ -80,7 +77,7 @@ const TERMS = [
 function draftHasContent(f) {
   if (!f) return false;
   return Boolean(
-    f.isMember || f.instagram || f.name || f.sex || f.university ||
+    f.isMember || f.instagram || f.name || f.sex || f.whatsapp || f.university ||
     f.birthYear || f.birthMonth || f.birthDay || f.mbti ||
     f.occupation || f.wantMembership || f.consent
   );
@@ -172,6 +169,8 @@ function App() {
       if (form.university === "other_uni" && !form.universityOther.trim()) e.universityOther = "請填寫";
       if (!form.birthYear || !form.birthMonth || !form.birthDay) e.birthday = "請選擇完整生日";
       if (!form.mbti) e.mbti = "請選擇你嘅 MBTI";
+      if (!form.instagram.trim()) e.instagram = "請輸入 Instagram 名稱";
+      if (!form.whatsapp.trim()) e.whatsapp = "請輸入 WhatsApp 號碼";
       if (!form.wantMembership) e.wantMembership = "請選擇";
     }
 
@@ -208,11 +207,12 @@ function App() {
       event_name: EVENT_NAME,
       submitted_at: new Date().toISOString(),
       is_existing_member: form.isMember === "yes",
-      // existing-member branch
-      instagram: form.isMember === "yes" ? form.instagram.trim() : "",
+      // contact — collected in both branches
+      instagram: form.instagram.trim(),
       // new-member branch
       name: isNewMember ? form.name.trim() : "",
       sex: isNewMember ? (form.sex === "male" ? "男" : "女") : "",
+      whatsapp: isNewMember ? form.whatsapp.trim() : "",
       university: isNewMember ? resolveUniversity() : "",
       birthday: isNewMember
         ? `${form.birthYear}-${String(form.birthMonth).padStart(2, "0")}-${String(form.birthDay).padStart(2, "0")}`
@@ -340,10 +340,10 @@ function App() {
               <div className="event-meta-row"><span className="emo">📅</span><span><b>活動日期：</b>2026 年 7 月 18 日</span></div>
               <div className="event-meta-row"><span className="emo">⏰</span><span><b>活動時間：</b>14:00 - 18:00</span></div>
               <div className="event-meta-row"><span className="emo">📍</span><span><b>活動地點：</b>牛頭角</span></div>
-              <div className="event-meta-row"><span className="emo">🍻</span><span><b>活動費用：</b>男 $520 / 女 $488,現有或新加入會員即減 $28!</span></div>
+              <div className="event-meta-row"><span className="emo">🍻</span><span><b>活動費用：</b>男 $528 / 女 $488,現有或新加入會員即減 $38!</span></div>
             </div>
             <div className="event-card-note">
-              全程無冷場,唔會令你睇望你眼尷尬嘥嘢。E 人 I 人 friendly,主持會照住所有人 😎
+              全程無冷場,唔會你眼望我眼！E 人 I 人 friendly,主持會照住所有人 😎
             </div>
           </div>
 
@@ -367,8 +367,8 @@ function App() {
             <div className="field-label">你係現有會員嗎? <span className="req">*</span></div>
             <Binary
               stateKey="isMember"
-              opt1={{ val: "yes", label: "喺" }}
-              opt2={{ val: "no", label: "唔喺" }}
+              opt1={{ val: "yes", label: "係" }}
+              opt2={{ val: "no", label: "唔係" }}
             />
             <ErrorMsg field="isMember" />
           </div>
@@ -503,6 +503,30 @@ function App() {
                     </div>
                     <ErrorMsg field="mbti" />
                   </div>
+
+                  <div className="field">
+                    <div className="field-label">Instagram 名稱 <span className="req">*</span></div>
+                    <input
+                      className="text-input"
+                      type="text"
+                      value={form.instagram}
+                      onChange={e => set("instagram", e.target.value)}
+                    />
+                    <ErrorMsg field="instagram" />
+                  </div>
+
+                  <div className="field">
+                    <div className="field-label">📱 WhatsApp 號碼 <span className="req">*</span></div>
+                    <div className="field-hint">我哋只會係緊急情況下（例如活動當日未見到你）先會主動聯絡你！請確保電話正確</div>
+                    <input
+                      className="text-input"
+                      type="tel"
+                      inputMode="numeric"
+                      value={form.whatsapp}
+                      onChange={e => set("whatsapp", e.target.value)}
+                    />
+                    <ErrorMsg field="whatsapp" />
+                  </div>
                 </>
               )}
 
@@ -512,7 +536,7 @@ function App() {
                 <div className="field-label">你希望加入成為會員嗎?</div>
                 <div className="membership-desc">
                   <p>成為會員後,我哋會喺 Party 以外為你安排一對一配對,安排完美 first date! 🎉</p>
-                  <p className="membership-promo">加入會員即享是次 Party $28 折扣優惠 ✨</p>
+                  <p className="membership-promo">加入會員即享是次 Party $38 折扣優惠 ✨</p>
                   <ol>
                     {MEMBERSHIP_POINTS.map((m, i) => (
                       <li key={i}><b>{m.title}</b> – {m.desc}</li>
