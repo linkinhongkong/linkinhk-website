@@ -18,6 +18,7 @@ const VITE_PAGES = {
   login: resolve(__dirname, "login/index.html"),
   "availability-form": resolve(__dirname, "availability-form/index.html"),
   "ideal-form": resolve(__dirname, "ideal-form/index.html"),
+  "summer-party": resolve(__dirname, "summer-party/index.html"),
   dashboard: resolve(__dirname, "dashboard/index.html"),
 };
 
@@ -30,6 +31,8 @@ const EXCLUDE = new Set([
   "package.json",
   "package-lock.json",
   "vite.config.js",
+  // Backend artifacts (n8n workflow exports) — versioned but never web-served.
+  "n8n",
 ]);
 
 // Everything at the repo root that is NOT a migrated page and NOT a build artifact
