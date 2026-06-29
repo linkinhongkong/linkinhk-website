@@ -31,6 +31,8 @@ const EXCLUDE = new Set([
   "package.json",
   "package-lock.json",
   "vite.config.js",
+  // Backend artifacts (n8n workflow exports) — versioned but never web-served.
+  "n8n",
 ]);
 
 // Everything at the repo root that is NOT a migrated page and NOT a build artifact
